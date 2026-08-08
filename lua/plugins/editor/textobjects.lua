@@ -1,0 +1,123 @@
+-- nvim-treesitter/nvim-treesitter-textobjects: select/swap/move by treesitter node (function,
+-- class, parameter, local scope) instead of line/word-based Vim motions.
+--
+-- 2026-08-06: config-wide audit (full scope in init.lua). Fixed two real, previously
+-- undocumented collisions with Neovim's own built-in keymaps — found by checking every
+-- bracket-motion in this config against `:help index` rather than assuming a free key was
+-- actually free:
+--   • Parameter swap was on `]p`/`[p`, which are Neovim's built-in indent-adjusted paste
+--     commands (`:help ]p`). Moved to `<leader>a`/`<leader>A`, matching nvim-treesitter-
+--     textobjects' own README-suggested keymap for swap — verified against its current README
+--     rather than invented. New which-key group added in plugins/ui/which-key.lua.
+--   • Class start/end navigation was on `]c`/`[c`/`]C`/`[C`. Lowercase `]c`/`[c` are Neovim's
+--     *native* diff-mode navigation (`:help ]c`) — genuinely live inside plugins/git/
+--     diffview.lua's windows, which render via real 'diff' mode under the hood, not just a
+--     hypothetical `:vimdiff` case. Moved to `]m`/`[m`/`]M`/`[M` (free, and close enough to
+--     treesitter-textobjects' own upstream convention of using the `m`-family for structural
+--     jumps that it doesn't feel arbitrary). Freed-up `]c`/`[c` now belongs to gitsigns.nvim's
+--     own hunk navigation instead — see plugins/git/gitsigns.lua's note.
+-- Everything else here (function/parameter goto, jsx element goto, the select mappings) was
+-- checked against the same built-in keymap list and has no other collisions.
+return {
+	"nvim-treesitter/nvim-treesitter-textobjects",
+	branch = "main",
+	event = { "BufReadPost", "BufNewFile", "BufWritePre" },
+	dependencies = { "nvim-treesitter/nvim-treesitter" },
+	init = function()
+		vim.g.no_plugin_maps = true
+	end,
+	config = function()
+		require("nvim-treesitter-textobjects").setup({
+			select = {
+				lookahead = true,
+				selection_modes = {
+					["@function.outer"] = "V",
+					["@function.inner"] = "V",
+					["@class.outer"] = "V",
+					["@class.inner"] = "V",
+					["@parameter.outer"] = "v",
+				},
+				include_surrounding_whitespace = false,
+			},
+			move = {
+				set_jumps = true,
+			},
+		})
+
+		-- 1. Selection Keymaps
+		local select = require("nvim-treesitter-textobjects.select")
+		vim.keymap.set({ "x", "o" }, "af", function()
+			select.select_textobject("@function.outer", "textobjects")
+		end, { desc = "Select outer part of a function" })
+		vim.keymap.set({ "x", "o" }, "if", function()
+			select.select_textobject("@function.inner", "textobjects")
+		end, { desc = "Select inner part of a function" })
+		vim.keymap.set({ "x", "o" }, "ac", function()
+			select.select_textobject("@class.outer", "textobjects")
+		end, { desc = "Select outer part of a class" })
+		vim.keymap.set({ "x", "o" }, "ic", function()
+			select.select_textobject("@class.inner", "textobjects")
+		end, { desc = "Select inner part of a class" })
+		vim.keymap.set({ "x", "o" }, "as", function()
+			select.select_textobject("@local.scope", "textobjects")
+		end, { desc = "Select local scope" })
+		vim.keymap.set({ "x", "o" }, "a,", function()
+			select.select_textobject("@parameter.outer", "textobjects")
+		end, { desc = "Select outer part of a parameter" })
+		vim.keymap.set({ "x", "o" }, "i,", function()
+			select.select_textobject("@parameter.inner", "textobjects")
+		end, { desc = "Select inner part of a parameter" })
+
+		-- 2. Swap Keymaps — <leader>a/<leader>A, not ]p/[p (native indent-paste; see header note)
+		local swap = require("nvim-treesitter-textobjects.swap")
+		vim.keymap.set("n", "<leader>a", function()
+			swap.swap_next("@parameter.inner")
+		end, { desc = "Swap parameter with next" })
+		vim.keymap.set("n", "<leader>A", function()
+			swap.swap_previous("@parameter.inner")
+		end, { desc = "Swap parameter with previous" })
+
+		-- 3. Movement Keymaps (Goto Start)
+		local move = require("nvim-treesitter-textobjects.move")
+		vim.keymap.set({ "n", "x", "o" }, "]f", function()
+			move.goto_next_start("@function.outer", "textobjects")
+		end, { desc = "Next function start" })
+		vim.keymap.set({ "n", "x", "o" }, "]m", function()
+			move.goto_next_start("@class.outer", "textobjects")
+		end, { desc = "Next class start" })
+		vim.keymap.set({ "n", "x", "o" }, "]a", function()
+			move.goto_next_start("@parameter.inner", "textobjects")
+		end, { desc = "Next parameter start" })
+		vim.keymap.set({ "n", "x", "o" }, "]]", function()
+			move.goto_next_start("@jsx.element", "textobjects")
+		end, { desc = "Next jsx element start" })
+
+		vim.keymap.set({ "n", "x", "o" }, "[f", function()
+			move.goto_previous_start("@function.outer", "textobjects")
+		end, { desc = "Previous function start" })
+		vim.keymap.set({ "n", "x", "o" }, "[m", function()
+			move.goto_previous_start("@class.outer", "textobjects")
+		end, { desc = "Previous class start" })
+		vim.keymap.set({ "n", "x", "o" }, "[a", function()
+			move.goto_previous_start("@parameter.inner", "textobjects")
+		end, { desc = "Previous parameter start" })
+		vim.keymap.set({ "n", "x", "o" }, "[[", function()
+			move.goto_previous_start("@jsx.element", "textobjects")
+		end, { desc = "Previous jsx element start" })
+
+		-- 4. Movement Keymaps (Goto End)
+		vim.keymap.set({ "n", "x", "o" }, "]F", function()
+			move.goto_next_end("@function.outer", "textobjects")
+		end, { desc = "Next function end" })
+		vim.keymap.set({ "n", "x", "o" }, "]M", function()
+			move.goto_next_end("@class.outer", "textobjects")
+		end, { desc = "Next class end" })
+
+		vim.keymap.set({ "n", "x", "o" }, "[F", function()
+			move.goto_previous_end("@function.outer", "textobjects")
+		end, { desc = "Previous function end" })
+		vim.keymap.set({ "n", "x", "o" }, "[M", function()
+			move.goto_previous_end("@class.outer", "textobjects")
+		end, { desc = "Previous class end" })
+	end,
+}
