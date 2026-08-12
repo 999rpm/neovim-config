@@ -34,6 +34,40 @@ function M.executable(name) -- This util is used by options.lua, plugins/lsp/lsp
 	return fn.executable(name) > 0
 end
 
+--- Warn (once, at plugin-load time — not mid-debug-session) if a Mason-installed binary a DAP
+--- adapter depends on isn't actually at its expected path yet. Mason's own install can still be
+--- running in the background on a fresh machine, or can have failed outright (e.g. debugpy's
+--- venv creation needs a system python3/python on $PATH to build from — if that's missing,
+--- Mason never gets to create the venv at all); either way, the *first* sign of that today is a
+--- raw ENOENT the moment you actually try to debug, which names the missing file but not why
+--- it's missing or what to do about it. Same "check once at startup, one clear message" shape as
+--- utils.executable()'s own callers (options.lua's nu/rg, treesitter.lua's tree-sitter-cli) —
+--- this is the equivalent for a Mason-managed *absolute path* rather than a $PATH lookup, since
+--- executable() alone can't check those.
+--- @param path string Absolute path to the expected binary/script
+--- @param label string Human-readable name for the notify message, e.g. "debugpy"
+function M.warn_if_missing_mason_bin(path, label) -- This util is used by plugins/debug/dap.lua and plugins/debug/dap-python.lua
+	if (vim.uv or vim.loop).fs_stat(path) == nil then
+		vim.schedule(function()
+			vim.notify(
+				string.format(
+					"%s not found at:\n%s\n\nMason may still be installing it, or the install failed "
+						.. "(debugpy/codelldb/js-debug-adapter/haskell-debug-adapter all need Mason to have "
+						.. "finished successfully — a missing system python3 is the most common reason a "
+						.. "pyvenv-based install like debugpy's never completes). Check `:Mason` (press 'i' "
+						.. "on the entry if it's not installed) or `:MasonLog` for the actual error, then "
+						.. "`:MasonInstall %s` to retry.",
+					label,
+					path,
+					label
+				),
+				vim.log.levels.WARN,
+				{ title = "DAP" }
+			)
+		end)
+	end
+end
+
 --- Create (or re-create) a "999rpm-"-namespaced augroup, so every custom augroup in this
 --- config shows up together under `:autocmd`/`:augroup` output and never collides with a
 --- plugin's own internal group names.
@@ -209,8 +243,11 @@ end
 --- rainbow-delimiters.lua points at this same list rather than a hand-typed copy, and it
 --- follow the active colorscheme: tokyonight/catppuccin/kanagawa (themes.lua) all ship their
 --- own overrides for these exact group names, so no hex codes need to be hand-maintained here.
+--- Second consumer as of this pass: plugins/ui/snacks.lua points its per-level indent-guide
+--- highlights (`indent.indent.hl`) at this exact list too, so bracket nesting and indent depth
+--- share one color source instead of two independently-cycling rainbows.
 --- @type string[]
-M.rainbow_delimiter_groups = { -- This util is used by plugins/treesitter/rainbow-delimiters.lua
+M.rainbow_delimiter_groups = { -- This util is used by plugins/treesitter/rainbow-delimiters.lua and plugins/ui/snacks.lua
 	"RainbowDelimiterRed",
 	"RainbowDelimiterYellow",
 	"RainbowDelimiterBlue",

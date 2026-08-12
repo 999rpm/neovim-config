@@ -54,6 +54,12 @@ local disabled_plugins = {
 	"2html_plugin",
 }
 
+-- `git = { added = ..., modified = ..., removed = ... }` used to live here too, alongside the
+-- rest. Removed rather than fixed: grepped lazy.nvim's current source for `icons.git` and it's
+-- read nowhere at all (confirmed against a fresh clone of lua/lazy/view/render.lua, the only
+-- place `Config.options.ui.icons.*` gets consumed) - unlike every icon below, which IS read
+-- (cmd/config/event/ft/etc. all appear in render.lua). Dead config from an older lazy.nvim
+-- version rather than a real, currently-broken feature.
 local icons = {
 	cmd = "󰞷 ",
 	config = "󰒓 ",
@@ -68,7 +74,6 @@ local icons = {
 	start = "󰐊 ",
 	task = "󰄉 ",
 	lazy = "󰒲 ",
-	git = { added = " ", modified = " ", removed = " " },
 }
 
 require("lazy").setup(vim.tbl_extend("keep", user_lazy_opts, {

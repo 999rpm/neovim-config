@@ -8,23 +8,26 @@ return {
 		local dap = require("dap")
 		local dapui = require("dapui")
 
+		-- Icon values below are nvim-dap-ui's own current defaults (lua/dapui/config/init.lua) -
+		-- restated explicitly rather than omitted, so this stays correct even if a future
+		-- upstream release changes its defaults out from under an implicit fallback.
 		dapui.setup({
 			icons = {
-				expanded = "",
-				collapsed = "",
-				current_frame = "",
+				expanded = "",
+				collapsed = "",
+				current_frame = "",
 			},
 			controls = {
 				icons = {
-					pause = "",
-					play = "",
-					step_out = "",
-					step_back = "",
-					step_into = "",
-					step_over = "",
-					run_last = "",
-					terminate = "",
-					disconnect = "",
+					pause = "",
+					play = "",
+					step_out = "",
+					step_back = "",
+					step_into = "",
+					step_over = "",
+					run_last = "",
+					terminate = "",
+					disconnect = "",
 				},
 			},
 		})

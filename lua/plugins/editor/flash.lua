@@ -14,6 +14,20 @@
 --     natively, Visual `R` acts like `c` (delete the selection, enter Insert). With this
 --     mapping active, Visual `R` runs flash's treesitter-search instead — if you're used to
 --     `R` as "replace my selection", this is the one to know about.
+--   • `<C-s>` in cmdline mode — flash's own documented default for this (its README's "setup"
+--     block uses this exact key, never `<c-/>`), not a native mapping either way. It doesn't
+--     collide with this config's other `<C-s>` uses (mappings.lua's normal-mode save, and
+--     insert-mode signature help in lspconfig.lua) since keymaps are mode-scoped — cmdline,
+--     normal, and insert are three separate namespaces. Was `<C-/>` here previously; changed
+--     back to match upstream after it stopped registering reliably — `<C-/>` and `<C-_>` are
+--     frequently indistinguishable at the raw keycode level depending on terminal/OS keyboard
+--     layer, which upstream's own choice of `<C-s>` sidesteps entirely.
+--
+-- Quick tutorial: press "f" (not the native find-char) and every visible occurrence of the
+-- NEXT character you type gets a 1-2 letter label overlaid on it — type that label to jump
+-- straight there, from anywhere on screen, not just the current line. "F" does the same but
+-- jumps by treesitter node (functions, classes, etc.) instead of by character. This replaces
+-- native f/F entirely (see "modes.char.enabled = false" above); t/T are untouched.
 return {
 	"folke/flash.nvim",
 	event = "VeryLazy",
@@ -58,7 +72,11 @@ return {
 			desc = "Treesitter Search",
 		},
 		{
-			"<C-/>",
+			-- Toggles flash's jump labels ON TOP of an already-active "/" or "?" search — it
+			-- does nothing pressed from Normal mode; press "/" first, THEN this, to label the
+			-- matches incremental search is already highlighting. For a direct jump from
+			-- Normal mode (no search involved), use "f"/"F" above instead.
+			"<C-s>",
 			mode = { "c" },
 			function()
 				require("flash").toggle()

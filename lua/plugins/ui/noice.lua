@@ -53,7 +53,23 @@ return {
 			command_palette = true, -- Position cmdline in center
 			long_message_to_split = true,
 			inc_rename = false, -- Use standard rename for now
-			lsp_doc_border = false, -- Blink/LSP handles borders
+			-- K's hover window rendering, not just its border: `lsp.hover.enabled` above makes
+			-- Noice register its own `textDocument/hover` handler (confirmed in
+			-- lua/noice/lsp/init.lua: `vim.lsp.buf_request(0, "textDocument/hover", params,
+			-- require("noice.lsp.hover").on_hover)`), so it's Noice's own "hover" view that
+			-- actually gets drawn on K — the `border = border_style` passed to
+			-- vim.lsp.buf.hover() in lspconfig.lua never reaches it. That view's own real
+			-- default (lua/noice/config/views.lua) is `border = { style = "none" }` — no
+			-- border at all, not just a non-rounded one, and NOT inherited from
+			-- options.lua's global `winborder = "rounded"` either, since Noice sets `style`
+			-- explicitly rather than leaving it unset. `lsp_doc_border = true` is the preset
+			-- that actually fixes this (lua/noice/config/preset.lua): it sets exactly
+			-- `views.hover.border.style = "rounded"` and nudges the popup's position
+			-- slightly for better placement near the cursor. The previous `false` here,
+			-- with a comment claiming "Blink/LSP handles borders", was the actual bug —
+			-- blink.cmp only borders its OWN completion-doc popup, a different window; it
+			-- has no involvement in LSP hover at all once Noice has taken it over.
+			lsp_doc_border = true,
 		},
 
 		------------------------------------------------------------------

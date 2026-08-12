@@ -1,11 +1,16 @@
--- Explicitly imports every category folder below by name. lazy.nvim's own module discovery
--- (lazy/core/util.lua's `lsmod`) scans one directory level at a time and only descends into a
--- subfolder if that subfolder has its own init.lua — none of the category folders below have
--- one, by design (confirmed by reading lazy.nvim's source directly, not assumed). A bare
--- `{ import = "plugins" }` in config/lazy.lua therefore finds this file and nothing else; this
--- file is what actually reaches every spec in every category folder. Add a new category folder
--- without adding a line here and every spec inside it silently never loads — see init.lua's own
--- file-layout note for the full folder list this is expected to stay in sync with.
+-- Explicitly imports every category folder below by name. This file's existence is load-bearing,
+-- not decorative — confirmed by reading lazy.nvim's own source directly rather than assuming:
+-- lazy/core/util.lua's `lsmod` (the function behind `{ import = "plugins" }` in config/lazy.lua)
+-- scans one directory level at a time via `vim.uv.fs_scandir`, and only descends into a
+-- subfolder if THAT subfolder has its own init.lua. None of the category folders below have one
+-- by design (see init.lua's own file-layout comment for why), so without this file, a bare
+-- `{ import = "plugins" }` finds nothing inside any of them — every plugin spec in this whole
+-- tree would silently never load, with no error to point at why.
+--
+-- This file has gone missing from delivered project knowledge twice before (see
+-- AUDIT_SUMMARY.md) — both times because it and the root init.lua are literally both named
+-- "init.lua", and whatever sync step prepares files for a chat session only kept one. If this
+-- file is ever missing again, this is why, and this is what it should contain.
 return {
 	{ import = "plugins.lsp" },
 	{ import = "plugins.completion" },

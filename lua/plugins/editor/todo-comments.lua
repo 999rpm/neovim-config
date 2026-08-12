@@ -40,12 +40,13 @@ return {
 			after = "fg",
 		},
 		keywords = {
-			FIX = { icon = " ", color = "error", alt = { "FIXME", "BUG", "ISSUE" } },
-			TODO = { icon = " ", color = "info" },
-			HACK = { icon = " ", color = "warning" },
-			WARN = { icon = " ", color = "warning", alt = { "WARNING", "XXX" } },
-			PERF = { icon = " ", alt = { "OPTIM", "PERFORMANCE", "OPTIMIZE" } },
-			NOTE = { icon = " ", color = "hint", alt = { "INFO" } },
+			-- Icons below are todo-comments.nvim's own current defaults (lua/todo-comments/config.lua).
+			FIX = { icon = " ", color = "error", alt = { "FIXME", "BUG", "ISSUE" } },
+			TODO = { icon = " ", color = "info" },
+			HACK = { icon = " ", color = "warning" },
+			WARN = { icon = " ", color = "warning", alt = { "WARNING", "XXX" } },
+			PERF = { icon = " ", alt = { "OPTIM", "PERFORMANCE", "OPTIMIZE" } },
+			NOTE = { icon = " ", color = "hint", alt = { "INFO" } },
 		},
 	},
 }

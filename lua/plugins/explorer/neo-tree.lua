@@ -42,20 +42,22 @@ return {
 				last_indent_marker = "╰",
 				highlight = "NeoTreeIndentMarker",
 				with_expanders = true,
-				expander_collapsed = "",
-				expander_expanded = "",
+				expander_collapsed = "",
+				expander_expanded = "",
 			},
+			-- Values below are neo-tree's own current defaults (lua/neo-tree/defaults.lua),
+			-- restated explicitly rather than omitted for the same reason as dap-ui.lua.
 			git_status = {
 				symbols = {
-					added = "", -- nf-fa-plus
-					modified = "", -- nf-fa-pencil
-					deleted = "", -- nf-fa-minus
-					renamed = "", -- nf-fa-exchange
-					untracked = "", -- nf-fa-question
-					ignored = "", -- nf-fa-eye_slash
-					unstaged = "", -- nf-fa-exclamation
-					staged = "", -- nf-fa-check
-					conflict = "", -- nf-fa-bug (or similar warning)
+					added = "✚",
+					modified = "",
+					deleted = "✖",
+					renamed = "󰁕",
+					untracked = "",
+					ignored = "",
+					unstaged = "󰄱",
+					staged = "",
+					conflict = "",
 				},
 			},
 		},

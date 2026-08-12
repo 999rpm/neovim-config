@@ -2,13 +2,13 @@
 
 ## Requirements
 
-- **Neovim 0.12+.** `nvim-treesitter`'s `main` branch won't load on anything older, and that's not something this config can paper over.
+- **Neovim 0.12+.** Required by `nvim-treesitter`'s `main` branch.
 - `git`, `curl`, `tar` — lazy.nvim and treesitter both shell out to these.
 - A C compiler on `$PATH` (`cc`/`gcc`/`clang`) — needed to build treesitter parsers.
-- A [Nerd Font](https://www.nerdfonts.com/), set as your terminal's font. Icons and statusline separators are Private Use Area glyphs — without a Nerd Font they render as blank boxes or nothing at all, not an error, just nothing to look at.
-- `ripgrep` and `fd` for Telescope/fzf-lua. Config runs without them but search gets a lot worse.
+- A [Nerd Font](https://www.nerdfonts.com/), set as your terminal's font. Icons and statusline separators are Private Use Area glyphs; without one they render as blank boxes or invisible glyphs.
+- `ripgrep` and `fd` for Telescope/fzf-lua. Optional — search falls back to slower built-ins without them.
 - Node.js, if you want Copilot or the JS/TS/CSS/HTML/Tailwind language servers.
-- The `tree-sitter` CLI gets installed automatically via Mason on first launch — see `plugins/treesitter/treesitter.lua` if you're curious why that's needed at all now.
+- The `tree-sitter` CLI installs automatically via Mason on first launch — see `plugins/treesitter/treesitter.lua` for details.
 
 ## Install
 
@@ -17,9 +17,9 @@ git clone <this-repo> ~/.config/nvim
 nvim
 ```
 
-First launch bootstraps lazy.nvim, installs everything in `lua/plugins/`, and Mason grabs LSP servers, formatters, linters, and debug adapters in the background. It'll be a little slow the first time and take over your terminal with download logs. That's expected — subsequent launches are fast.
+First launch bootstraps lazy.nvim, installs the plugins under `lua/plugins/`, and Mason installs LSP servers, formatters, linters, and debug adapters in the background. The first launch is slower and prints installation logs; later launches are not.
 
-`:checkhealth` afterward if anything looks off.
+Run `:checkhealth` afterward if anything looks off.
 
 ## Layout
 
@@ -49,15 +49,6 @@ lua/
     └── deps/                  -- shared library plugins (plenary, nui, web-devicons) with nothing of their own to configure — centralized so "what does this run on" is one file, not a grep
 ```
 
-## Credit where it's due
-
-- [jdhao/nvim-config](https://github.com/jdhao/nvim-config) — the closest thing to a spiritual template here; a lot of the LSP attach/keymap logic started as a direct read of his.
-- [craftzdog/dotfiles-public](https://github.com/craftzdog/dotfiles-public) — `lua_ls` tuning in particular.
-- [xero/dotfiles](https://github.com/xero/dotfiles) — schemastore wiring, some diagnostic sign choices.
-- [rafi/vim-config](https://github.com/rafi/vim-config) — the right-click context menu in `autocmds.lua` is adapted from here almost directly.
-
-None of these are copy-pasted wholesale — go read them yourselves, they're all better documented than most software you'll pay for.
-
 ## License
 
-Do whatever you want with it. If something in here saves you an afternoon, that's the whole point of putting it up publicly.
+No license restrictions. Use, modify, or copy any part of it.

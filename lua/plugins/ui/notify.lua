@@ -5,12 +5,13 @@
 return {
 	"rcarriga/nvim-notify",
 	opts = {
+		-- nvim-notify's own current defaults (lua/notify/config/init.lua), restated explicitly.
 		icons = {
-			ERROR = "",
-			WARN = "",
-			INFO = "",
-			DEBUG = "",
-			TRACE = "",
+			ERROR = "",
+			WARN = "",
+			INFO = "",
+			DEBUG = "",
+			TRACE = "✎",
 		},
 	},
 }

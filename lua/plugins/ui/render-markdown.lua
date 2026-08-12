@@ -40,17 +40,20 @@ return {
 			border = "thin", -- lower visual + render cost
 		},
 
+		-- The 4-level bullet cycle below is render-markdown's own verified upstream default
+		-- (plain Unicode geometric shapes, not Nerd Font glyphs - renders correctly even without
+		-- one installed, unlike most other icons in this config).
 		bullet = {
-			icons = { " ", " ", "󰧞 ", " " },
+			icons = { "● ", "○ ", "◆ ", "◇ " },
 		},
 
 		checkbox = {
-			unchecked = { icon = " " },
-			checked = { icon = " " },
+			unchecked = { icon = "󰄱 " },
+			checked = { icon = "󰱒 " },
 			custom = {
 				todo = {
 					raw = "[-]",
-					rendered = " ",
+					rendered = "󰥔 ",
 					highlight = "RenderMarkdownWarn",
 				},
 				progress = {
@@ -62,10 +65,10 @@ return {
 		},
 
 		callout = {
-			note = { raw = "[!NOTE]", rendered = " Note", highlight = "RenderMarkdownInfo" },
-			tip = { raw = "[!TIP]", rendered = " Tip", highlight = "RenderMarkdownSuccess" },
-			important = { raw = "[!IMPORTANT]", rendered = " Important", highlight = "RenderMarkdownError" },
-			warning = { raw = "[!WARNING]", rendered = " Warning", highlight = "RenderMarkdownWarn" },
+			note = { raw = "[!NOTE]", rendered = "󰋽 Note", highlight = "RenderMarkdownInfo" },
+			tip = { raw = "[!TIP]", rendered = "󰌶 Tip", highlight = "RenderMarkdownSuccess" },
+			important = { raw = "[!IMPORTANT]", rendered = "󰅾 Important", highlight = "RenderMarkdownError" },
+			warning = { raw = "[!WARNING]", rendered = "󰀪 Warning", highlight = "RenderMarkdownWarn" },
 		},
 
 		anti_conceal = {

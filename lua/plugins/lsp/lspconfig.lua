@@ -107,6 +107,15 @@ return {
 				-- │  <C-]>    – definition   via 'tagfunc' (automatic, no map needed)│
 				-- │  <C-w>]   – definition   in a new horizontal split (same source) │
 				-- │  <C-w>}   – definition   in the preview window (same source)     │
+				-- │             — if this seems to "close a terminal": it doesn't;   │
+				-- │             confirmed neither Neovim core nor kitty.conf binds   │
+				-- │             <C-w> to anything in terminal mode (checked          │
+				-- │             $VIMRUNTIME/lua/vim/_core/defaults.lua directly, no  │
+				-- │             terminal-mode entry exists). What's actually         │
+				-- │             happening: this opens a real new split for the       │
+				-- │             preview window, and options.lua's winminheight = 1   │
+				-- │             lets an existing terminal split shrink to a single   │
+				-- │             line to make room — squeezed thin, not closed.       │
 				-- │  grt      – type definition                    [global default]  │
 				-- │  grr      – references (quickfix)              [global default]  │
 				-- │  gri      – implementation (quickfix)          [global default]  │

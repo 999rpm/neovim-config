@@ -36,31 +36,32 @@ return {
 	opts = {
 		focus = false,
 		auto_preview = true,
-		use_diagnostic_signs = true,
 
 		win = {
 			border = "rounded",
 		},
 
 		----------------------------------------------------------------
-		-- Icons (nf-fa / UI-consistent)
+		-- Icons. fold_open/fold_closed/folder_closed/folder_open below are trouble.nvim's own
+		-- current defaults (lua/trouble/config/init.lua), restated explicitly. Diagnostic
+		-- severity icons (Error/Warn/Hint/Info) are NOT configured here on purpose: confirmed by
+		-- reading lua/trouble/format.lua directly that `severity_icon` pulls from
+		-- `vim.diagnostic.config().signs.text[severity]` - i.e. lspconfig.lua's diagnostic signs
+		-- - not from an `icons.kinds` table. `use_diagnostic_signs` (previously set above) doesn't
+		-- exist as an option in trouble.nvim's current source either (grepped the whole plugin,
+		-- zero matches) - both were silently-ignored dead config from an older version of the
+		-- plugin, removed rather than "fixed" since there was nothing real to fix.
 		----------------------------------------------------------------
 		icons = {
 			indent = {
 				top = "│ ",
 				middle = "├╴",
 				last = "╰╴",
-				fold_open = " ",
-				fold_closed = " ",
+				fold_open = " ",
+				fold_closed = " ",
 			},
-			folder_closed = " ",
-			folder_open = " ",
-			kinds = {
-				Error = " ",
-				Warn = " ",
-				Hint = " ",
-				Info = " ",
-			},
+			folder_closed = " ",
+			folder_open = " ",
 		},
 	},
 }

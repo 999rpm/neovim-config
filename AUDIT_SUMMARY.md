@@ -7,6 +7,310 @@ entry here (not back into a file header) after making one.
 
 Newest entry first.
 
+## 2026-08-13 — README.md tone and credits
+
+Trigger: the README read as more "forcefully jolly" than intended, and the "Credit where it's
+due" section was asked to be removed outright.
+
+Rewrote every prose line in `README.md` (requirements, install, license) in flatter, more
+neutral language — cut the asides and chattier phrasing (e.g. "not an error, just nothing to
+look at", "if you're curious why", "that's the whole point of putting it up publicly") without
+losing any of the actual information underneath. The `## Layout` tree was left untouched — it
+was already plain technical reference, nothing jolly to flatten there.
+
+Removed the "Credit where it's due" section entirely, scoped to `README.md` only — the more
+detailed, per-pattern attributions in `init.lua`'s header and in individual file headers
+(`lspconfig.lua`, `utils.lua`, `autocmds.lua`'s MenuPopup block, `mason.lua`) serve a different,
+technical-maintenance purpose (which specific setting or pattern came from where, for future
+audits) and weren't touched — the request was read as being about the README's public-facing
+acknowledgments section specifically, not every credit line in the codebase.
+
+No code changed; nothing to test beyond confirming the file is still valid Markdown.
+
+---
+
+## 2026-08-13 — icon corruption across 10 files, kitty.conf cross-check, reference-config re-comparison, DAP tutorial, snacks/rainbow integration, Mason-binary warnings
+
+Trigger: a full re-audit against the folder-per-category layout plus an uploaded kitty.conf,
+covering (1) plugin/config compatibility and redundancy, (2) a fresh check against jdhao/
+nvim-config, craftzdog/dotfiles-public, xero/dotfiles, rafi/vim-config with special focus on
+lspconfig.lua, (3) K's hover border, `<C-w>}` inside/around a terminal, whether `<leader>xf` is
+still worth keeping next to native `<C-w>d`, (4) Copilot never suggesting anything, (5) no DAP
+breakpoint symbols plus `<leader>Dc` appearing to do nothing, (6) flash.nvim's `<C-/>` behaving
+like a plain search, (7) a beginner-facing DAP tutorial, (8) utils.lua EOL-comment coverage,
+(9) "999rpm" branding, (10) reducing inter-plugin dependencies, (11) a file-structure opinion,
+(12) kitty.conf conflicts, (13) a follow-up debugpy ENOENT report, (14) bufferline separator
+color, (15) snacks.indent/rainbow-delimiters integration.
+
+**Everything below was checked against real, current upstream source** — cloned fresh:
+noice.nvim, flash.nvim, copilot.lua, blink.cmp, nvim-dap-ui, trouble.nvim, nvim-notify,
+todo-comments.nvim, neo-tree.nvim, render-markdown.nvim, bufferline.nvim, snacks.nvim,
+lazy.nvim, mason.nvim, mason-registry, mason-nvim-dap.nvim, nvim-dap-python — plus Neovim's own
+bundled `$VIMRUNTIME` (a real, downloaded v0.12.4 source tree) for the terminal-mode keymap
+claim below, and all four reference configs re-cloned rather than diffed from memory.
+
+### 1. Icon corruption: ~65 empty glyph fields across 10 files — the actual DAP bug, and nine more nobody had reported yet
+
+Checked every string literal in the config at the byte level (`.encode("utf-8")`, not how it
+renders in any viewer) after `dap.lua`'s breakpoint signs turned out to be genuinely 0-byte
+strings, not just hard to see. Validated the method against `lualine.lua`'s separators first as
+a control — those came back genuinely non-empty (real U+E0BB/E0BC bytes), matching the
+2026-08-12 entry's own finding — before trusting it on anything else. The same sweep, run
+across every file, found the identical pattern in nine more places, none previously reported:
+`dap-ui.lua` (12 fields), `neo-tree.lua` (11), `notify.lua` (5), `todo-comments.lua` (6),
+`bufferline.lua` (2), `plugins/deps` — no, `config/lazy.lua` (3, see below), `lualine.lua` (3),
+`trouble.lua` (8, 4 real + 4 dead-config, see below), `render-markdown.lua` (10). Root
+mechanism not conclusively identified (both BMP and astral-plane PUA codepoints appear on both
+the "survived" and "empty" sides, so it isn't a clean Unicode-plane rule) — reported as a
+confirmed, byte-verified fact rather than a guessed cause.
+
+Every replacement value was pulled from the *consuming plugin's own current default config*,
+not invented: `dap-ui.lua` from `nvim-dap-ui`'s `lua/dapui/config/init.lua`, `neo-tree.lua`
+from `lua/neo-tree/defaults.lua`, `notify.lua` from `lua/notify/config/init.lua`,
+`todo-comments.lua` from `lua/todo-comments/config.lua`, `render-markdown.lua` from
+`lua/render-markdown/settings.lua`. `dap.lua`'s signs have no upstream default to copy
+(`nvim-dap` ships none at all — confirmed, `sign_define` is entirely the user's job), so those
+five are this pass's own choice, each now with its own `texthl` linked to a `Diagnostic*` group
+(see §5). `bufferline.lua`'s error/warning and `lualine.lua`'s git-diff icons were pointed at
+codepoints already used elsewhere in this config for the same concept (lspconfig.lua's
+diagnostic signs; neo-tree's git-status symbols) rather than a fourth independent guess.
+
+Two were **not** icon bugs and are documented, not "fixed": `ufo.lua`'s `ft_providers` table
+uses empty string `""` as nvim-ufo's own real API for "don't fold this buffer at all" (per
+`provider_selector`'s own doc/example.lua pattern) — confirmed correct, untouched.
+`todo-comments.lua`'s `highlight.before = ""` is one of that option's own valid enum values
+(`"fg"|"bg"|""`) — also untouched.
+
+### 2. `trouble.lua`: two settings that don't exist in the current plugin, removed rather than "fixed"
+
+`use_diagnostic_signs = true` doesn't appear anywhere in trouble.nvim's current source (grepped
+the whole plugin, zero matches) — dead config from an older version. Traced how Trouble
+actually colors diagnostic severities instead of guessing: `lua/trouble/format.lua`'s
+`severity_icon` formatter reads `vim.diagnostic.config().signs.text[severity]` directly — i.e.
+lspconfig.lua's diagnostic signs, already correct — with no dependency on `use_diagnostic_signs`
+or on `icons.kinds.Error/Warn/Hint/Info` (also not a real field on the current `kinds` table,
+which only holds LSP `SymbolKind` names like `Function`/`Class`/`Variable` for the *symbols*
+view, unrelated to diagnostics). Both removed. `icons.indent.fold_open/fold_closed` and
+`icons.folder_closed/folder_open` **are** real, currently-read options and were genuinely
+empty — fixed with trouble.nvim's own current defaults.
+
+### 3. K's hover window has no border — root cause fully traced, not just patched
+
+`noice.lua`'s `lsp.hover.enabled = true` makes Noice register its own `textDocument/hover`
+handler (confirmed: `lua/noice/lsp/init.lua` calls `vim.lsp.buf_request(0, "textDocument/hover",
+params, require("noice.lsp.hover").on_hover)`), so it's Noice's own "hover" view that actually
+renders on `K` — the `border = border_style` passed to `vim.lsp.buf.hover()` in lspconfig.lua's
+own keymap never reaches what's drawn on screen, because Noice has already taken over that
+code path. That view's real default (`lua/noice/config/views.lua`) is `border = { style =
+"none" }` — no border at all, and NOT inherited from options.lua's global `winborder =
+"rounded"` either, since Noice sets `style` explicitly rather than leaving it unset for the
+global default to fill in. `presets.lsp_doc_border` (`lua/noice/config/preset.lua`) is
+upstream's own mechanism for exactly this: it sets `views.hover.border.style = "rounded"` plus
+a better on-screen position. Flipped from `false` to `true`; the previous comment ("Blink/LSP
+handles borders") was the actual bug — blink.cmp only borders its own completion-doc popup, a
+different window, and has no involvement in LSP hover once Noice has intercepted it.
+
+### 4. `<C-w>}` and `<leader>xf` — both are working as intended, documented rather than changed
+
+`<C-w>}` is Neovim's own native "show tag (LSP definition, via `'tagfunc'`) in a preview
+window" command. Ruled out both suspected sources directly: grepped Neovim's real
+`$VIMRUNTIME/lua/vim/_core/defaults.lua` for every `vim.keymap.set` call — no terminal-mode
+(`'t'`) entry exists at all, so this isn't a Neovim terminal default; and kitty.conf's own
+header confirms `ctrl+w` was deliberately left unbound (its 2026-08-12 revision already removed
+a conflicting `close_tab` binding). Leading explanation for "closes the terminal": opening the
+preview window is a real new split, and options.lua's `winminheight = 1` lets an already-open,
+non-active terminal split shrink to a single line to make room for it — visually gone, not
+actually closed. Documented directly in lspconfig.lua's keymap box rather than remapped, since
+the underlying behavior is correct, documented Neovim functionality, not a bug.
+`<leader>xf` — confirmed via the code's own existing comment as a deliberate "ergonomic alias"
+for `<C-w>d`, kept for consistency with the `<leader>xw`/`<leader>xb` group rather than
+oversight; not required, left as-is, now noted explicitly in this log rather than only inline.
+
+### 5. DAP: signs were invisible (§1) *and* uncoloured — both fixed together, plus a Mason-install warning for the actual reported ENOENT
+
+The empty signs (§1) explain the original report ("no symbols for breakpoints") on their own,
+but even fixed, none of `DapBreakpoint`/`DapBreakpointCondition`/`DapLogPoint`/`DapStopped`/
+`DapBreakpointRejected` had a highlight definition anywhere in this config — confirmed via a
+full-tree grep before assuming — so all five would have rendered in whatever plain foreground
+happened to be nearby, defeating the point of five distinct signs. Added a
+`set_dap_highlights()` function linking each to a `Diagnostic*` group (theme-reactive, not
+hardcoded hex) plus a dedicated `ColorScheme` autocmd to re-apply them — needed because, unlike
+`RainbowDelimiter*` groups (which colorscheme plugins redefine themselves on every
+`:colorscheme` call, confirmed via rainbow-delimiters.lua's own existing note), these are
+config-invented group names no colorscheme knows to redefine, so themes.lua's `highlight
+clear` would otherwise wipe them on every theme switch with nothing to restore them.
+
+**Follow-up, same day: a real Mason-install failure, not a config bug.** Reported error:
+`Executable '/home/999rpm/.local/share/nvim/mason/packages/debugpy/venv/bin/python' not found
+... ENOENT`. Re-verified the path construction in `dap-python.lua` against mason.nvim's actual
+installer source (not just Mason's registry metadata, which the previous pass already checked):
+`lua/mason-core/installer/managers/pypi.lua`'s own `venv_path()` computes exactly
+`<package_dir>/venv/bin` (Unix) / `venv/Scripts` (Windows) — byte-for-byte what this file
+already builds. The path is correct; the file genuinely isn't there yet, meaning Mason hasn't
+finished installing debugpy (most common cause: no system `python3`/`python` for Mason's
+`create_venv()` to build the venv from at all — confirmed that function's own fallback order in
+source) or the install failed outright. Also re-verified `codelldb`, `js-debug-adapter`, and
+`haskell-debug-adapter`'s paths in `dap.lua` the same way, against their real
+`mason-registry` `package.yaml` entries — all correct, same risk applies to all four.
+
+Added `utils.warn_if_missing_mason_bin(path, label)`: checks `vim.uv.fs_stat` at plugin-load
+time (not mid-debug-session) and, if the binary isn't there, notifies once with what to check
+(`:Mason`, `:MasonLog`, `:MasonInstall <name>`) instead of leaving the first sign of trouble to
+be a raw ENOENT the moment a debug session is attempted. Wired into all four Mason-managed DAP
+binaries (`dap-python.lua`'s debugpy, `dap.lua`'s codelldb/js-debug-adapter/haskell-debug-
+adapter) — same "check once at startup, one clear message" shape as `utils.executable()`'s own
+existing callers (`nu`/`rg` in options.lua, `tree-sitter-cli` in treesitter.lua), extended to
+cover an absolute Mason path rather than a `$PATH` lookup, which `executable()` alone can't do.
+
+Also added: a boxed tutorial at the top of `dap.lua` (the actual six-step workflow — set
+breakpoint, Continue, dap-ui opens automatically, step controls, Terminate, and what to check
+if step 1 shows no sign or step 2 errors) and a shorter inline one in `flash.lua`, per an
+explicit request for beginner-facing walkthroughs on the less-obvious plugins.
+
+### 6. Copilot: config confirmed not at fault; real requirement found and now checked for
+
+Traced `filetypes = { markdown = true, help = true }` against copilot.lua's actual
+`is_ft_disabled()` (`lua/copilot/client/filetypes.lua`) rather than assumed: it checks the
+user's `filetypes` table, then an *internal* disabled-by-default list (yaml/markdown/help/
+gitcommit/gitrebase/hgcommit/svn/cvs), and falls through to enabled for anything neither
+mentions — so lua/python/js/etc. were already on; this config's own table only opts markdown/
+help back in from the internal defaults. Real finding: copilot.lua's own README states **Node.js
+v22+** specifically (not "any Node") — an older LTS (18/20, both still common default installs)
+fails silently, no error, just no suggestions ever. Added a version-aware check at plugin-load
+time (parses `node --version`, warns if under 22 or missing entirely) and left a commented
+`server = { type = "binary" }` note — upstream's own alternative that sidesteps the Node
+requirement by downloading a standalone binary instead, not switched to by default since it's a
+real trade-off (a second binary to keep updated), not a strict improvement.
+
+### 7. flash.nvim's `<C-/>`: matched to upstream's own tested default
+
+flash.nvim's README documents `<c-s>` — never `<c-/>` — for exactly this "toggle flash labels
+inside an active `/` search" feature; the toggle mechanism itself (`flash.plugins.search.toggle`,
+a live runtime flip, confirmed in source) isn't the issue either way. Changed to `<C-s>` in
+cmdline mode, which doesn't collide with this config's other `<C-s>` uses (mappings.lua's
+normal-mode save, lspconfig.lua's insert-mode signature help) since keymaps are mode-scoped.
+Leading explanation for the original symptom: `<C-/>` and `<C-_>` are frequently
+indistinguishable at the raw keycode level depending on terminal/OS keyboard layer, which is
+very likely why upstream picked `<c-s>` in the first place rather than an oversight on their
+end. Also documented directly in the file: this key only does anything from an active `/`/`?`
+search (cmdline mode) — pressed from Normal mode it's a no-op by design, use `f`/`F` there.
+
+### 8. `lua/plugins/init.lua` missing again — same failure mode, same fix, now with a permanent note in the file itself
+
+Absent again, for the exact reason the 2026-08-12 entry already diagnosed: the root `init.lua`
+and this file share a literal filename, and whatever prepares project files for a chat session
+keeps only one. Reconstructed identically (`{ import = "plugins.lsp" }` etc. for all 13
+category folders — one more than the 2026-08-12 count, `deps`, added that same day for
+plugins/deps/shared.lua+web-devicons.lua). Verified by counting: 55 `.lua` files total minus 7
+non-plugin-spec files (root init.lua, utils.lua, 4× config/*.lua, this file) = 48, matching the
+actual count of files under the 13 category folders exactly. Given this has now happened three
+times, added a permanent note inside the file itself explaining why, so a future pass (or a
+future session missing this same file) doesn't have to re-derive the diagnosis from scratch.
+
+### 9. Reference-config re-comparison: nothing new to adopt, confirmed rather than assumed
+
+Re-cloned all four fresh (not diffed against a remembered state) with focus on lspconfig.lua
+per the request. jdhao/nvim-config's `lua/lsp_conf.lua`: same shape throughout (gd de-dup,
+`<C-]>`, hover/signature help, workspace folder commands, LspProgress echo) — this config is
+already ahead in several places jdhao's isn't (schemastore, document-highlight-on-CursorHold,
+diagnostics-to-quickfix, basedpyright+ruff split). craftzdog/dotfiles-public's `lsp.lua`:
+confirmed its `ts_ls`/`tailwindcss` `root_pattern(".git")` + `single_file_support = false`
+override is the exact pattern the 2026-08-12 entry already identified and removed from this
+config as a regression — craftzdog's is, if anything, a step behind this config on that specific
+point, not ahead. xero/dotfiles' `lsp/init.lua`: still lists `spellwarn.nvim`/`diagflow.nvim`/
+`lsp_lines.nvim` as dependencies — the same three items the 2026-08-12 entry already considered
+and declined (native `virtual_lines` supersedes `lsp_lines` on current Neovim; the other two are
+style alternatives, not improvements). rafi/vim-config's `lsp.lua` is a LazyVim-extension diff,
+not a standalone config — its incoming/outgoing-calls keys already have an equivalent here
+(telescope.lua's `<leader>sc`/`<leader>sC`). Net result: nothing new found for lspconfig.lua
+specifically, for the second pass running — re-confirmed rather than re-asserted from memory.
+
+### 10. Smaller fixes and confirmations
+
+- `config/lazy.lua`: removed `icons.git` (added/modified/removed) — confirmed via a full grep
+  of lazy.nvim's real `lua/lazy/view/render.lua` (the only place `Config.options.ui.icons.*`
+  gets read at all) that `icons.git` is never consumed anywhere in the current plugin, unlike
+  every other icon in that table, which is. Dead config from an older lazy.nvim version, not a
+  currently-broken feature — removed rather than "fixed" with icons that would do nothing.
+- `plugins/ui/bufferline.lua`: added explicit `highlights.separator_selected`/`separator`/
+  `separator_visible` (linked, not hardcoded hex, so they track the active theme) for a visibly
+  colored tab divider — previously left at bufferline's own default, a subtle same-as-background
+  tint. Verified via `lua/bufferline/config.lua`'s real `update_highlights()` that a `link`
+  passed once in `setup()`'s opts survives every subsequent theme switch, not just the first
+  call. Also corrected a stale claim in this file's own header (and in themes.lua's
+  `ThemeChanged` note) that this config's custom `ThemeChanged` event drives bufferline's
+  highlight refresh — traced `lua/bufferline.lua`'s `setup_autocommands` directly and found
+  bufferline registers its own native `ColorScheme` listener internally; the custom event was
+  never involved for this plugin specifically.
+- `plugins/ui/snacks.lua` + `utils.lua`: `snacks.indent`'s per-level guide color
+  (`indent.indent.hl`) now points directly at `utils.rainbow_delimiter_groups` — the same 7
+  `RainbowDelimiter*` group names rainbow-delimiters.lua uses for brackets — confirmed via
+  `lua/snacks/indent.lua` that `indent.hl` accepts a list (its own commented-out
+  `SnacksIndent1..8` example shows the shape) and cycles it with `(level - 1) % #hl + 1`, so no
+  new numbered groups needed defining. This is not a repeat of the rainbow-indent approach
+  rejected earlier in this log: that complaint was two *different*, independently-cycling
+  rainbow systems visually competing (ibl's own vs. rainbow-delimiters'); this shares one color
+  source for both brackets and indent levels, so level 3 means the same color in both places.
+  `chunk`/`scope` (the current-scope highlight) deliberately stay single-color, so the "this is
+  where you are" indicator still stands out against the now-rainbow backdrop around it.
+- "999rpm" branding: audited every existing use (every custom augroup via `utils.augroup()`,
+  `themes.lua`'s `name = "999rpm-themer"` plugin spec) and found it already comprehensive:
+  augroups are the one place a config-wide namespace genuinely belongs (`:autocmd`/`:augroup`
+  output), and forcing it into e.g. the dashboard or window title would be decoration for its
+  own sake rather than function. No changes made here on purpose, not an oversight.
+- `which-key.lua`: audited every `<leader>*` mapping actually defined anywhere in the tree
+  (grepped, not eyeballed) against the group `spec` table — every prefix with 2+ children
+  already has an accurate entry, none stale. One rename: `<leader>n`'s group label now says
+  "No-yank / Paths / Registers" instead of just "Registers", since `<leader>ny`/`<leader>nY`
+  (yank a relative/absolute path to the clipboard) aren't really a register operation in the
+  sense the rest of that group's keys (`nc`/`nd`/`np`/etc.) are.
+- Dependency architecture (item 10 of the original request, "reduce plugin dependencies, keep
+  them independent"): re-checked the existing `plugins/deps/` split (§8 of the 2026-08-12
+  entry below) against this pass's full re-read of every file — still the right shape, nothing
+  found that's newly coupled and should be split out, nothing in `deps/` that's grown a second
+  consumer-specific concern that should move back out. No changes.
+- File structure (item 11, "suggest better structure"): re-confirmed the category-folder layout
+  is already sound, consistent with the 2026-08-12 entry's own conclusion after the same
+  question — nothing changed this pass either, not re-litigated without new evidence.
+
+### Testing this pass actually did
+
+- All 55 `.lua` files pass `luac5.1 -p` after every edit in this entry (checked file-by-file as
+  each was written, plus one final full-tree sweep at the end).
+- Downloaded a real Neovim source tree (v0.12.4) and grepped its actual
+  `runtime/lua/vim/_core/defaults.lua` for the terminal-mode `<C-w>` claim in §4 — checked
+  directly, not recalled.
+- Cloned and read real, current upstream source for every plugin named in §1–§9 above
+  (noice.nvim, flash.nvim, copilot.lua, blink.cmp, nvim-dap-ui, trouble.nvim, nvim-notify,
+  todo-comments.nvim, neo-tree.nvim, render-markdown.nvim, bufferline.nvim, snacks.nvim,
+  lazy.nvim, mason.nvim, mason-registry, mason-nvim-dap.nvim, nvim-dap-python) plus all four
+  reference configs, re-cloned fresh rather than diffed from memory.
+- Verified icon replacements at the byte level after writing them (UTF-8 encode + hex-dump each
+  one), using explicit codepoint construction (Python's `chr()`) rather than typing glyphs
+  directly into any tool call — the 2026-08-12 entry's own "process note" on this exact risk
+  (a directly-typed glyph can silently produce an empty string) was followed, not repeated.
+- Did **not** attempt a full plugin install/bootstrap or a real headless-launch test — same
+  scope boundary every prior entry in this log draws, for the same reason. In particular, the
+  debugpy ENOENT in §5 could not be reproduced or confirmed-fixed end-to-end from here — no
+  access to the machine it was reported on — only the code path and the warning that now
+  surfaces earlier are verified; whether Mason itself completes the install is outside this
+  pass's reach and needs `:Mason`/`:MasonLog` checked directly on that machine.
+
+### Check next time
+
+- If `<leader>Dc` still appears to "do nothing" after this pass, confirm the breakpoint sign is
+  actually visible first (`:sign list`, look for a non-empty `text=` on `DapBreakpoint`) before
+  suspecting the DAP wiring itself — see the tutorial box in `dap.lua` for the full checklist.
+- If any other Mason-managed DAP binary throws ENOENT, `utils.warn_if_missing_mason_bin()`
+  should now have already warned about it at startup — check `:messages` for that warning
+  first, then `:Mason`/`:MasonLog`, before re-checking the path construction in the Lua itself.
+- The exact mechanism behind §1's icon corruption (which specific codepoints/ranges survive vs.
+  don't) was not conclusively identified — if it recurs after this pass in a *new* file, that's
+  worth investigating properly rather than just re-running the same byte-check-and-replace fix.
+- `bufferline.lua`'s colored separators use `link = "Function"`/`link = "Comment"` — a
+  reasonable, universally-available default, not a strong aesthetic opinion; swap either link
+  target if it doesn't suit a given theme once seen live.
+
 ---
 
 ## 2026-08-12 — tree-sitter CLI errors, sharp-to-rounded corners, keymap-vs-builtin conflicts, dependency architecture, fold-column rework

@@ -116,11 +116,17 @@ function Controller.update(modifier_fn)
 	if package.loaded["lualine"] then
 		require("lualine").refresh()
 	end
-	-- Fires "ThemeChanged" for anything that needs to re-derive colors after a switch —
-	-- currently plugins/ui/bufferline.lua's highlight refresh. plugins/treesitter/
-	-- rainbow-delimiters.lua does NOT need this: it references RainbowDelimiter* group names
-	-- rather than caching hex values, so `vim.cmd.colorscheme()` above already refreshes them
-	-- for free, no event needed.
+	-- Fires "ThemeChanged" for anything that needs to re-derive colors after a switch. NOT
+	-- bufferline.lua, despite an earlier version of this comment claiming otherwise: that
+	-- plugin registers its own native `ColorScheme` autocmd internally (lua/bufferline.lua's
+	-- `setup_autocommands`, confirmed by reading it directly) and recomputes its derived
+	-- highlights from that, independently of this custom event. plugins/treesitter/
+	-- rainbow-delimiters.lua and plugins/ui/snacks.lua's rainbow-linked indent guides also
+	-- don't need this: both reference RainbowDelimiter*/named group links rather than caching
+	-- hex values, so `vim.cmd.colorscheme()` above already refreshes them for free, no event
+	-- needed. plugins/debug/dap.lua's sign highlights DO need it (Dap* groups are `link`s set
+	-- once at plugin-load time, before a theme switch would otherwise touch them) — see that
+	-- file's own ColorScheme autocmd, separate from this one since it's dap-specific.
 	api.nvim_exec_autocmds("User", { pattern = "ThemeChanged" })
 end
 

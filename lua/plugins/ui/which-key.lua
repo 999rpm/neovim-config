@@ -4,6 +4,13 @@
 -- like `<leader>a`/`<leader>A` (plugins/editor/textobjects.lua's parameter swap) doesn't need
 -- a group entry here — only prefixes with further children do; its own `desc` from
 -- vim.keymap.set is picked up automatically.
+--
+-- Verified against every `<leader>*` mapping actually defined anywhere in this config (grepped
+-- the whole tree rather than eyeballing it): every prefix with two or more children has an
+-- entry below, and no entry here is stale (pointing at a group that no longer has that shape).
+-- One rename this pass: `<leader>n` covers more than registers — `<leader>ny`/`<leader>nY`
+-- (mappings.lua) yank a relative/absolute *path* to the clipboard, not a register operation in
+-- the vim-registers sense the way `np`/`nc`/`nd`/etc. are — so the label now says both.
 return {
 	"folke/which-key.nvim",
 	event = "VimEnter",
@@ -28,7 +35,7 @@ return {
 			{ "<leader>g", group = "Git", icon = "󰊢 " },
 			{ "<leader>G", group = "Diffview", icon = "󰊢 " },
 			{ "<leader>h", group = "Harpoon", icon = "󱡀 " },
-			{ "<leader>n", group = "Registers", icon = "󰅍 " },
+			{ "<leader>n", group = "No-yank / Paths / Registers", icon = "󰅍 " },
 			{ "<leader>o", group = "Options", icon = "󰘮 " },
 			{ "<leader>s", group = "Search (Telescope)", icon = "󰍉 " },
 			{ "<leader>t", group = "Toggle", icon = "󰔡 " },

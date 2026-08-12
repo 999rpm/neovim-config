@@ -65,17 +65,22 @@
 --   • Git                 — gitsigns (hunks/blame), Diffview (full diff/history views),
 --     LazyGit + "open in browser" via snacks.nvim
 --   • Debugging & testing — nvim-dap + nvim-dap-ui + dap-virtual-text + nvim-dap-python +
---     Haskell (haskell-debug-adapter), neotest (Jest adapter)
+--     Haskell (haskell-debug-adapter), neotest (Jest adapter) — see plugins/debug/dap.lua's
+--     own boxed tutorial if this is new; colour-coded breakpoint signs, and a startup warning
+--     if a Mason-managed adapter binary isn't actually installed yet rather than a raw ENOENT
+--     mid-session (utils.warn_if_missing_mason_bin())
 --   • Treesitter          — highlighting, incremental parsing, textobjects, sticky context
 --     header, rainbow delimiters, auto tag close/rename, folding via nvim-ufo
 --   • Formatting & linting— conform.nvim (format-on-save, per-filetype — the sole owner of
 --     that job, see plugins/lsp/lspconfig.lua's note on why LSP-driven format-on-save doesn't
 --     also live there), nvim-lint
---   • UI                  — bufferline (slope separators) + lualine, which-key, Noice
---     (cmdline/messages, paired with notify.lua), alpha (start screen), a multi-theme switcher
---     (tokyonight/catppuccin/kanagawa), animated box-drawing indent/scope guides (snacks.indent's
---     chunk mode, rounded corners), a color-literal highlighter (nvim-colorizer.lua), a
---     right-click context menu (config/autocmds.lua's MenuPopup block)
+--   • UI                  — bufferline (slope separators, coloured per active/inactive tab) +
+--     lualine, which-key, Noice (cmdline/messages, paired with notify.lua), alpha (start
+--     screen), a multi-theme switcher (tokyonight/catppuccin/kanagawa), animated box-drawing
+--     indent/scope guides (snacks.indent's chunk mode, rounded corners, per-level guides
+--     colour-linked to rainbow-delimiters.lua's own bracket colours — one shared rainbow, not
+--     two competing ones), a color-literal highlighter (nvim-colorizer.lua), a right-click
+--     context menu (config/autocmds.lua's MenuPopup block)
 --   • Editing QoL         — nvim-surround, Comment.nvim, autopairs, better-escape, mini.ai,
 --     todo-comments, bufdelete.nvim (buffer close without disturbing window layout)
 --   • Misc                — toggleterm (float/split terminal + a btop monitor), render-markdown

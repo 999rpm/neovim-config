@@ -11,6 +11,12 @@ return {
 			debugpy_path = vim.fn.stdpath("data") .. "/mason/packages/debugpy/venv/Scripts/python.exe"
 		end
 
+		-- Path shape verified against mason.nvim's own pypi.lua installer (venv_path():
+		-- `<package_dir>/venv/bin` on Unix, `.../venv/Scripts` on Windows) — this is correct as
+		-- written. If it's still not there, Mason hasn't finished installing debugpy (or failed
+		-- to) rather than this path being wrong; see the warning below for what to check.
+		require("utils").warn_if_missing_mason_bin(debugpy_path, "debugpy")
+
 		require("dap-python").setup(debugpy_path)
 	end,
 }

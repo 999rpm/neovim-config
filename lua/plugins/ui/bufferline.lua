@@ -6,9 +6,14 @@
 -- single-purpose plugin doing the exact same job (delete a buffer without disturbing window
 -- layout) without pulling in the rest of the mini.nvim bundle for one function; see
 -- plugins/editor/mini.lua's own note for the same reasoning applied to mini.hipatterns.
--- bufferline's own default highlight groups derive from the active colorscheme automatically
--- on every `:colorscheme` call, same as any other plugin's default highlights — no manual
--- highlight overrides are needed here for that to work.
+--
+-- Highlight refresh on theme change: bufferline.nvim registers its OWN native `ColorScheme`
+-- autocmd internally (confirmed by reading lua/bufferline.lua's `setup_autocommands` directly)
+-- that recomputes every derived colour, including the `separator*` group below, from the
+-- ORIGINAL opts this file passes to `setup()` — not from this config's own custom "ThemeChanged"
+-- User event. No extra listener needed here for that; themes.lua's own comment crediting this
+-- file with a "ThemeChanged" hook was imprecise (the mechanism is bufferline's own, not
+-- ThemeChanged-driven) and has been corrected there.
 return {
 	"akinsho/bufferline.nvim",
 	version = "*",
@@ -46,10 +51,12 @@ return {
 				always_show_bufferline = true,
 				sort_by = "insert_after_current",
 				diagnostics = "nvim_lsp",
+				-- Same codepoints as plugins/ui/lualine.lua's/plugins/lsp/lspconfig.lua's error/warn
+				-- diagnostic icons, so a red/yellow glyph means the same severity everywhere.
 				diagnostics_indicator = function(_, _, diagnostics_dict)
 					local icons = {
-						error = " ",
-						warning = " ",
+						error = "󰃤 ",
+						warning = "󰀦 ",
 					}
 					local s = ""
 					for severity, count in pairs(diagnostics_dict) do
@@ -72,6 +79,18 @@ return {
 				hover = {
 					enabled = false,
 				},
+			},
+			-- Explicit colour for the tab separators (previously left at bufferline's own
+			-- default, a subtle tint of the background - barely visible against most of this
+			-- config's themes). `link`, not `fg`/`bg`, so this tracks whichever colour the
+			-- active theme gives these semantic groups rather than a hardcoded hex that would
+			-- only look right in one of the three themes themes.lua switches between.
+			-- Confirmed via bufferline's own update_highlights() (lua/bufferline/config.lua)
+			-- that this survives every subsequent theme switch, not just the first setup() call.
+			highlights = {
+				separator_selected = { link = "Function" }, -- the active tab's divider: stands out
+				separator = { link = "Comment" }, -- inactive tabs: present, but not competing for attention
+				separator_visible = { link = "Comment" },
 			},
 		})
 

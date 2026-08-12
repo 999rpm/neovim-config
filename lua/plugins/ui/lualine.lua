@@ -30,7 +30,9 @@ return {
 				TERMINAL = "󰞷 ",
 			},
 			diagnostics = { error = "󰃤 ", warn = "󰀦 ", info = "󰭷 ", hint = "󰌵 " },
-			diff = { added = " ", modified = " ", removed = " " },
+			-- Same codepoints as plugins/explorer/neo-tree.lua's git_status symbols (added/modified/
+			-- removed), so "what changed" reads the same way in the tree and the statusline.
+			diff = { added = "✚ ", modified = " ", removed = "✖ " },
 			git = { ahead = "󰮽", behind = "󰮷" },
 		}
 
