@@ -1,8 +1,8 @@
 -- folke/flash.nvim: labelled jump-to-anywhere-visible motions, replacing several native
 -- single-character motions below.
 --
--- Native behavior this overrides (for reference — see config/mappings.lua's own review log
--- for the same treatment elsewhere in this config):
+-- Native behavior this overrides (for reference — each mapping below carries its own note,
+-- and config/mappings.lua's own overrides are documented the same way, inline per-mapping):
 --   • `f`/`F` (Normal/Visual/op-pending) — natively "find next/prev occurrence of {char} on
 --     this line". `modes.char.enabled = false` above stops flash from also hooking Nvim's
 --     built-in f/F/t/T internally; the `keys` below then remap bare `f`/`F` to flash's own

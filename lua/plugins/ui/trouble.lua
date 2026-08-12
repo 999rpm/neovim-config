@@ -49,7 +49,7 @@ return {
 			indent = {
 				top = "│ ",
 				middle = "├╴",
-				last = "└╴",
+				last = "╰╴",
 				fold_open = " ",
 				fold_closed = " ",
 			},

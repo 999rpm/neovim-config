@@ -1,11 +1,14 @@
 -- nvim-lualine/lualine.nvim: the statusline — mode, git branch/ahead-behind/diff, filename,
 -- Python venv, diagnostics, active LSP clients, trailing-whitespace/mixed-indent warnings,
--- lazy.nvim update count, and cursor position. Separators are the classic Powerline arrow
--- glyphs (U+E0B0-U+E0B3) — needs a Nerd Font (already assumed elsewhere in this config, e.g.
--- options.lua's g.have_nerd_font). Skewed to match plugins/ui/bufferline.lua's
--- `separator_style = "slant"`; getting a pixel-identical angle between the two would need a
--- custom empty-component "spacer" per section (there's no simple option for it) — not done
--- here since it's a real fragility/complexity tradeoff for a marginal visual gain.
+-- lazy.nvim update count, and cursor position. `component_separators`/`section_separators`
+-- (below) use Nerd Font "Powerline Extra Symbols" glyphs (U+E0BA-U+E0BC, the angled/slanted
+-- separator variants ryanoasis/powerline-extra-symbols documents beyond the classic U+E0B0-
+-- U+E0B3 arrows) — a font-dependent Private Use Area range, so they render as blank/invisible
+-- in any plain-text view that isn't using the Nerd Font this config already assumes elsewhere
+-- (options.lua's `g.have_nerd_font`) — don't mistake that for the strings actually being empty.
+-- This is a separate, independent style choice from plugins/ui/bufferline.lua's own
+-- `separator_style = "slope"` (that governs bufferline's tab shapes only) — the two aren't
+-- trying to visually match each other.
 return {
 	"nvim-lualine/lualine.nvim",
 	event = "VeryLazy",

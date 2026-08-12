@@ -1,17 +1,18 @@
 -- folke/snacks.nvim: grab-bag of small QoL modules (bigfile handling, scratch buffers, zen
--- mode, lazygit/gitbrowse launchers, quickfile, scroll easing, indent guides, and the window
--- primitive plugins/ui/float-backdrop.lua builds on). Several modules are deliberately
--- disabled below because this config already has a dedicated tool doing the same job — each
--- disabled line says which: `statuscolumn` (plugins/ui/statuscol.lua + options.lua),
--- `dashboard` (plugins/ui/alpha.lua), `bigfile` (config/autocmds.lua's own `large_file` group).
+-- mode, lazygit/gitbrowse launchers, quickfile, scroll easing, indent guides). Several modules
+-- are deliberately disabled below because this config already has a dedicated tool doing the
+-- same job — each disabled line says which: `statuscolumn` (plugins/ui/statuscol.lua +
+-- options.lua), `dashboard` (plugins/ui/alpha.lua), `bigfile` (config/autocmds.lua's own
+-- `large_file` group).
 --
 -- `indent` is ON, not off — this config used lukas-reineke/indent-blankline.nvim for a while
 -- (rainbow-colored, matching rainbow-delimiters.lua) before switching back here on request: the
 -- rainbow coloring read as visual noise in practice. `chunk` (below) is snacks.indent's own
 -- box-drawing mode — read `lua/snacks/indent.lua`'s `render_chunk` directly before configuring
--- this rather than assuming: it draws real `┌`/`└`/`─`/`│` characters plus a closing arrow
--- around whichever scope contains the cursor, animated as you move between scopes (`animate`,
--- on by default for Nvim 0.10+). It is NOT a permanent multi-level tree rendered all at once —
+-- this rather than assuming: it draws `corner_top`/`corner_bottom`/`horizontal`/`vertical`
+-- characters (rounded corners here, matching options.lua's `winborder = "rounded"` elsewhere)
+-- plus a closing arrow around whichever scope contains the cursor, animated as you move between
+-- scopes (`animate`, on by default for Nvim 0.10+). It is NOT a permanent multi-level tree —
 -- only the current scope gets the box; other levels stay plain single-character guides, same
 -- as every other indent-guide plugin. Default highlight groups are deliberately single-color
 -- (`SnacksIndent` -> `NonText`, `SnacksIndentChunk`/`SnacksIndentScope` -> `Special`) rather
@@ -34,8 +35,8 @@ return {
 			chunk = {
 				enabled = true, -- the box-drawing mode — see header note
 				char = {
-					corner_top = "┌",
-					corner_bottom = "└",
+					corner_top = "╭",
+					corner_bottom = "╰",
 					horizontal = "─",
 					vertical = "│",
 					arrow = "╴", -- was ">" by default; a closing dash reads less like a stray gt-sign inline with code

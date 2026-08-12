@@ -290,17 +290,28 @@ opt.sessionoptions:remove({ "blank", "buffers", "terminal" }) -- Exclude empty w
 -- ─────────────────────────────────────────────────────────────────────────────
 -- foldmethod is intentionally left unset (stays at Nvim's own default, "manual") — nvim-ufo
 -- (ufo.lua) manages folding itself and expects to own it; the settings below are just the
--- prerequisites it needs (high foldlevel/foldlevelstart, a narrow foldcolumn).
+-- prerequisites it needs (high foldlevel/foldlevelstart, a fold column).
 opt.foldlevel = 99 -- Open all folds when first entering a buffer
 opt.foldlevelstart = 99 -- Start every new buffer with all folds fully open
-opt.foldnestmax = 4 -- Limit fold nesting to 4 levels deep
--- "auto:4": sized dynamically up to 4 columns, matching foldnestmax above. statuscol.nvim's
--- foldfunc (statuscol.lua) renders `min(fold_level, width)` columns, one glyph per nesting
--- level — with width stuck at "1" nesting can never be shown at all, however deep the actual
--- folds go (confirmed by reading statuscol's builtin.foldfunc source directly: `range =
--- level < width and level or width`). "auto" keeps the column at 1 wide on lines/buffers with
--- no real nesting, so this doesn't cost horizontal space when there's nothing to show.
-opt.foldcolumn = "auto:4"
+-- No `foldnestmax` here on purpose — it's a genuine no-op with `foldmethod=manual` (confirmed
+-- against Nvim's own docs: "Sets the maximum nesting of folds for the 'indent' and 'syntax'
+-- methods" only). A previous version of this file set it to 4 believing it capped nvim-ufo's
+-- nesting too; it never did anything at all.
+--
+-- `foldcolumn = "1"`, not a wider "auto:N": statuscol.nvim's foldfunc (statuscol.lua) renders
+-- `min(fold_level, width)` glyphs stacked side by side, so a WIDE foldcolumn is what actually
+-- caps visible nesting — a fold 5 levels deep on a width-4 column has nowhere to put the 5th
+-- indicator. At width 1 the per-line check statuscol runs is just "does a fold start on THIS
+-- exact line" (confirmed by reading builtin.foldfunc's source directly: the `foldinfo.start ==
+-- args.lnum` branch), which is entirely depth-independent — a fold starting 12 levels deep gets
+-- its `foldopen`/`foldclose` glyph exactly the same as one at level 2, no stacking, no cap. What
+-- a wide column gives you instead — seeing every level you're currently inside, at a glance —
+-- is already covered with no depth limit at all by snacks.indent's own guides (snacks.lua),
+-- since those are just one virtual-text character per indent level with nothing capping how
+-- many can be drawn. Width 1 also happens to sit directly against the text (fold is the last/
+-- rightmost segment in statuscol.lua), so the arrow reads as flush with the first indent guide
+-- rather than floating in a separate multi-column strip.
+opt.foldcolumn = "1"
 opt.foldtext = "" -- Draw closed folds via the extmark path instead of the old foldtext() string — required for nvim-ufo's virtual-text summaries and snacks.indent's guides to render correctly across a closed fold's line
 
 -- ─────────────────────────────────────────────────────────────────────────────

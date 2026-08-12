@@ -30,7 +30,7 @@ end
 --- Check if an executable exists on $PATH.
 --- @param name string An executable name or path
 --- @return boolean
-function M.executable(name) -- This util is used by options.lua and plugins/lsp/lspconfig.lua
+function M.executable(name) -- This util is used by options.lua, plugins/lsp/lspconfig.lua, and plugins/treesitter/treesitter.lua
 	return fn.executable(name) > 0
 end
 

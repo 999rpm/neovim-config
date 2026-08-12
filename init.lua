@@ -39,15 +39,19 @@
 --         │                  ts-autotag, mini (mini.ai only), todo-comments
 --         ├─ treesitter/   — treesitter, context, rainbow-delimiters
 --         ├─ ui/           — alpha, bufferline, lualine, noice, notify, themes, which-key,
---         │                  web-devicons, statuscol, ufo, snacks,
---         │                  render-markdown, trouble, colorizer, bufdelete, float-backdrop
+--         │                  statuscol, ufo, snacks,
+--         │                  render-markdown, trouble, colorizer, bufdelete
 --         ├─ git/          — gitsigns, diffview
 --         ├─ explorer/     — neo-tree, oil
 --         ├─ search/       — telescope, fzf
 --         ├─ debug/        — dap, dap-ui, dap-python, dap-virtual-text
 --         ├─ test/         — neotest
 --         ├─ lang-tools/   — conform, lint
---         └─ terminal/     — toggleterm
+--         ├─ terminal/     — toggleterm
+--         └─ deps/         — web-devicons, shared (plenary.nvim/nui.nvim) — plugins with more
+--                            than one consumer and nothing of their own to configure; see
+--                            plugins/deps/web-devicons.lua's own note for why these still need
+--                            per-consumer `dependencies` entries even though they live here too
 --
 -- Feature overview (see each plugin's own file for details/keymaps):
 --   • LSP + diagnostics  — nvim-lspconfig w/ schemastore.nvim, Mason-managed servers
@@ -67,12 +71,11 @@
 --   • Formatting & linting— conform.nvim (format-on-save, per-filetype — the sole owner of
 --     that job, see plugins/lsp/lspconfig.lua's note on why LSP-driven format-on-save doesn't
 --     also live there), nvim-lint
---   • UI                  — bufferline + lualine (matching skewed/slant separators), which-key,
---     Noice (cmdline/messages, paired with notify.lua), alpha (start screen), a multi-theme
---     switcher (tokyonight/catppuccin/kanagawa), animated box-drawing indent/scope guides
---     (snacks.indent's chunk mode), a color-literal highlighter (nvim-colorizer.lua), a
---     dimmed backdrop behind Telescope/floating-terminal popups, a right-click context menu
---     (config/autocmds.lua's MenuPopup block)
+--   • UI                  — bufferline (slope separators) + lualine, which-key, Noice
+--     (cmdline/messages, paired with notify.lua), alpha (start screen), a multi-theme switcher
+--     (tokyonight/catppuccin/kanagawa), animated box-drawing indent/scope guides (snacks.indent's
+--     chunk mode, rounded corners), a color-literal highlighter (nvim-colorizer.lua), a
+--     right-click context menu (config/autocmds.lua's MenuPopup block)
 --   • Editing QoL         — nvim-surround, Comment.nvim, autopairs, better-escape, mini.ai,
 --     todo-comments, bufdelete.nvim (buffer close without disturbing window layout)
 --   • Misc                — toggleterm (float/split terminal + a btop monitor), render-markdown

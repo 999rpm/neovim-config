@@ -1,13 +1,20 @@
 -- nvim-treesitter/nvim-treesitter-textobjects: select/swap/move by treesitter node (function,
 -- class, parameter, local scope) instead of line/word-based Vim motions.
 --
--- Two keymap choices below deliberately avoid Neovim's own built-ins rather than shadow them:
+-- Three keymap choices below deliberately avoid Neovim's own built-ins rather than shadow them:
 -- parameter swap is on `<leader>a`/`<leader>A` (not `]p`/`[p`, Neovim's built-in indent-
--- adjusted paste — matches this plugin's own README-suggested swap keymap) and class start/
--- end navigation is on `]m`/`[m`/`]M`/`[M` (not lowercase `]c`/`[c`, Neovim's *native* diff-
--- mode navigation, which genuinely lives inside plugins/git/diffview.lua's windows). Freed-up
--- `]c`/`[c` belongs to gitsigns.nvim's own hunk navigation instead — see
--- plugins/git/gitsigns.lua's note.
+-- adjusted paste — matches this plugin's own README-suggested swap keymap); class start/end
+-- navigation is on `]m`/`[m`/`]M`/`[M` (not lowercase `]c`/`[c`, Neovim's *native* diff-mode
+-- navigation, which genuinely lives inside plugins/git/diffview.lua's windows — freed-up `]c`/
+-- `[c` belongs to gitsigns.nvim's own hunk navigation instead, see plugins/git/gitsigns.lua's
+-- note); and parameter start navigation is on `],`/`[,` (not `]a`/`[a`, Neovim's built-in
+-- argument-list navigation, `:next`/`:previous` — confirmed against this config's real installed
+-- runtime, $VIMRUNTIME/lua/vim/_core/defaults.lua's "vim-unimpaired style mappings" block; `,`
+-- matches this same file's own `a,`/`i,` parameter-select textobjects below, so "," stays the
+-- one mnemonic for "parameter" throughout this file). `]]`/`[[` (jsx element nav, below) also
+-- technically shadows Vim's ancient section-jump default (`{` at column 1) — left as-is since
+-- that convention essentially never matches in this config's actual filetypes (JS/TS/Python/
+-- Lua/Rust/etc. under 2-space indent), unlike the other two, which fire in any buffer.
 return {
 	"nvim-treesitter/nvim-treesitter-textobjects",
 	branch = "main",
@@ -75,7 +82,7 @@ return {
 		vim.keymap.set({ "n", "x", "o" }, "]m", function()
 			move.goto_next_start("@class.outer", "textobjects")
 		end, { desc = "Next class start" })
-		vim.keymap.set({ "n", "x", "o" }, "]a", function()
+		vim.keymap.set({ "n", "x", "o" }, "],", function()
 			move.goto_next_start("@parameter.inner", "textobjects")
 		end, { desc = "Next parameter start" })
 		vim.keymap.set({ "n", "x", "o" }, "]]", function()
@@ -88,7 +95,7 @@ return {
 		vim.keymap.set({ "n", "x", "o" }, "[m", function()
 			move.goto_previous_start("@class.outer", "textobjects")
 		end, { desc = "Previous class start" })
-		vim.keymap.set({ "n", "x", "o" }, "[a", function()
+		vim.keymap.set({ "n", "x", "o" }, "[,", function()
 			move.goto_previous_start("@parameter.inner", "textobjects")
 		end, { desc = "Previous parameter start" })
 		vim.keymap.set({ "n", "x", "o" }, "[[", function()

@@ -111,3 +111,35 @@ map("n", "<leader>or", "<cmd>set rnu!<CR>", { desc = "Toggle relative number" })
 map("n", "<leader>ow", "<cmd>set wrap!<CR>", { desc = "Toggle wrap" })
 -- Theme cycling/style-switching (<leader>os / <leader>ot / <leader>oT / <leader>ou) lives
 -- entirely in plugins/ui/themes.lua — see that file's own keymap table.
+
+-- ╭──────────────────────────────────────────────────────────────────╮
+-- │ Neovim's OWN "vim-unimpaired style" built-ins (0.11+, see        │
+-- │ $VIMRUNTIME/lua/vim/_core/defaults.lua — confirmed by reading it │
+-- │ directly, not from vim-unimpaired itself, which this config does │
+-- │ not install). Listed here, not per-plugin, because none of these │
+-- │ belong to any single plugin file below. LSP's own defaults (gd,  │
+-- │ grn, [d/]d, etc.) are catalogued instead in plugins/lsp/         │
+-- │ lspconfig.lua's own box next to where they're partly overridden. │
+-- │                                                                  │
+-- │  [q / ]q  – :cprevious / :cnext (quickfix list)                  │
+-- │  [Q / ]Q  – :crewind / :clast                                    │
+-- │  [<C-q> / ]<C-q> – :cpfile / :cnfile (previous/next FILE's       │
+-- │             errors in the quickfix list)                         │
+-- │  [l / ]l  – :lprevious / :lnext (location list — per-window,     │
+-- │             unlike the quickfix list above)                      │
+-- │  [L / ]L  – :lrewind / :llast                                    │
+-- │  [<C-l> / ]<C-l> – :lpfile / :lnfile                             │
+-- │  [a / ]a  – :previous / :next (argument list — `nvim f1 f2 f3`,  │
+-- │             not used by this config's own workflow, but free:    │
+-- │             plugins/editor/textobjects.lua's parameter-nav used  │
+-- │             to shadow this and was moved to `],`/`[,` for it)    │
+-- │  [A / ]A  – :rewind / :last (argument list)                      │
+-- │  [t / ]t  – :tprevious / :tnext (ctags tag stack — also free:    │
+-- │             plugins/editor/todo-comments.lua used to shadow this │
+-- │             and was moved to `]n`/`[n` for it)                   │
+-- │  [T / ]T  – :trewind / :tlast                                    │
+-- │  [<C-t> / ]<C-t> – :ptprevious / :ptnext (preview window)        │
+-- │  [b / ]b  – :bprevious / :bnext (buffer list — unused/free; this │
+-- │             config navigates buffers via bufferline.lua instead) │
+-- │  [B / ]B  – :bfirst / :blast                                     │
+-- ╰──────────────────────────────────────────────────────────────────╯

@@ -86,9 +86,15 @@ return {
 				"sqlfluff",
 				"golangci-lint",
 				"yamllint",
-				"selene",
-				"luacheck",
 				"typos",
+				"gofumpt", -- plugins/lang-tools/conform.lua's `go = {"gofumpt"}` formatter; wasn't actually guaranteed installed anywhere before this
+				"tree-sitter-cli", -- plugins/treesitter/treesitter.lua's `main`-branch parser installs need this on $PATH — see that file's own note
+				-- `selene`/`luacheck` (both Lua linters) were here previously but wired into
+				-- nothing — lint.lua's `linters_by_ft` has no `lua` entry, so Mason was installing
+				-- and updating two binaries with zero effect on the editing experience. Removed as
+				-- dead weight; lua_ls's own diagnostics (lspconfig.lua) are this config's actual
+				-- source of Lua-specific warnings. Add one back plus a matching `lua = {...}` line
+				-- in lint.lua if you want a second opinion there.
 			},
 		},
 	},

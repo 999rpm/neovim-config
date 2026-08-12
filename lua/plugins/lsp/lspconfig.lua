@@ -97,7 +97,7 @@ return {
 					vim.keymap.set(mode, keys, func, { buf = event.buf, desc = "LSP: " .. desc, silent = true })
 				end
 
-				-- ┌──────────────────────────────────────────────────────────────────┐
+				-- ╭──────────────────────────────────────────────────────────────────╮
 				-- │ Neovim's OWN keymaps/behaviour once a client attaches (0.11+, see │
 				-- │ :help lsp-defaults). Don't re-map these below — change behaviour  │
 				-- │ via vim.lsp.config() or vim.keymap.del() instead if ever needed.  │
@@ -142,7 +142,8 @@ return {
 				-- │  [d / ]d  – jump to prev/next diagnostic       [built-in 0.10]   │
 				-- │  [D / ]D  – jump to first/last diagnostic      [built-in 0.11]   │
 				-- │  <C-w>d   – open floating diagnostic detail    [built-in 0.10]   │
-				-- └──────────────────────────────────────────────────────────────────┘
+				-- │  <C-w><C-d> – same, alternate chord (remaps to <C-w>d) [0.10]    │
+				-- ╰──────────────────────────────────────────────────────────────────╯
 
 				-- gd: go to definition with de-duplication.
 				-- Avoids showing duplicate results for `local M.fn = function() ... end` style Lua code.

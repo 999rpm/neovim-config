@@ -1,6 +1,7 @@
 -- akinsho/bufferline.nvim: tab-style buffer line along the top, with git/diagnostic status
--- per buffer. `separator_style = "slant"` (below) gives the skewed/parallelogram tab look;
--- plugins/ui/lualine.lua's own separators are set to match. `smart_close` calls
+-- per buffer. `separator_style = "slope"` (below) gives the skewed/parallelogram tab look,
+-- sloped to the right — bufferline's own doc/bufferline.txt lists this as distinct from
+-- `"slant"` (same shape, no rightward slope). `smart_close` calls
 -- famiu/bufdelete.nvim (plugins/ui/bufdelete.lua) rather than mini.bufremove — a standalone,
 -- single-purpose plugin doing the exact same job (delete a buffer without disturbing window
 -- layout) without pulling in the rest of the mini.nvim bundle for one function; see
@@ -37,9 +38,10 @@ return {
 			options = {
 				mode = "buffers",
 				numbers = "none",
-				-- "slant" gives the skewed/parallelogram tab look. If it renders oddly in your
-				-- terminal (some emulators need full-height glyphs padded), try "padded_slant"
-				-- instead — bufferline's own docs call this out as terminal-dependent.
+				-- "slope" gives the skewed/parallelogram tab look, sloped to the right. If it
+				-- renders oddly in your terminal (some emulators need full-height glyphs
+				-- padded), try "padded_slope" instead — bufferline's own docs call this out
+				-- as terminal-dependent.
 				separator_style = "slope",
 				always_show_bufferline = true,
 				sort_by = "insert_after_current",

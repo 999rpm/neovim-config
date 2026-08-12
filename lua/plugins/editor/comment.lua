@@ -1,6 +1,15 @@
 -- numToStr/Comment.nvim + JoosepAlviste/nvim-ts-context-commentstring: gcc/gc-family comment
 -- toggling, with per-language commentstring detection inside mixed-syntax files (JSX in .js,
 -- <script> in .vue, etc.) via treesitter.
+--
+-- Neovim 0.10+ ships its OWN native `gc`/`gcc`/`gc`-textobject (confirmed directly against this
+-- config's real installed runtime, $VIMRUNTIME/lua/vim/_core/defaults.lua) — this plugin's
+-- identical-looking mappings below intentionally take over those same keys rather than leaving
+-- the native ones in place, for two things the native implementation doesn't do: block comments
+-- (`gbc`/`gb`, no native equivalent at all) and treesitter-aware commentstring switching inside
+-- embedded-language regions via nvim-ts-context-commentstring (native `gc` just reads the
+-- buffer's single 'commentstring' option, so it comments JSX-inside-.js or <script>-inside-.vue
+-- with the wrong syntax without this).
 return {
 	{
 		"numToStr/Comment.nvim",

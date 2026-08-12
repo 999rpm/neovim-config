@@ -1,9 +1,10 @@
 -- Bootstraps folke/lazy.nvim itself (self-installing on first run), then calls its setup()
--- with this config's plugin-manager options: `lua/plugins/**/*.lua` auto-imported (lazy.nvim's
--- `{ import = "plugins" }` recursively walks subdirectories on its own — see
--- `has_user_plugins` below), lockfile/dev-path/UI/performance tuning, and the `<leader>ol`
--- (:Lazy) / `<leader>om` (:Mason) keymaps at the bottom. Every other .lua file under
--- `lua/plugins/` (now grouped into category subfolders — see init.lua's file-layout note) is a
+-- with this config's plugin-manager options: `{ import = "plugins" }` below hands off to
+-- `lua/plugins/init.lua`, which explicitly imports each category subfolder by name — lazy.nvim
+-- itself does NOT recurse into subfolders on its own (see plugins/init.lua's own header for why,
+-- confirmed against lazy.nvim's source) — plus lockfile/dev-path/UI/performance tuning, and the
+-- `<leader>ol` (:Lazy) / `<leader>om` (:Mason) keymaps at the bottom. Every other .lua file under
+-- `lua/plugins/` (grouped into category subfolders — see init.lua's file-layout note) is a
 -- plugin *spec* this file discovers and loads; it doesn't reference any of them by name itself.
 local fn = vim.fn
 local api = vim.api

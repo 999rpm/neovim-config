@@ -9,7 +9,230 @@ Newest entry first.
 
 ---
 
-## 2026-08-12 — plugin-loading bug, ufo/fold bugs, JS diagnostics, Haskell, UI polish
+## 2026-08-12 — tree-sitter CLI errors, sharp-to-rounded corners, keymap-vs-builtin conflicts, dependency architecture, fold-column rework
+
+Trigger: a follow-up pass covering five concrete reports — (1) real `:messages` spam,
+nvim-treesitter's `main` branch failing to compile every parser with `tree-sitter CLI not
+found`, (2) `:Noice history` going quiet, (3) sharp-vs-rounded box-drawing corners throughout,
+(4) whether `float-backdrop.lua` (added in the entry below) earns its keep, (5) stale `"slant"`
+comments after bufferline/lualine were switched to `"slope"` — plus a full compatibility/
+redundancy pass across every file, and a specific ask: make ufo's fold arrows work at unlimited
+nesting depth by aligning with snacks.indent's own (uncapped) guide column instead of a
+fixed-width foldcolumn.
+
+**Verified against real, current upstream source for every claim below**, cloned fresh:
+nvim-treesitter (`main`), noice.nvim, bufferline.nvim, mason-registry, mason-lspconfig.nvim,
+statuscol.nvim, snacks.nvim, lazy.nvim — plus Neovim's own bundled `$VIMRUNTIME` (a real,
+downloaded v0.12.4) for every native-keymap claim, and lazy.nvim's actual `Spec.new()` resolver
+run end to end against this config's real directory tree (not just `lsmod`, as the entry below
+did — the full resolution pipeline, including every `dependencies` merge).
+
+### 1. Real bug: nvim-treesitter's `main` branch needs the standalone `tree-sitter` CLI
+
+Confirmed by reading `install.lua` directly: `do_compile` unconditionally shells out to
+`tree-sitter build`/`tree-sitter generate` — no C-compiler fallback exists in the current
+source, and `health.lua` explicitly checks for the CLI and errors if it's missing. This is a
+genuine, current, external system requirement, not a config bug — and it's a direct,
+predictable consequence of §5 in the entry below (`ensure_installed` was fixed from a
+commented-out no-op into a real `ts.install()` call): before that fix nothing ever tried to
+compile a parser, so nothing could hit this error; after it, every one of the ~25 languages in
+`ensure_installed` tries and fails identically, once each, every startup.
+
+Two-part fix:
+- `mason.lua`'s `ensure_installed` gained `"tree-sitter-cli"` — confirmed present in Mason's
+  own registry (`tree-sitter-cli`, v0.26.12, prebuilt binaries, no compiler needed for the CLI
+  itself). This is the actual, self-healing fix: Mason installs to a directory it already adds
+  to `$PATH`, so once it syncs once, the problem doesn't recur.
+- `treesitter.lua`'s `ts.install(ensure_installed)` call is now gated behind
+  `require("utils").executable("tree-sitter")`, with a single clear `vim.notify()` warning
+  (not 25 stacked ENOENT errors) if it's missing — same pattern already used for `nu`/`rg` in
+  `options.lua`. Only fires for real between a fresh install and Mason's first sync.
+
+### 2. `:Noice history` showing nothing — not a bug
+
+Traced through noice.nvim's real source. Routes/`skip` (what `noice.lua` configures) only
+controls *live display* — `message/manager.lua`'s `M.add()` unconditionally records every
+message into a separate persistent `_history` table regardless of routing. `:Noice history`
+itself filters that table via Noice's own unmodified default (`commands.history`'s filter:
+`notify` / `error` / `warning` / plain `msg_show` / `lsp message` events only). Before §1 of the
+entry below was fixed, every `UfoFallbackException` was hitting that filter as an error,
+populating history; once those stopped, there's simply nothing new to show. Confirmation the
+fix worked, not a regression.
+
+### 3. Sharp-to-rounded corners
+
+Every box-drawing character in the config found via a full-tree scan (Python, the actual
+`\u2500`–`\u257F` Unicode block — not a guess at which files "look relevant"). Changed:
+`snacks.lua`'s indent `chunk` box (`corner_top`/`corner_bottom`: `┌`/`└` → `╭`/`╰`),
+`lspconfig.lua`'s ASCII-art keymap reference box (all four corners, re-verified 66-char-wide
+alignment after), `neo-tree.lua`'s `last_indent_marker` (`└` → `╰`), `trouble.lua`'s
+`icons.indent.last` (`└╴` → `╰╴`). Deliberately **not** touched: `options.lua`'s window-split
+fillchars (T-junctions/crosses have no rounded Unicode equivalent) and `gitsigns.lua`'s sign
+column (plain vertical lines, no corners involved). `init.lua`'s file-layout tree comment and
+`neo-tree.lua`'s non-`last` indent markers are tree/indent *connectors*, not box corners, and
+were left alone on purpose.
+
+### 4. `float-backdrop.lua` removed
+
+Added in the entry below; on reflection (and per direct instruction) not worth its complexity
+for what it did. Deleted, along with all three cross-references: `snacks.lua`'s header (it
+built on snacks' window primitive), `toggleterm.lua`'s header, and `init.lua`'s file-layout tree
+and feature-overview bullet list.
+
+### 5. Bufferline/lualine: comments only, styles confirmed correct and left untouched
+
+**Explicit instruction this pass: the person had personally checked and verified both styles —
+fix documentation, do not touch values.** `bufferline.lua`'s header and inline comment still
+said `"slant"`; the actual, working `separator_style` is `"slope"` (confirmed as a real, distinct
+bufferline.nvim option — "slanted but sloped to the right" — via bufferline's own source; the
+terminal-rendering fallback is `"padded_slope"`, not `"padded_slant"`). Comment corrected to
+match; `separator_style` value never touched.
+
+**A mistake made and caught, mid-session, on `lualine.lua`:** this pass initially misread
+`component_separators`/`section_separators` as empty strings — they render as literally nothing
+in plain-text tool output (`cat`, `grep`, `view`) — and stated that as a "real functional bug."
+Wrong. The person supplied a screenshot proving otherwise; checking the actual file bytes
+(`repr()`, not the terminal display) confirmed real, non-empty codepoints: `U+E0BA`–`U+E0BC`,
+Nerd Font **Powerline Extra Symbols** (`ryanoasis/powerline-extra-symbols`'s "angly" separator
+variants, a Private-Use-Area range distinct from the classic `U+E0B0`–`U+E0B3` arrows) — a
+font-rendering gap in this session's own tooling, not an empty string in the file. Comment
+rewritten to document the real codepoints and explain why they can look blank in a plain-text
+view; the separator values themselves were never edited, byte-for-byte identical throughout
+(verified by codepoint before and after, not by re-reading the diff). Worth remembering: check
+raw bytes before asserting something is "empty," the same discipline the `2026-08-06` entry's
+own UTF-8-encoding lesson already called for.
+
+### 6. `lua/plugins/init.lua` missing again — same failure mode as §1 below, same fix
+
+Absent from this delivery for the identical reason documented below (the root `init.lua` /
+`plugins/init.lua` filename collision in project-knowledge sync). Reconstructed identically;
+also re-fixed `config/lazy.lua`'s header, which had reverted to the same stale "lazy.nvim
+recurses into subfolders on its own" claim the entry below already corrected once.
+
+### 7. Keymap-vs-native-builtin conflicts, resolved in favor of the builtin
+
+Full sweep of Neovim's real `$VIMRUNTIME/lua/vim/_core/defaults.lua` "vim-unimpaired style"
+block (every `[x`/`]x` native default catalogued: `d/D`, `q/Q/<C-q>`, `l/L/<C-l>`, `a/A`,
+`t/T/<C-t>`, `b/B`, `<Space>`) turned up two this config was shadowing that the `2026-08-06`
+sweep below missed:
+- `plugins/editor/textobjects.lua`'s `]a`/`[a` (parameter-start nav) shadowed native
+  `:next`/`:previous` (argument-list nav). Moved to `],`/`[,` — reuses this same file's own
+  `a,`/`i,` parameter-select mnemonic rather than inventing a new one.
+- `plugins/editor/todo-comments.lua`'s `]t`/`[t` shadowed native `:tnext`/`:tprevious` (tag-stack
+  nav). Moved to `]n`/`[n` (confirmed free against the same exhaustive list).
+
+Also documented, not remapped (native impact judged negligible): `textobjects.lua`'s `]]`/`[[`
+(jsx nav) technically shadows Vim's ancient `{`-at-column-1 section-jump default, which
+essentially never matches in this config's actual filetypes under 2-space indent.
+
+Separately: `comment.lua`'s `gc`/`gcc` intentionally shadow Neovim 0.10+'s own native
+`gc`/`gcc` — now documented (confirmed via the same real runtime source) rather than left
+unexplained, since unlike the two moves above, this one is a deliberate keep: block comments
+(`gbc`/`gb`) and treesitter-aware commentstring switching for embedded languages (JSX-in-.js,
+`<script>`-in-.vue) are real capability gaps in the native version.
+
+Added a reference box to `config/mappings.lua`, matching `lspconfig.lua`'s existing box style,
+for the native defaults that don't belong to any single plugin file (quickfix/loclist/arglist/
+tag-stack/buffer-list navigation) — including a noted, verified gap in the LSP box itself:
+`<C-w><C-d>` (alternate chord for `<C-w>d`, floating diagnostic) was missing.
+
+### 8. Dependency architecture: a `deps/` folder for genuinely shared, unconfigured plugins
+
+`plugins/ui/web-devicons.lua` already had the right shape for this — `lazy = true`, no
+`event`/`cmd`/`ft` of its own, existing purely to centralize `opts` while every one of its 8
+consumers still lists `"nvim-tree/nvim-web-devicons"` in their own `dependencies` (that's what
+actually triggers the load; lazy.nvim merges every spec referencing the same plugin name into
+one resolved plugin). Confirmed this is load-bearing, not redundant, before touching anything —
+removing those 8 references would have silently stopped devicons from ever loading at all.
+
+Extended the same proven pattern to the two other genuinely multi-consumer, nothing-to-configure
+dependencies that had no home: `nvim-lua/plenary.nvim` (5 consumers) and `MunifTanjim/nui.nvim`
+(2 consumers), both previously just scattered inline `dependencies` entries. New file:
+`plugins/deps/shared.lua`. `web-devicons.lua` relocated from `ui/` to `deps/` alongside it, for
+one consistent home for "shared infrastructure with no independent trigger." `promise-async`
+(nvim-ufo's dependency) deliberately left inline in `ufo.lua` — single-consumer, nothing to
+centralize. `plugins/init.lua` gained `{ import = "plugins.deps" }`; `init.lua`'s file-layout
+tree updated to match.
+
+Verified with lazy.nvim's actual `Spec.new()` resolver (see "Testing this pass actually did"
+below): 65/65 plugins resolve correctly after the move, matching `lazy-lock.json`'s 65 entries
+exactly (the one apparent mismatch, `999rpm-themer` present in the resolved set but absent from
+the lockfile, is expected — a local, repo-less spec with no git source to pin).
+
+### 9. Fold column: `foldcolumn = "1"`, not `"auto:4"` — unlimited nesting depth, on purpose
+
+Supersedes the `"auto:4"` fix in §3 of the entry below. Traced `statuscol.nvim`'s real
+`builtin.foldfunc` source in full this time (not just the one `range = min(level, width)` line
+quoted below): at width N>1, the renderer stacks one glyph per level and genuinely runs out of
+columns past N — that's the actual cap. At width 1, the per-line check collapses to "does a
+fold start on *this exact line*" (`foldinfo.start == args.lnum`), which doesn't depend on depth
+at all — a fold starting 12 levels deep gets its `foldopen`/`foldclose` glyph exactly like one
+at level 2. What a wide column adds instead — seeing every level you're currently inside, at a
+glance — is already covered with no cap of its own by `snacks.indent`'s guides (one virtual-text
+character per indent level, nothing capping how many draw). Fold is listed last/rightmost in
+`statuscol.lua`'s segments, so at width 1 it sits flush against the first indent guide rather
+than floating in its own strip — about as close to "same column" as the real rendering pipeline
+allows without custom extmark code fighting two plugins for the same buffer position (checked
+`snacks.nvim`'s indent module directly for a hook that would allow that kind of merge; none
+exists).
+
+Also removed `foldnestmax = 4`: verified dead code, confirmed against Neovim's own docs — it
+only applies to `foldmethod=indent`/`syntax`, and this config uses `manual` (nvim-ufo's own
+requirement). It never limited anything nvim-ufo did; the comment claiming otherwise was wrong.
+
+### 10. Smaller fixes
+
+- `mason.lua`: added `"gofumpt"` (`conform.lua`'s `go` formatter, referenced but never actually
+  guaranteed installed anywhere) and `"tree-sitter-cli"` (§1). Removed `"selene"`/`"luacheck"`
+  — both installed but wired into nothing in `lint.lua` (`linters_by_ft` has no `lua` entry) —
+  dead weight, not active redundancy elimination of anything functioning.
+- `lazy-lock.json`: removed the orphaned `"indent-blankline.nvim"` entry left over from the
+  entry below's plugin-file deletion — the lockfile was never regenerated after.
+- `flash.lua`: removed a dangling reference to a "review log" in `mappings.lua` that the entry
+  below already deleted outright.
+- `neotest.lua`: documented why `antoinemadec/FixCursorHold.nvim` is still a justified
+  dependency rather than legacy cruft — checked, not assumed. Its original performance bug (small
+  `CursorHold` delays thrashing the swap file) really was fixed in Neovim core years ago, but per
+  the plugin author's own clarification, it still does a second, unrelated job core has no
+  equivalent for: decoupling `CursorHold`'s delay from the single global `'updatetime'`.
+- Checked `craftzdog/dotfiles-public`, `xero/dotfiles`, `rafi/vim-config` again for anything new
+  to adopt in `lspconfig.lua` specifically. Nothing found that isn't already incorporated,
+  already superseded by a more current mechanism (e.g. this config's native `virtual_lines`
+  diagnostic option vs. xero's `lsp_lines.nvim`, which exists to backfill the same thing on
+  older Neovim), or a genuine style alternative rather than an improvement (xero's
+  `spellwarn.nvim`, `diagflow.nvim` — worth knowing about, not added unasked).
+
+### Testing this pass actually did
+
+- All 55 `.lua` files pass `luac5.1 -p` after every edit in this entry (checked twice — once
+  mid-pass, once at the end).
+- Downloaded a real Neovim **v0.12.4** binary and cloned real upstream source for every plugin
+  named in §1–§9 above (nvim-treesitter, noice.nvim, bufferline.nvim, mason-registry,
+  mason-lspconfig.nvim, statuscol.nvim, snacks.nvim) — every claim above was checked against
+  that source directly, not recalled from memory.
+- Ran lazy.nvim's actual `Spec.new()` — the real spec-resolution engine, not just `lsmod` (see
+  the entry below for that narrower check) — against this config's real directory tree: 65/65
+  plugins resolved, cross-verified byte-for-byte against `lazy-lock.json`'s 65 entries (§8).
+- Did **not** attempt a full plugin install/bootstrap or a real headless-launch test — same
+  scope boundary the entry below draws, for the same reason (materially bigger undertaking than
+  this pass's actual changes warrant). Spec-shape and dependency-graph correctness is verified;
+  runtime behavior of each plugin's own `config()`/`opts` function, once installed, is not.
+
+### Check next time
+
+- The `2026-08-06` entry's `foldcolumn = "1"` "check next time" item and this entry's own §9
+  cover the *same setting* for *different reasons* — if width 1 ever needs to change again,
+  read §9 above, not the 2026-08-06 entry, which reflects an outdated diagnosis.
+- `snacks.indent`'s `chunk` box only draws once a scope is at least one `shiftwidth` deep (own
+  source: `show_chunk = show_chunk and (scope.indent or 0) >= state.shiftwidth`) — no box at
+  true top-level code is expected, not a bug.
+- If `snacks.indent`'s animation feels too slow/fast, `animate.duration`/`animate.style` are the
+  knobs — see `snacks.lua`.
+- A suggested file-structure change (flattening vs. the current category-folder layout) was
+  discussed but not applied — current structure is already sound; see the conversation this log
+  entry was written from for the actual reasoning, since it's advice rather than a change.
+
+## 2026-08-12 — reference-config comparison, Haskell support, indent guides, fold-arrow nesting, dimmed backdrop
 
 Trigger: a follow-up request covering (1) a line-by-line comparison against jdhao/nvim-config,
 craftzdog/dotfiles-public, xero/dotfiles, and rafi/vim-config with special focus on
@@ -88,10 +311,13 @@ what correct nested rendering looks like — a line simultaneously closing one f
 another — not necessarily the bug the 2026-08-06 entry took it for. With width stuck at 1 that
 distinction was moot either way.)
 
-Fixed by widening `foldcolumn` to `"auto:4"` — a real Neovim option value (`:help
+Fixed at the time by widening `foldcolumn` to `"auto:4"` — a real Neovim option value (`:help
 'foldcolumn'`), sized dynamically up to 4 to match `foldnestmax` (also 4, already set), costing
-no extra column width on lines/buffers with no real nesting. See `config/options.lua`,
-`plugins/ui/statuscol.lua`.
+no extra column width on lines/buffers with no real nesting. **Superseded by the entry above's
+§9: `"auto:4"` still caps visible nesting at 4, just at a higher ceiling — narrowed further to
+`foldcolumn = "1"` once the actual statuscol.nvim rendering logic was traced in full, which
+removes the cap entirely rather than just raising it. `foldnestmax` (mentioned above as the
+number this matched) also turned out to be dead code — see the entry above's §9.**
 
 ### 4. JS/TS files: no diagnostics, no ufo arrows
 
@@ -303,11 +529,11 @@ rather than silently edited away:
   `main` branch; see §5.
 - If you're on a cabal (not stack) Haskell project, edit `dap.lua`'s `ghciCmd` per the comment
   above it before trying to debug.
-- If the float-backdrop's `zindex = 45` ever renders in front of a popup instead of behind it
-  (possible if some other plugin sets a floating window's zindex below 50), raise the popup's
-  own zindex or lower 45 further — see `plugins/ui/float-backdrop.lua`.
-- `bufferline.lua`'s `"slant"` can look wrong in some terminal emulators (padding/line-height
-  dependent, per bufferline's own docs) — try `"padded_slant"` if so.
+- ~~float-backdrop zindex~~ — moot, `plugins/ui/float-backdrop.lua` was deleted in the entry
+  above (§4); left struck through rather than silently removed, since the reasoning it links to
+  no longer has a file to point at.
+- ~~bufferline.lua's "slant"~~ — the value in use is `"slope"`, not `"slant"` (see the entry
+  above's §5 for the terminal-rendering fallback, now `"padded_slope"`).
 - `snacks.indent`'s `chunk` box only draws once a scope is at least one `shiftwidth` deep (its
   own source: `show_chunk = show_chunk and (scope.indent or 0) >= state.shiftwidth`) — don't
   expect a box at true top-level (module-level) code, that's expected, not a bug.

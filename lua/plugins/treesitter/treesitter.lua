@@ -56,7 +56,25 @@ return {
 			-- `vim.list_contains(config.get_installed(), lang)`, so calling this unconditionally
 			-- on every startup costs nothing once parsers exist, and fetches whatever's missing
 			-- in the background otherwise. Async — does not block startup.
-			ts.install(ensure_installed)
+			-- Gated on the `tree-sitter` CLI actually being present: `main`'s own install.lua
+			-- (confirmed by reading it directly) shells out to `tree-sitter generate`/`tree-sitter
+			-- build` unconditionally, with no C-compiler fallback — every parser above would
+			-- otherwise fail with the same ENOENT, once per parser, per startup, until it's on
+			-- $PATH. `tree-sitter-cli` is Mason-managed (see mason.lua's ensure_installed), so
+			-- this only fires for real before Mason finishes installing it for the first time —
+			-- same utils.executable() gating pattern as `nu`/`rg` in options.lua.
+			if require("utils").executable("tree-sitter") then
+				ts.install(ensure_installed)
+			else
+				vim.notify(
+					"tree-sitter CLI not found — parsers won't auto-install until Mason finishes "
+						.. "installing tree-sitter-cli (or install it yourself: your OS package manager, "
+						.. "or `cargo install tree-sitter-cli` — nvim-treesitter's own README explicitly "
+						.. "asks for anything but npm). Run :TSUpdate once it's on $PATH.",
+					vim.log.levels.WARN,
+					{ title = "nvim-treesitter" }
+				)
+			end
 
 			vim.g.skip_ts_context_commentstring_module = true -- plugins/editor/comment.lua wires ts_context_commentstring manually
 			vim.treesitter.language.register("markdown", "mdx")
