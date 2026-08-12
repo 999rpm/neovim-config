@@ -6,54 +6,30 @@
 -- Substantially adapted from jdhao/nvim-config <https://github.com/jdhao/nvim-config>
 -- (lua/lsp_conf.lua, lua/lsp_utils.lua, lua/diagnostic-conf.lua, after/lsp/*.lua) — periodically
 -- diffed against his live repo; utils.lua and mason.lua share this credit. Two settings were
--- sourced from elsewhere and verified against current upstream docs before being applied:
--- `includeInlayParameterNameHintsWhenArgumentMatchesName` (craftzdog/dotfiles-public) and the
--- schemastore.nvim jsonls/yamlls integration (xero/dotfiles).
+-- sourced from elsewhere: `includeInlayParameterNameHintsWhenArgumentMatchesName`
+-- (craftzdog/dotfiles-public) and the schemastore.nvim jsonls/yamlls integration
+-- (xero/dotfiles).
 --
 -- Features: capabilities (blink.cmp + nvim-ufo folding via utils.get_lsp_capabilities()) ·
 -- diagnostics (virtual_lines on the current line, signs, size-capped rounded floats,
 -- <leader>xw/<leader>xb to quickfix) · gd de-dup for `local M.fn = function() end`-style Lua ·
 -- document highlight on CursorHold · <leader>oh inlay-hint toggle, capability-gated ·
--- :LspFormat for an on-demand manual format (format-*on-save* is conform.lua's job now, not
--- this file's — see the 2026-08-06 note below) · LSP progress echoed via nvim_echo ·
--- LspInfo/LspLog/LspRestart commands · Mason-managed servers enabled unconditionally,
--- everything else gated on utils.executable() · Python split cleanly between basedpyright
--- (types) and ruff (imports + hover, with basedpyright's own hover disabled in ruff's favour)
--- · JSON/YAML schema validation via schemastore.nvim.
+-- :LspFormat for an on-demand manual format (format-*on-save* is conform.lua's sole job, not
+-- this file's — see plugins/lang-tools/conform.lua) · LSP progress echoed via nvim_echo ·
+-- LspInfo/LspLog/LspRestart commands · Mason-managed servers (`servers` below) enabled
+-- unconditionally, everything else (`external_servers`) gated on utils.executable() · Python
+-- split cleanly between basedpyright (types) and ruff (imports + hover, with basedpyright's
+-- own hover disabled in ruff's favour) · JSON/YAML schema validation via schemastore.nvim.
 --
--- 2026-08-06: config-wide audit (full scope in init.lua). One real behavior fix, found by
--- reading this file against plugins/lang-tools/conform.lua rather than in isolation: the
--- LspAttach callback used to register its OWN separate BufWritePre autocmd that ran
--- `vim.lsp.buf.format()` for any client supporting `textDocument/formatting` without
--- `willSaveWaitUntil`. conform.lua *also* format-on-saves every buffer, and its own
--- `lsp_format = "fallback"` option already does exactly this — fall back to LSP formatting
--- when no CLI formatter is configured for that filetype. Running both meant some filetypes
--- (anything conform delegates to LSP for, plus any filetype conform doesn't explicitly list)
--- got formatted twice, by two different, independently-ordered mechanisms — and conform's own
--- <leader>tc/<leader>tC format-on-save toggles didn't cover this file's copy at all, so turning
--- format-on-save "off" only ever half-worked. Removed the autocmd here; conform.lua is now the
--- single owner of format-on-save, LSP included. See that file's own note.
--- The ts_ls/vtsls duplicate-server bug and the missing schemastore integration were both
--- already resolved in a prior pass, and re-checking this file against a fresh clone of
--- jdhao/nvim-config today turned up no further drift worth porting beyond what's below. Added,
--- both off by default:
---   • `ty` (external_servers, commented out) — Astral's newer Rust-based Python type checker,
---     alongside the existing Pyrefly option; jdhao's own config added it days ago. Same caveat
---     as Pyrefly: no dedup trick with basedpyright, so enabling either alongside it risks
---     duplicate diagnostics.
---   • A short note on `schemastore.json.schemas()`'s `select` option (verified against
---     xero/dotfiles' jsonls.lua) — narrows validated schemas instead of loading all of them.
---     Left un-narrowed here since broader coverage is the safer default.
---   • A note that `vtsls` is trending as the more actively-maintained TypeScript server in
---     newer community configs (LazyVim now defaults to it) — not switched to: this config
---     already made a deliberate, documented call to run `ts_ls` alone with real tuned settings,
---     and nothing about vtsls fixes a problem `ts_ls` currently has here.
--- Everything else below (gd de-dup, hover/signature-help sizing, the basedpyright/ruff split,
--- `_optional` executable gating, the workspace.library-via-lazydev reasoning) was re-diffed
--- against jdhao's live repo and current Nvim 0.12 behavior and still matches — the reasoning
--- that's still load-bearing lives as comments on the settings themselves below, rather than as
--- a turn-by-turn log of the passes that arrived at it.
--- ────────────────────────────────────────────────────────────────────────────────────────
+-- `servers` vs `external_servers`: `servers` assumes Mason already put the binary on $PATH
+-- (kept in sync with mason.lua's `ensure_installed` — see that file's own note) and enables
+-- unconditionally. `external_servers` is for anything better installed outside Mason — each
+-- entry executable-checks itself (`_exec`) and only warns if missing when `_optional = false`.
+-- `hls` (Haskell) is deliberately external rather than Mason-managed: haskell-language-server's
+-- own install docs recommend ghcup directly, and Mason's package for it has a long history of
+-- version-matching failures against a project's actual GHC — `ghcup install hls` (or your
+-- distro's package) is the reliable path. See mason.lua for the tools that ARE Mason-managed
+-- for Haskell (ormolu, haskell-debug-adapter).
 return {
 	"neovim/nvim-lspconfig",
 	dependencies = { "b0o/schemastore.nvim" }, -- pure data (JSON/YAML schema catalog), no setup() of its own — see jsonls/yamlls below
@@ -258,13 +234,11 @@ return {
 					end, "Toggle Inlay Hints") -- show/hide inline parameter names and return types
 				end
 
-				-- No format-on-save autocmd here on purpose (see 2026-08-06 header note): that
-				-- job now belongs solely to plugins/lang-tools/conform.lua, whose own
-				-- `lsp_format = "fallback"` already covers "format via LSP when no CLI
-				-- formatter is configured for this filetype" — registering a second, separate
-				-- BufWritePre formatter here just meant some filetypes got formatted twice by
-				-- two different formatters, and conform's own <leader>tc/<leader>tC toggles
-				-- silently didn't cover this second path at all.
+				-- No format-on-save autocmd here on purpose: that job belongs solely to
+				-- plugins/lang-tools/conform.lua, whose own `lsp_format = "fallback"` already covers
+				-- "format via LSP when no CLI formatter is configured for this filetype". A second,
+				-- independent BufWritePre formatter here would format some filetypes twice, and
+				-- conform's own <leader>tc/<leader>tC toggles wouldn't cover it.
 
 				if client.name == "ruff" then
 					client.server_capabilities.hoverProvider = false -- let basedpyright handle hover for Python
@@ -349,10 +323,15 @@ return {
 				},
 			},
 			ts_ls = {
-				root_dir = function(...)
-					return require("lspconfig.util").root_pattern(".git")(...)
-				end,
-				single_file_support = false,
+				-- root_dir/single_file_support intentionally NOT set here. nvim-lspconfig's own
+				-- current default (its lsp/ts_ls.lua) already handles this well: tries package-
+				-- manager lockfiles and .git at equal priority, then falls back to the cwd — it
+				-- always attaches somewhere rather than refusing to start. A previous version of
+				-- this entry overrode both with the older root_pattern(".git")-only pattern plus
+				-- single_file_support = false, which is exactly why a standalone .js file with
+				-- no .git upward got zero diagnostics and no ufo LSP-folding: ts_ls simply never
+				-- attached. Verified against a fresh clone of nvim-lspconfig before removing
+				-- this rather than guessing. Same reasoning applies to `tailwindcss` below.
 				settings = {
 					typescript = {
 						inlayHints = {
@@ -392,11 +371,7 @@ return {
 					},
 				},
 			},
-			tailwindcss = {
-				root_dir = function(...)
-					return require("lspconfig.util").root_pattern(".git")(...)
-				end,
-			},
+			tailwindcss = {}, -- see ts_ls's note above — inherits nvim-lspconfig's own current root_dir default
 			taplo = {},
 			neocmake = {},
 			bashls = {},
@@ -478,7 +453,19 @@ return {
 			},
 			golangci_lint_ls = { _exec = "golangci-lint-langserver", _optional = true }, -- second source of the same golangci-lint diagnostics lint.lua already provides via direct CLI invocation, if you ever install golangci-lint-langserver — off by default, no conflict since only one path is active
 			clangd = { _exec = "clangd", _optional = true },
-			hls = { _exec = "haskell-language-server-wrapper", _optional = true },
+			hls = {
+				_exec = "haskell-language-server-wrapper",
+				_optional = true, -- install with `ghcup install hls` — see header note on why this isn't Mason-managed
+				settings = {
+					haskell = {
+						-- Match plugins/lang-tools/conform.lua's `haskell = {"ormolu"}` choice, so a
+						-- manual :LspFormat (which calls the LSP client directly, bypassing conform)
+						-- formats the same way format-on-save does instead of a different tool.
+						formattingProvider = "ormolu",
+						cabalFormattingProvider = "cabal-fmt",
+					},
+				},
+			},
 			sqls = { _exec = "sqls", _optional = true },
 			vimls = { _exec = "vim-language-server", _optional = true },
 			-- Optional Python type checkers, both off by default: running either alongside

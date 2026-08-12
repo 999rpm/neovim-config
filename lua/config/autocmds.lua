@@ -1,12 +1,7 @@
 -- Editor-wide autocmds not owned by any specific plugin. Companion files: options.lua (static
 -- settings this file reacts to), mappings.lua (keymaps). Grouped below by EDITING BEHAVIOR /
--- FILE HANDLING / UI / DISPLAY / FILETYPE-SPECIFIC.
---
--- 2026-08-06: added the context-menu block at the end of UI/DISPLAY, adapted from
--- rafi/vim-config <https://github.com/rafi/vim-config> (lua/rafi/config/autocmds.lua) — see
--- that block's own note for what changed in the port. Everything else here was re-checked
--- during this pass and needed no changes; every group already ran through utils.augroup() as
--- of the prior pass, so every custom group here is namespaced "999rpm-<name>".
+-- FILE HANDLING / UI / DISPLAY / FILETYPE-SPECIFIC. Every custom group here is namespaced
+-- "999rpm-<name>" via utils.augroup() — see that function's own doc-comment.
 local api = vim.api
 local fn = vim.fn
 local augroup = require("utils").augroup

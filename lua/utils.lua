@@ -1,29 +1,13 @@
 -- Shared helpers used by more than one file under config/ or plugins/. Anything used by only
 -- one file lives in that file instead — this module is for genuine cross-file reuse only.
+-- Every function below is tagged with an EOL comment naming which file(s) actually call it, so
+-- an unused one is easy to spot and remove.
 --
 -- Base (may_create_dir, executable, has, is_compatible_version, rand_int, rand_element,
 -- get_titlestr, get_virtual_env) and get_lsp_capabilities are adapted from jdhao/nvim-config's
 -- lua/utils.lua and lua/lsp_utils.lua <https://github.com/jdhao/nvim-config>. get_git_repo(),
 -- get_current_branch_name(), get_repo_info(), and augroup() are this config's own additions.
 -- cowboy() is borrowed from LazyVim's lua/lazyvim/config/keymaps.lua.
---
--- 2026-08-06: config-wide audit (see init.lua for the full scope of this pass). Changes here:
---   • get_virtual_env() is now actually used — plugins/ui/lualine.lua had its own copy-pasted
---     re-implementation of the exact same venv/conda lookup instead of calling this one; that
---     redundancy is gone (see lualine.lua's own note). Tagged below like every other function
---     here that a specific file depends on.
---   • Added rainbow_delimiter_groups: a single source of truth for the 7 highlight-group names
---     plugins/treesitter/rainbow-delimiters.lua and plugins/ui/indent-blankline.lua both need
---     to agree on, so bracket colors and indent-guide colors can never drift out of sync with
---     each other. Order matches rainbow-delimiters.nvim's own default (colours deliberately
---     scrambled, not ROYGBIV, so adjacent nesting levels contrast more) — verified against its
---     lua/rainbow-delimiters/default.lua rather than assumed.
---   • Everything else here was re-read against the rest of this pass's changes and needed no
---     code changes — prior verification history (blink.cmp capability merge order, gitsigns'
---     internal StatusObj fields, jdhao upstream diffs, etc.) is condensed out of this header
---     since it no longer reflects anything a future edit needs to re-derive; the reasoning
---     that's still load-bearing is kept as doc-comments on the functions themselves below.
--- ────────────────────────────────────────────────────────────────────────────────────────
 
 local fn = vim.fn
 local api = vim.api
@@ -221,13 +205,12 @@ end
 --- The 7 highlight-group names rainbow-delimiters.nvim defines for its own nesting colors
 --- (RainbowDelimiterRed/Yellow/Blue/Orange/Green/Violet/Cyan, in that order — deliberately
 --- non-ROYGBIV so adjacent levels contrast more; verified against the plugin's own
---- lua/rainbow-delimiters/default.lua rather than assumed). Both plugins/treesitter/
---- rainbow-delimiters.lua and plugins/ui/indent-blankline.lua point at this same list so
---- bracket-rainbow and indent-rainbow colors can never drift apart, and both automatically
+--- lua/rainbow-delimiters/default.lua rather than assumed). plugins/treesitter/
+--- rainbow-delimiters.lua points at this same list rather than a hand-typed copy, and it
 --- follow the active colorscheme: tokyonight/catppuccin/kanagawa (themes.lua) all ship their
 --- own overrides for these exact group names, so no hex codes need to be hand-maintained here.
 --- @type string[]
-M.rainbow_delimiter_groups = { -- This util is used by plugins/treesitter/rainbow-delimiters.lua and plugins/ui/indent-blankline.lua
+M.rainbow_delimiter_groups = { -- This util is used by plugins/treesitter/rainbow-delimiters.lua
 	"RainbowDelimiterRed",
 	"RainbowDelimiterYellow",
 	"RainbowDelimiterBlue",

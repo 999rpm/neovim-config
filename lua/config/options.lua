@@ -1,28 +1,7 @@
 -- Core `vim.opt`/`vim.g` settings. Companion files: autocmds.lua (behavior that reacts to
--- these settings rather than being a static option), mappings.lua (keymaps).
---
--- 2026-08-06: config-wide audit (full scope in init.lua). Two real, verified bugs fixed here:
---   • `shell = "nushell"` — nushell's actual executable is named "nu"; there has never been a
---     "nushell" binary on $PATH (confirmed against nushell's own docs, and the very blog post
---     these shellcmdflag/shellredir/etc. values are sourced from, which itself invokes
---     `shell = ".../bin/nu"`). Every `:terminal`/toggleterm session was trying to spawn a
---     nonexistent binary, so the job died immediately and `close_on_exit = true` (toggleterm's
---     default) closed the window right after — the "opens for a fraction of a second" bug.
---     Fixed to `"nu"`, gated behind `utils.executable()` like the `grepprg` block below, so a
---     machine without nushell installed just keeps Nvim's own POSIX default instead of
---     pointing `shell` at a missing binary again. See plugins/terminal/toggleterm.lua.
---   • `foldcolumn = "4"` — a foldcolumn wider than 1 stacks one glyph per nesting level on any
---     line that both continues an outer fold and starts an inner one (confirmed against
---     neovim/neovim#14751 and #21759, and statuscol.nvim's own builtin.foldfunc, which renders
---     however wide `foldcolumn` says to). That's the "two ufo fold arrows on the same line"
---     — not a bug in ufo or statuscol, just a foldcolumn width nothing in this config actually
---     wanted. nvim-ufo's own README recommends `'1'`; changed to match. See ufo.lua.
--- Prior review passes (2026-07-31 and earlier) audited every option below against current
--- Nvim docs/behavior for stale comments and silent conflicts (statuscolumn's relativenumber
--- awareness, the shada/viminfo rename, winborder being set twice, the mouse-mode comment, the
--- nushell shell block, a stray duplicate mdx treesitter-register line) — all of that is
--- reflected in the settings themselves now, so isn't re-narrated here.
--- ────────────────────────────────────────────────────────────────────────────────────────
+-- these settings rather than being a static option), mappings.lua (keymaps). Change history
+-- and the reasoning behind why a setting exists in its *current* form lives in
+-- AUDIT_SUMMARY.md — this file only carries comments that explain what a setting does today.
 local utils = require("utils")
 
 local g = vim.g
@@ -315,8 +294,14 @@ opt.sessionoptions:remove({ "blank", "buffers", "terminal" }) -- Exclude empty w
 opt.foldlevel = 99 -- Open all folds when first entering a buffer
 opt.foldlevelstart = 99 -- Start every new buffer with all folds fully open
 opt.foldnestmax = 4 -- Limit fold nesting to 4 levels deep
-opt.foldcolumn = "1" -- Width of the fold column. >1 stacks one glyph per nesting level on the same line (see header note) — nvim-ufo's own README recommends "1"
-opt.foldtext = "" -- Draw closed folds via the extmark path instead of the old foldtext() string — required for nvim-ufo's virtual-text summaries and indent-blankline's guides to render correctly across a closed fold's line
+-- "auto:4": sized dynamically up to 4 columns, matching foldnestmax above. statuscol.nvim's
+-- foldfunc (statuscol.lua) renders `min(fold_level, width)` columns, one glyph per nesting
+-- level — with width stuck at "1" nesting can never be shown at all, however deep the actual
+-- folds go (confirmed by reading statuscol's builtin.foldfunc source directly: `range =
+-- level < width and level or width`). "auto" keeps the column at 1 wide on lines/buffers with
+-- no real nesting, so this doesn't cost horizontal space when there's nothing to show.
+opt.foldcolumn = "auto:4"
+opt.foldtext = "" -- Draw closed folds via the extmark path instead of the old foldtext() string — required for nvim-ufo's virtual-text summaries and snacks.indent's guides to render correctly across a closed fold's line
 
 -- ─────────────────────────────────────────────────────────────────────────────
 --  Invisibles and Special Characters

@@ -1,14 +1,9 @@
 -- folke/trouble.nvim: list-style views for diagnostics/symbols/LSP-locations/quickfix, under
 -- the `<leader>d` group (which-key.lua labels it "Trouble (diagnostics UI)" specifically to
 -- distinguish it from lspconfig.lua's own native diagnostic *actions* under `<leader>x`).
---
--- 2026-08-06: config-wide audit (full scope in init.lua). Removed the `[d`/`]d` motion keymaps
--- below — they silently shadowed Neovim's own built-in diagnostic-jump defaults (`[d`/`]d`,
--- built into Nvim 0.10+, documented in lspconfig.lua's own LSP-defaults comment box) despite
--- this file's old comment calling them "conflict-free", which they never actually were. Native
--- `[d`/`]d` now apply again; Trouble's list is still one keypress away via `<leader>dd`, so
--- nothing here lost real functionality, just an accidental override of a built-in default —
--- per this pass's "prefer the built-in on a genuine conflict" pass across every keymap file.
+-- `[d`/`]d` are deliberately NOT mapped here — those are Neovim's own built-in diagnostic-jump
+-- defaults (documented in lspconfig.lua's LSP-defaults comment box); Trouble's list is one
+-- keypress away via `<leader>dd` instead.
 return {
 	"folke/trouble.nvim",
 	cmd = "Trouble",

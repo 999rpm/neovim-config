@@ -1,23 +1,13 @@
 -- nvim-treesitter/nvim-treesitter-textobjects: select/swap/move by treesitter node (function,
 -- class, parameter, local scope) instead of line/word-based Vim motions.
 --
--- 2026-08-06: config-wide audit (full scope in init.lua). Fixed two real, previously
--- undocumented collisions with Neovim's own built-in keymaps — found by checking every
--- bracket-motion in this config against `:help index` rather than assuming a free key was
--- actually free:
---   • Parameter swap was on `]p`/`[p`, which are Neovim's built-in indent-adjusted paste
---     commands (`:help ]p`). Moved to `<leader>a`/`<leader>A`, matching nvim-treesitter-
---     textobjects' own README-suggested keymap for swap — verified against its current README
---     rather than invented. New which-key group added in plugins/ui/which-key.lua.
---   • Class start/end navigation was on `]c`/`[c`/`]C`/`[C`. Lowercase `]c`/`[c` are Neovim's
---     *native* diff-mode navigation (`:help ]c`) — genuinely live inside plugins/git/
---     diffview.lua's windows, which render via real 'diff' mode under the hood, not just a
---     hypothetical `:vimdiff` case. Moved to `]m`/`[m`/`]M`/`[M` (free, and close enough to
---     treesitter-textobjects' own upstream convention of using the `m`-family for structural
---     jumps that it doesn't feel arbitrary). Freed-up `]c`/`[c` now belongs to gitsigns.nvim's
---     own hunk navigation instead — see plugins/git/gitsigns.lua's note.
--- Everything else here (function/parameter goto, jsx element goto, the select mappings) was
--- checked against the same built-in keymap list and has no other collisions.
+-- Two keymap choices below deliberately avoid Neovim's own built-ins rather than shadow them:
+-- parameter swap is on `<leader>a`/`<leader>A` (not `]p`/`[p`, Neovim's built-in indent-
+-- adjusted paste — matches this plugin's own README-suggested swap keymap) and class start/
+-- end navigation is on `]m`/`[m`/`]M`/`[M` (not lowercase `]c`/`[c`, Neovim's *native* diff-
+-- mode navigation, which genuinely lives inside plugins/git/diffview.lua's windows). Freed-up
+-- `]c`/`[c` belongs to gitsigns.nvim's own hunk navigation instead — see
+-- plugins/git/gitsigns.lua's note.
 return {
 	"nvim-treesitter/nvim-treesitter-textobjects",
 	branch = "main",

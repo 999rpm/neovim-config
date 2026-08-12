@@ -16,7 +16,9 @@
 --   • xero/dotfiles <https://github.com/xero/dotfiles> — the schemastore.nvim integration in
 --     lspconfig.lua.
 --   • rafi/vim-config <https://github.com/rafi/vim-config> — the context-menu (MenuPopup)
---     block in config/autocmds.lua, and the fold-count/ft-exclusion ideas in plugins/ui/ufo.lua.
+--     block in config/autocmds.lua, and plugins/ui/ufo.lua's provider_selector (the
+--     lsp->treesitter->indent chain with proper UfoFallbackException handling, plus the
+--     per-filetype exclusions).
 --
 -- File layout:
 --   init.lua (this file)
@@ -25,17 +27,20 @@
 --      ├─ config/                — editor behavior + the plugin manager itself
 --      │  ├─ options.lua, autocmds.lua, mappings.lua, lazy.lua
 --      └─ plugins/                — one file per plugin, auto-imported by lazy.lua
---         (lazy.nvim's `{ import = "plugins" }` walks subdirectories recursively — verified
---         against its own source before relying on it — so the category folders below are
---         purely organizational, not something lazy.lua has to know about)
+--         plugins/init.lua explicitly imports each category folder below by name (`{ import =
+--         "plugins.lsp" }`, etc.) — lazy.nvim's own module discovery (lazy/core/util.lua's
+--         lsmod) only scans one directory level at a time and won't descend into a category
+--         folder on its own unless that folder has its own init.lua, which none of them do by
+--         design (confirmed by reading lazy.nvim's source directly). Add a category folder
+--         without adding it to plugins/init.lua and every spec inside it silently never loads.
 --         ├─ lsp/          — lspconfig, mason, lazydev
 --         ├─ completion/   — blink, copilot, autopairs
 --         ├─ editor/       — flash, harpoon, surround, comment, textobjects, better-escape,
 --         │                  ts-autotag, mini (mini.ai only), todo-comments
 --         ├─ treesitter/   — treesitter, context, rainbow-delimiters
 --         ├─ ui/           — alpha, bufferline, lualine, noice, notify, themes, which-key,
---         │                  web-devicons, indent-blankline, statuscol, ufo, snacks,
---         │                  render-markdown, trouble, colorizer, bufdelete
+--         │                  web-devicons, statuscol, ufo, snacks,
+--         │                  render-markdown, trouble, colorizer, bufdelete, float-backdrop
 --         ├─ git/          — gitsigns, diffview
 --         ├─ explorer/     — neo-tree, oil
 --         ├─ search/       — telescope, fzf
@@ -46,8 +51,8 @@
 --
 -- Feature overview (see each plugin's own file for details/keymaps):
 --   • LSP + diagnostics  — nvim-lspconfig w/ schemastore.nvim, Mason-managed servers
---     (basedpyright+ruff, ts_ls, gopls, rust_analyzer, lua_ls, and more), Trouble for
---     diagnostics/symbols views
+--     (basedpyright+ruff, ts_ls, gopls, rust_analyzer, lua_ls, hls for Haskell, and more),
+--     Trouble for diagnostics/symbols views
 --   • Completion          — blink.cmp (LSP/path/snippets/buffer + lazydev for Lua), Copilot
 --   • Fuzzy finding       — Telescope (files/grep/LSP pickers/help/keymaps/…) + fzf-lua for
 --     a handful of fast common lookups
@@ -55,93 +60,27 @@
 --     (pin & jump between a handful of files), Flash (labelled jump/treesitter motions)
 --   • Git                 — gitsigns (hunks/blame), Diffview (full diff/history views),
 --     LazyGit + "open in browser" via snacks.nvim
---   • Debugging & testing — nvim-dap + nvim-dap-ui + dap-virtual-text + nvim-dap-python,
---     neotest (Jest adapter)
+--   • Debugging & testing — nvim-dap + nvim-dap-ui + dap-virtual-text + nvim-dap-python +
+--     Haskell (haskell-debug-adapter), neotest (Jest adapter)
 --   • Treesitter          — highlighting, incremental parsing, textobjects, sticky context
 --     header, rainbow delimiters, auto tag close/rename, folding via nvim-ufo
 --   • Formatting & linting— conform.nvim (format-on-save, per-filetype — the sole owner of
---     that job, see lspconfig.lua's 2026-08-06 note), nvim-lint
---   • UI                  — bufferline, lualine, which-key, Noice (cmdline/messages, paired
---     with notify.lua), alpha (start screen), a multi-theme switcher (tokyonight/catppuccin/
---     kanagawa), rainbow indent guides (indent-blankline.nvim) with treesitter scope
---     highlighting, a color-literal highlighter (nvim-colorizer.lua), a right-click context
---     menu (config/autocmds.lua's MenuPopup block)
+--     that job, see plugins/lsp/lspconfig.lua's note on why LSP-driven format-on-save doesn't
+--     also live there), nvim-lint
+--   • UI                  — bufferline + lualine (matching skewed/slant separators), which-key,
+--     Noice (cmdline/messages, paired with notify.lua), alpha (start screen), a multi-theme
+--     switcher (tokyonight/catppuccin/kanagawa), animated box-drawing indent/scope guides
+--     (snacks.indent's chunk mode), a color-literal highlighter (nvim-colorizer.lua), a
+--     dimmed backdrop behind Telescope/floating-terminal popups, a right-click context menu
+--     (config/autocmds.lua's MenuPopup block)
 --   • Editing QoL         — nvim-surround, Comment.nvim, autopairs, better-escape, mini.ai,
 --     todo-comments, bufdelete.nvim (buffer close without disturbing window layout)
 --   • Misc                — toggleterm (float/split terminal + a btop monitor), render-markdown
 --
--- 2026-08-06: config-wide audit — every file in the config read together, cross-checked
--- against each other (not just individually) and against fresh clones of all four reference
--- configs above. Each touched file has its own dated note with the specific reasoning; this
--- entry is the map of what happened and where, not a replacement for reading them.
---
---   REAL BUGS FOUND AND FIXED, each traced to a root cause before being touched:
---   • config/options.lua — `shell = "nushell"` pointed at a binary that doesn't exist (the
---     real executable is `nu`); every `:terminal`/toggleterm session failed to spawn and
---     closed immediately as a result. This was the "toggleterm opens for a fraction of a
---     second" report. Fixed, and gated behind `utils.executable()` so it degrades gracefully
---     if nushell isn't installed. See plugins/terminal/toggleterm.lua.
---   • config/options.lua — `foldcolumn = "4"` stacked one glyph per fold-nesting level on
---     lines that both continue an outer fold and start an inner one — confirmed against
---     neovim/neovim#14751/#21759 and statuscol.nvim's own foldfunc. This was the "two ufo fold
---     arrows on the same line" report; not a bug in ufo or statuscol. Fixed to "1" (nvim-ufo's
---     own README recommendation).
---   • plugins/ui/ufo.lua — `provider_selector` returned `{ "lsp", "indent" }` while this
---     file's own header comment had always claimed `{ "lsp", "treesitter" }`; the fallback for
---     any filetype without LSP folding-range support was silently the less accurate one. Fixed
---     to match what the comment always said was happening.
---   • plugins/lsp/lspconfig.lua vs plugins/lang-tools/conform.lua — both independently
---     registered a `BufWritePre` formatter. conform.lua's own `lsp_format = "fallback"` option
---     already covers "format via LSP when nothing else is configured," so lspconfig.lua's
---     separate copy meant some filetypes were formatted twice by two different, independently-
---     ordered mechanisms, and conform's own format-on-save toggle didn't cover lspconfig.lua's
---     copy at all. Removed lspconfig.lua's copy; conform.lua is now the sole owner.
---   • plugins/ui/bufferline.lua — a `_G.TokyoColors()` global referenced by a highlights block
---     and its refresh listener is defined nowhere in this project; both always silently no-
---     opped. Removed rather than left as permanent dead code.
---   • plugins/ui/lualine.lua — its own venv lookup was a byte-for-byte re-implementation of
---     utils.get_virtual_env(); now calls the shared one. Also dropped a stale "Avante"
---     filetype entry (avante.nvim isn't installed here) from `disabled_filetypes`.
---
---   KEYMAP CONFLICTS WITH NEOVIM'S OWN BUILT-INS, resolved in favor of the built-in per this
---   pass's own rule — found by checking every non-`<leader>` mapping against `:help index`
---   rather than assuming a key was free just because nothing else in this config claimed it:
---   • plugins/ui/trouble.lua's `[d`/`]d` silently shadowed Nvim's built-in diagnostic-jump
---     keys. Removed (Trouble's list is one keypress away at `<leader>dd`).
---   • plugins/editor/textobjects.lua's parameter swap was on `]p`/`[p` (native indent-adjusted
---     paste). Moved to `<leader>a`/`<leader>A`, matching nvim-treesitter-textobjects' own
---     README-suggested keymap.
---   • textobjects.lua's class navigation was on `]c`/`[c`/`]C`/`[C` — lowercase collides with
---     Nvim's *native* diff-mode navigation, genuinely live inside plugins/git/diffview.lua's
---     windows. Moved to `]m`/`[m`/`]M`/`[M`. Freed-up `]c`/`[c` now belongs to gitsigns.nvim's
---     own hunk navigation (plugins/git/gitsigns.lua), matching its own documented convention —
---     its `vim.wo.diff` fallback was silently dead on the old `]g`/`[g` binding (nothing
---     native was ever bound there) and now genuinely falls through to diff-mode navigation.
---
---   REPLACED WITH STANDALONE PLUGINS (config-wide audit's own remit, not just the indent
---   request below): mini.bufremove → famiu/bufdelete.nvim, mini.hipatterns →
---   catgoose/nvim-colorizer.lua. mini.ai stays — see plugins/editor/mini.lua's own note on why
---   it wasn't worth swapping out the same way.
---
---   snacks.indent → lukas-reineke/indent-blankline.nvim (plugins/ui/indent-blankline.lua):
---   rainbow-colored (shared palette with rainbow-delimiters.lua), treesitter scope-boundary
---   highlighting, ufo/fold-compatible out of the box. Read that file's own header for what it
---   can't do relative to snacks.indent — namely animation, which has no indent-blankline
---   equivalent at all; said plainly there rather than faked.
---
---   NEW: a right-click context menu (config/autocmds.lua's MenuPopup block, adapted from
---   rafi/vim-config), extending Nvim's own default PopUp menu with LSP/diagnostic/picker/git
---   actions, each disabled when the relevant capability or plugin isn't available.
---
---   STRUCTURAL: plugins/ now groups by category (see file layout above) instead of one flat
---   directory of ~50 files — lazy.nvim's own recursive `import` handles this with no changes
---   needed to lazy.lua. Every custom augroup across the config already goes through
---   utils.augroup() (from a prior pass), so this pass didn't need to touch that further.
---
---   COMMENTS: every file's historical review log has been condensed to what's still
---   load-bearing — the reasoning behind a decision that's still in effect — rather than a
---   turn-by-turn trace of every verification pass that arrived at it; new changes from this
---   pass are dated 2026-08-06 in each file that has them.
+-- Full change history, and the reasoning behind decisions that aren't obvious from reading the
+-- code alone, lives in AUDIT_SUMMARY.md — not here and not scattered across individual file
+-- headers, so there's exactly one place to check before making a change and exactly one place
+-- to update after making one.
 if vim.loader then
 	vim.loader.enable()
 end

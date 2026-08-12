@@ -1,26 +1,13 @@
 -- akinsho/bufferline.nvim: tab-style buffer line along the top, with git/diagnostic status
--- per buffer.
---
--- 2026-08-06: config-wide audit (full scope in init.lua). Removed the custom `highlights`
--- override and its `User ThemeChanged` refresh listener. Both existed only to consume a
--- `_G.TokyoColors()` global that a prior pass already flagged as suspicious and, after this
--- pass's full read of every file in the config, is confirmed to be defined nowhere at all —
--- so `colors()` always returned nil, the `highlights = c and {...} or nil` branch always took
--- the `nil` side, and the listener that re-ran it on every theme change had nothing real to
--- refresh either. Removed both rather than keep carrying a "maybe you have this elsewhere"
--- branch plus a listener whose only job was refreshing that same dead branch. Nothing is lost:
--- bufferline's own default highlight groups already derive from the active colorscheme
--- automatically on every `:colorscheme` call, same as any other plugin's default highlights.
--- If you want bufferline's selected/modified/duplicate/pick colors pulled from the palette on
--- purpose later, tokyonight/catppuccin/kanagawa each expose their own palette module you could
--- read from directly, the way plugins/ui/indent-blankline.lua and plugins/treesitter/
--- rainbow-delimiters.lua do via shared highlight-group names instead of copied hex values.
---
--- Also this pass: `smart_close` now calls famiu/bufdelete.nvim (plugins/ui/bufdelete.lua)
--- instead of mini.bufremove — a standalone, single-purpose plugin doing the exact same job
--- (delete a buffer without disturbing window layout) without pulling in the rest of the
--- mini.nvim bundle for one function. See plugins/editor/mini.lua's own note for the same
--- reasoning applied to mini.hipatterns.
+-- per buffer. `separator_style = "slant"` (below) gives the skewed/parallelogram tab look;
+-- plugins/ui/lualine.lua's own separators are set to match. `smart_close` calls
+-- famiu/bufdelete.nvim (plugins/ui/bufdelete.lua) rather than mini.bufremove — a standalone,
+-- single-purpose plugin doing the exact same job (delete a buffer without disturbing window
+-- layout) without pulling in the rest of the mini.nvim bundle for one function; see
+-- plugins/editor/mini.lua's own note for the same reasoning applied to mini.hipatterns.
+-- bufferline's own default highlight groups derive from the active colorscheme automatically
+-- on every `:colorscheme` call, same as any other plugin's default highlights — no manual
+-- highlight overrides are needed here for that to work.
 return {
 	"akinsho/bufferline.nvim",
 	version = "*",
@@ -50,7 +37,10 @@ return {
 			options = {
 				mode = "buffers",
 				numbers = "none",
-				separator_style = "thin",
+				-- "slant" gives the skewed/parallelogram tab look. If it renders oddly in your
+				-- terminal (some emulators need full-height glyphs padded), try "padded_slant"
+				-- instead — bufferline's own docs call this out as terminal-dependent.
+				separator_style = "slant",
 				always_show_bufferline = true,
 				sort_by = "insert_after_current",
 				diagnostics = "nvim_lsp",

@@ -1,7 +1,10 @@
 -- nvim-treesitter/nvim-treesitter: parser install + highlighting, on the "main" branch API
 -- (a full rewrite of the old, now-frozen "master" branch — confirmed against the project's own
--- README). `main`'s setup() takes no `highlight`/`indent`/`ensure_installed`/
--- `incremental_selection` table the way `master` did:
+-- README). `main` requires Neovim 0.12+ (stated in its own README's Requirements section) —
+-- if `:checkhealth nvim-treesitter` or startup complains, check `:version` first; this is a
+-- hard requirement of the plugin itself, not something this config can degrade around. `main`'s
+-- setup() takes no `highlight`/`indent`/`ensure_installed`/`incremental_selection` table the
+-- way `master` did:
 --   • ensure_installed          -> require("nvim-treesitter").install({...}) (called below)
 --   • highlight.enable          -> manual `vim.treesitter.start()` on FileType (see autocmd below)
 --   • indent.enable             -> not set; no `indentexpr` is configured
@@ -43,15 +46,17 @@ return {
 				"cpp",
 				"rust",
 				"mdx",
+				"haskell",
 			}
 
 			local ts = require("nvim-treesitter")
 			ts.setup({})
-			-- install() is safe to call unconditionally: it skips parsers that are already
-			-- installed and only fetches what's missing. Commented out because it re-runs a
-			-- (no-op) check on every startup and can print noise before parsers exist yet —
-			-- run `:TSInstall` (ensure_installed above is just the reference list) instead.
-			-- ts.install(ensure_installed)
+			-- install() is a genuine no-op for anything already installed — confirmed by reading
+			-- nvim-treesitter's own install_lang(): it returns immediately with zero I/O when
+			-- `vim.list_contains(config.get_installed(), lang)`, so calling this unconditionally
+			-- on every startup costs nothing once parsers exist, and fetches whatever's missing
+			-- in the background otherwise. Async — does not block startup.
+			ts.install(ensure_installed)
 
 			vim.g.skip_ts_context_commentstring_module = true -- plugins/editor/comment.lua wires ts_context_commentstring manually
 			vim.treesitter.language.register("markdown", "mdx")

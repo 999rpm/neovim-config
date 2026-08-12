@@ -4,15 +4,11 @@
 -- below is shared with those two; snacks.lua's own keys live under the same group without
 -- colliding on a specific key).
 --
--- 2026-08-06: config-wide audit (full scope in init.lua). Hunk navigation moved from `]g`/`[g`
--- back to gitsigns.nvim's own documented convention, `]c`/`[c` — freed up by moving
--- plugins/editor/textobjects.lua's class navigation off those same keys (see that file's
--- note). This isn't just a cosmetic swap: `]c`/`[c` are also Neovim's *native* diff-mode
--- navigation keys, and the `if vim.wo.diff then return ... end` escape hatch below only
--- actually works when the returned key is a real native command. On `]g`/`[g`, that fallback
--- was quietly dead — nothing native is bound to `]g` — so inside an actual diff view it just
--- did nothing. On `]c`/`[c` it now falls through to genuine native diff-hunk navigation, e.g.
--- inside plugins/git/diffview.lua's windows, matching gitsigns.nvim's own README example.
+-- Hunk navigation is on `]c`/`[c` — gitsigns.nvim's own documented convention, and also
+-- Neovim's *native* diff-mode navigation keys, which is why the `if vim.wo.diff then
+-- return ... end` escape hatch below matters: inside a real diff view (e.g.
+-- plugins/git/diffview.lua's windows) it falls through to genuine native diff-hunk
+-- navigation instead of gitsigns' own.
 return {
 	"lewis6991/gitsigns.nvim",
 	event = { "BufReadPre", "BufNewFile" },

@@ -1,19 +1,22 @@
 -- folke/snacks.nvim: grab-bag of small QoL modules (bigfile handling, scratch buffers, zen
--- mode, lazygit/gitbrowse launchers, quickfile, scroll easing, indent guides). Several modules
--- are deliberately disabled below because this config already has a dedicated tool doing the
--- same job on purpose — each disabled line says which.
+-- mode, lazygit/gitbrowse launchers, quickfile, scroll easing, indent guides, and the window
+-- primitive plugins/ui/float-backdrop.lua builds on). Several modules are deliberately
+-- disabled below because this config already has a dedicated tool doing the same job — each
+-- disabled line says which: `statuscolumn` (plugins/ui/statuscol.lua + options.lua),
+-- `dashboard` (plugins/ui/alpha.lua), `bigfile` (config/autocmds.lua's own `large_file` group).
 --
--- 2026-08-06: config-wide audit (full scope in init.lua). Disabled `indent` — replaced by
--- plugins/ui/indent-blankline.lua, which adds rainbow coloring (shared with rainbow-
--- delimiters.lua) and treesitter-based scope-boundary highlighting that snacks.indent doesn't
--- have; see that file's own header for exactly what it can and can't do relative to
--- snacks.indent (notably: no animation — snacks.indent was the only piece of this config with
--- that, and indent-blankline has no equivalent). Everything else below was re-verified this
--- pass and still holds: `statuscolumn`/`dashboard`/`bigfile` stay off because options.lua,
--- plugins/ui/alpha.lua, and config/autocmds.lua's own `large_file` group already do those jobs
--- (each with real, working configuration, unlike snacks' bare-default versions); the four
--- `<leader>s*` keys that collided with plugins/search/telescope.lua were moved to groups that
--- already fit (Git, Toggle) rather than telescope giving any of its own keys up.
+-- `indent` is ON, not off — this config used lukas-reineke/indent-blankline.nvim for a while
+-- (rainbow-colored, matching rainbow-delimiters.lua) before switching back here on request: the
+-- rainbow coloring read as visual noise in practice. `chunk` (below) is snacks.indent's own
+-- box-drawing mode — read `lua/snacks/indent.lua`'s `render_chunk` directly before configuring
+-- this rather than assuming: it draws real `┌`/`└`/`─`/`│` characters plus a closing arrow
+-- around whichever scope contains the cursor, animated as you move between scopes (`animate`,
+-- on by default for Nvim 0.10+). It is NOT a permanent multi-level tree rendered all at once —
+-- only the current scope gets the box; other levels stay plain single-character guides, same
+-- as every other indent-guide plugin. Default highlight groups are deliberately single-color
+-- (`SnacksIndent` -> `NonText`, `SnacksIndentChunk`/`SnacksIndentScope` -> `Special`) rather
+-- than the numbered `SnacksIndent1..8` rainbow cycle snacks.indent also supports — left off on
+-- purpose, this is the "less noise" side of that option, not an oversight.
 return {
 	"folke/snacks.nvim",
 	priority = 1000,
@@ -23,7 +26,22 @@ return {
 	opts = {
 		bigfile = { enabled = false }, -- duplicates autocmds.lua's own "large_file" group
 		quickfile = { enabled = true },
-		indent = { enabled = false }, -- replaced by plugins/ui/indent-blankline.lua — see header note
+		indent = {
+			enabled = true,
+			indent = { char = "│" }, -- plain per-level guide everywhere except the current scope
+			animate = { enabled = true, style = "out" }, -- grows outward from the cursor
+			scope = { enabled = true }, -- fallback single-char scope highlight for shallow scopes chunk skips (see chunk.enabled note below)
+			chunk = {
+				enabled = true, -- the box-drawing mode — see header note
+				char = {
+					corner_top = "┌",
+					corner_bottom = "└",
+					horizontal = "─",
+					vertical = "│",
+					arrow = "╴", -- was ">" by default; a closing dash reads less like a stray gt-sign inline with code
+				},
+			},
+		},
 		dashboard = { enabled = false }, -- plugins/ui/alpha.lua already owns the start screen
 		scroll = { enabled = true },
 		statuscolumn = { enabled = false }, -- plugins/ui/statuscol.lua + options.lua hand-build the statuscolumn; don't fight it

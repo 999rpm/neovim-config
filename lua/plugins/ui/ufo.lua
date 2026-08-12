@@ -1,39 +1,27 @@
 -- kevinhwang91/nvim-ufo: virtual-text fold previews, LSP/treesitter-aware folding. Needs
 -- `foldmethod = "manual"` (Nvim's own default, left unset in options.lua for exactly this
 -- reason) plus a high foldlevel/foldlevelstart and a narrow foldcolumn — all set in
--- options.lua; this file owns everything else. provider_selector prefers LSP folding
--- (utils.get_lsp_capabilities() advertises `textDocument.foldingRange` specifically for this),
--- falling back to treesitter, which covers every language in treesitter.lua's ensure_installed
--- list; not using ufo's own "indent" fallback since treesitter is strictly more accurate.
+-- options.lua; this file owns everything else.
 --
--- 2026-08-06: config-wide audit (full scope in init.lua). Fixed a real bug: this file's own
--- header comment has always claimed the fallback order is "lsp, then treesitter" (see above,
--- unchanged from before), but `provider_selector` actually returned `{ "lsp", "indent" }` —
--- skipping treesitter entirely in favor of crude, less-accurate indent-based folding as the
--- fallback for any filetype without LSP folding-range support. Fixed to match what the comment
--- always said was happening: `{ "lsp", "treesitter" }`.
--- Also the likely cause of "two fold arrows on the same line": that was `foldcolumn = "4"` in
--- options.lua stacking one glyph per nesting level on lines that are simultaneously inside an
--- outer fold and the start of an inner one — not a bug in this file. See options.lua's note;
--- nothing to fix here for that specific report.
--- Added this pass, both ideas sourced from rafi/vim-config <https://github.com/rafi/vim-config>
--- (lua/rafi/plugins/extras/editor/ufo.lua) but verified/reimplemented against nvim-ufo's own
--- current docs rather than copied outright:
---   • `open_fold_hl_timeout = 0` — skips the brief highlight flash on opening a fold. Matches
---     rafi's value directly.
---   • Per-filetype `provider_selector` overrides for buffers where computing folds makes no
---     sense (quickfix, help, neo-tree, Trouble, lazy, mason, notify) — the concept is rafi's,
---     the actual filetype list is rewritten against this config's own utility buffers.
---   • `fold_virt_text_handler` — shows how many lines a closed fold is hiding. Rafi's own
---     version pads without truncating the original text, which can under- or over-pad on long
---     lines; rebuilt against nvim-ufo's own README example ("Customize fold text") instead,
---     which reserves the suffix's width up front before truncating — more correct won out.
+-- provider_selector chains lsp -> treesitter -> indent per buffer (see customize_selector
+-- below) instead of the 2-element `{main, fallback}` table form. This matters: per nvim-ufo's
+-- own README ("'lsp' and 'treesitter' as main provider, 'indent' as fallback provider") and
+-- doc/example.lua, only 'indent' is a safe unconditional fallback — it cannot itself throw.
+-- Putting 'treesitter' in that slot means that when treesitter *also* can't produce folds for
+-- a buffer (missing parser, parse error, or a filetype whose folds.scm doesn't cover the
+-- construct on screen), there's nothing left to catch it — that's the 'UfoFallbackException'/
+-- UnhandledPromiseRejection spam in :Noice history. customize_selector below is nvim-ufo's own
+-- documented `selectProviderWithChainByDefault` pattern (doc/example.lua), which explicitly
+-- catches 'UfoFallbackException' at each stage and retries with the next provider, so indent —
+-- which can't fail — always has the last word. Verified against a fresh clone of nvim-ufo
+-- before writing this; matches the pattern rafi/vim-config uses for the same reason.
 return {
 	{
 		"kevinhwang91/nvim-ufo",
 		dependencies = "kevinhwang91/promise-async",
 		event = { "BufReadPost", "BufNewFile" },
 		config = function()
+			-- Buffers where computing folds makes no sense at all — skip every provider.
 			local ft_providers = {
 				qf = "",
 				help = "",
@@ -44,10 +32,31 @@ return {
 				["neo-tree"] = "",
 			}
 
+			---@param bufnr integer
+			---@return Promise
+			local function customize_selector(bufnr)
+				local ufo = require("ufo")
+				local function handle_fallback(err, provider_name)
+					if type(err) == "string" and err:match("UfoFallbackException") then
+						return ufo.getFolds(bufnr, provider_name)
+					end
+					return require("promise").reject(err)
+				end
+
+				return ufo
+					.getFolds(bufnr, "lsp")
+					:catch(function(err)
+						return handle_fallback(err, "treesitter")
+					end)
+					:catch(function(err)
+						return handle_fallback(err, "indent")
+					end)
+			end
+
 			require("ufo").setup({
 				open_fold_hl_timeout = 0,
 				provider_selector = function(_, filetype, _)
-					return ft_providers[filetype] or { "lsp", "treesitter" }
+					return ft_providers[filetype] or customize_selector
 				end,
 				-- Right-aligned "N lines" suffix instead of the default ellipsis, following the
 				-- width-budgeting algorithm from nvim-ufo's own README ("Customize fold text")

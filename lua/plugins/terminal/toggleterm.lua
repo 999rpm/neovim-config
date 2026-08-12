@@ -1,11 +1,8 @@
 -- akinsho/toggleterm.nvim: floating/split terminal, plus a dedicated btop monitor terminal.
---
--- 2026-08-06: config-wide audit (full scope in init.lua). This file wasn't the bug: "toggleterm
--- opens for a fraction of a second and closes instantly" was options.lua's `shell = "nushell"`
--- — nushell's real executable is `nu`, so every terminal job (this plugin's included) failed to
--- spawn, and toggleterm's own default `close_on_exit = true` (never overridden below) closed
--- the window the moment that failed job "exited". Fixed in options.lua; nothing to change here
--- — flagging it in this file too since it's the one you'd naturally go looking in first.
+-- `close_on_exit = true` (toggleterm's own default, not overridden below) means a terminal job
+-- that fails to spawn closes its window immediately — if a terminal opens and vanishes
+-- instantly, check `shell` in config/options.lua before suspecting this file. A dimmed
+-- backdrop appears behind floating terminals automatically — see plugins/ui/float-backdrop.lua.
 return {
 	"akinsho/toggleterm.nvim",
 	version = "*",

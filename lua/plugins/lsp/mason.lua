@@ -20,11 +20,11 @@
 --     so this block exists purely to keep those adapter binaries installed, not to
 --     auto-register anything.
 --
--- 2026-08-06: config-wide audit (full scope in init.lua). Re-verified `automatic_enable`
--- against mason-lspconfig.nvim's current README — still a real, current option, still `false`
--- disables it outright, nothing to change. ensure_installed vs. lspconfig.lua's `servers`
--- table: still an exact match (18 servers each, diffed programmatically, not by eye). No other
--- changes needed here this pass.
+-- `ensure_installed` below intentionally does NOT include `hls` (Haskell) even though
+-- lspconfig.lua's `external_servers` configures it — haskell-language-server needs to match a
+-- project's actual GHC version, which Mason's package has a long history of failing at; ghcup
+-- (or a distro package) is the reliable install path. `ormolu` and `haskell-debug-adapter`
+-- below ARE Mason-managed since those are plain, version-independent binaries.
 return {
 	{
 		"mason-org/mason.nvim",

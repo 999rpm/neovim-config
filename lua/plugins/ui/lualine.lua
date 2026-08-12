@@ -1,15 +1,11 @@
 -- nvim-lualine/lualine.nvim: the statusline — mode, git branch/ahead-behind/diff, filename,
 -- Python venv, diagnostics, active LSP clients, trailing-whitespace/mixed-indent warnings,
--- lazy.nvim update count, and cursor position.
---
--- 2026-08-06: config-wide audit (full scope in init.lua). Removed this file's own hand-rolled
--- venv lookup — it was a byte-for-byte re-implementation of utils.get_virtual_env() (venv
--- checked before conda, same env vars, same fnamemodify basename logic) that had drifted into
--- its own copy instead of calling the shared one. Now calls utils.get_virtual_env() directly;
--- see that function's own "used by" tag in utils.lua. Also swapped "Avante" out of
--- `disabled_filetypes` — avante.nvim isn't installed anywhere in this config, so that entry
--- never matched anything; replaced with "Trouble" and "lazy", two utility filetypes that
--- genuinely are used here and should get the same simplified statusline treatment.
+-- lazy.nvim update count, and cursor position. Separators are the classic Powerline arrow
+-- glyphs (U+E0B0-U+E0B3) — needs a Nerd Font (already assumed elsewhere in this config, e.g.
+-- options.lua's g.have_nerd_font). Skewed to match plugins/ui/bufferline.lua's
+-- `separator_style = "slant"`; getting a pixel-identical angle between the two would need a
+-- custom empty-component "spacer" per section (there's no simple option for it) — not done
+-- here since it's a real fragility/complexity tradeoff for a marginal visual gain.
 return {
 	"nvim-lualine/lualine.nvim",
 	event = "VeryLazy",
@@ -200,11 +196,11 @@ return {
 			options = {
 				theme = "auto",
 				globalstatus = true,
-				component_separators = { left = "", right = "" },
-				section_separators = { left = "", right = "" },
-				-- Buffer-less / utility filetypes lualine shouldn't render a normal statusline
-				-- for — kept in sync with indent-blankline.lua's own exclude list where they
-				-- overlap (both are "this isn't a real editing buffer" checks).
+				component_separators = { left = "", right = "" }, -- thin chevrons (U+E0B3/U+E0B1)
+				section_separators = { left = "", right = "" }, -- solid arrows (U+E0B2/U+E0B0)
+				-- Buffer-less / utility filetypes lualine shouldn't render a normal statusline for
+				-- — "this isn't a real editing buffer" checks, same spirit as snacks.indent's own
+				-- `filter` function in plugins/ui/snacks.lua.
 				disabled_filetypes = { "alpha", "neo-tree", "Trouble", "lazy", "TelescopePrompt", "dashboard" },
 			},
 			sections = {

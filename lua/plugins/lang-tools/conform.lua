@@ -1,14 +1,9 @@
 -- stevearc/conform.nvim: format-on-save, per-filetype, with an LSP-formatting fallback
 -- (`lsp_format = "fallback"`) for anything without a dedicated formatter. The sole owner of
--- format-on-save in this config — see plugins/lsp/lspconfig.lua's 2026-08-06 note for why a
--- second, LSP-only mechanism used to also live there and was removed.
---
--- 2026-08-06: config-wide audit (full scope in init.lua). No changes needed to the formatter
--- table itself — `"trim_whitespace"` was already dropped from the `["_"]` catch-all in a prior
--- pass (autocmds.lua's own `trim_whitespace` group already strips trailing whitespace on every
--- save, before this plugin even runs) and `"clang-format"`/`"cmake_format"` were already
--- verified against conform's actual formatter registry. Confirmed lspconfig.lua no longer
--- fights this file over the same BufWritePre event; that's the only cross-file change here.
+-- format-on-save in this config — see plugins/lsp/lspconfig.lua's note on why a second,
+-- LSP-only formatting mechanism doesn't also live there. `["_"]`'s catch-all deliberately
+-- excludes `"trim_whitespace"`: autocmds.lua's own `trim_whitespace` group already strips
+-- trailing whitespace on every save, before this plugin even runs.
 return {
 	"stevearc/conform.nvim",
 	event = { "BufWritePre" },

@@ -117,8 +117,8 @@ function Controller.update(modifier_fn)
 		require("lualine").refresh()
 	end
 	-- Fires "ThemeChanged" for anything that needs to re-derive colors after a switch —
-	-- currently plugins/ui/bufferline.lua's highlight refresh. indent-blankline.lua and
-	-- rainbow-delimiters.lua do NOT need this: they reference RainbowDelimiter* group names
+	-- currently plugins/ui/bufferline.lua's highlight refresh. plugins/treesitter/
+	-- rainbow-delimiters.lua does NOT need this: it references RainbowDelimiter* group names
 	-- rather than caching hex values, so `vim.cmd.colorscheme()` above already refreshes them
 	-- for free, no event needed.
 	api.nvim_exec_autocmds("User", { pattern = "ThemeChanged" })

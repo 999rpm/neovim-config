@@ -1,7 +1,8 @@
 -- luukvbaal/statuscol.nvim: click-able, clean-fold-aware statuscolumn (line numbers + sign
 -- column + fold column) — replaces the hand-written `'statuscolumn'` string options.lua would
--- otherwise need. `builtin.foldfunc` renders however wide options.lua's `foldcolumn` says to;
--- see that file's note on why it's "1" and not wider.
+-- otherwise need. `builtin.foldfunc` renders one glyph per nesting level, up to however wide
+-- options.lua's `foldcolumn` resolves to ("auto:4" — see that file's note on why this needs to
+-- be wider than 1 to show nesting at all).
 return {
 	{
 		"luukvbaal/statuscol.nvim",

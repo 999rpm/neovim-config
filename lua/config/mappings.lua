@@ -1,21 +1,8 @@
 -- Core keymaps not owned by any specific plugin. Plugin-specific keymaps live in their own
 -- files' `keys` tables instead (see e.g. plugins/ui/bufferline.lua, plugins/git/gitsigns.lua,
--- plugins/search/telescope.lua).
---
--- ── Review log — keep appending here instead of re-deriving these decisions from scratch ──
--- Native behavior given up below, for reference (audited 2026-07-31, re-checked 2026-08-06):
---   • `q` → `<nop>` disables macro recording (`q{register}` starts/stops it; Ex mode is `Q`,
---     untouched). Utility buffers (help/qf/lazy/etc.) still get their own buffer-local `q` =
---     close, which wins over this global one — see autocmds.lua's `close_with_q` group.
---   • `;` → `:` costs Vim's native "repeat last f/F/t/T" (`;`/`,`). Worth knowing since
---     plugins/editor/flash.lua *also* fully replaces `f`/`F` with its own jump/treesitter-jump,
---     so there's currently no repeat-last-motion for either the native char-search or flash's
---     jump — you just press `f`/`F` fresh each time. A deliberate tradeoff, not an oversight.
---   • `<C-a>` → "Select all": natively `<C-a>` is "increment number under cursor". That
---     function isn't gone — see Increment/Decrement below, moved onto bare `>`/`<`. This also
---     means `>`/`<` no longer work as Normal-mode indent operators (`>>`, `>j`, `>ip`); only
---     Visual-mode indent survives, via the Tab/Shift-Tab mappings further down.
--- ────────────────────────────────────────────────────────────────────────────────────────
+-- plugins/search/telescope.lua). Each mapping's own `desc` explains what it does and, where a
+-- mapping overrides a native Vim behavior, what that trade-off is — see AUDIT_SUMMARY.md for
+-- the fuller reasoning behind any of them.
 local map = vim.keymap.set
 local utils = require("utils")
 

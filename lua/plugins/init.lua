@@ -1,28 +1,24 @@
--- Manifest for the category folders below. Needed because lazy.nvim's own module discovery
--- (lazy/core/util.lua's `lsmod`) only scans ONE level deep from whatever module you `import`:
--- it collects direct `.lua` files in that directory, and only descends into a SUBdirectory if
--- that subdirectory has its own `init.lua`. It does not recursively walk arbitrarily-nested
--- folders on its own — confirmed by reading its actual source after this two-level layout
--- (`plugins/<category>/<plugin>.lua`, no `init.lua` in each category folder) produced
--- "No specs found for module 'plugins'" on a real install: `lua/plugins/` itself had no direct
--- `.lua` files and none of its subfolders had an `init.lua`, so lsmod found nothing at all.
+-- config/lazy.lua's `{ import = "plugins" }` resolves to this file. lazy.nvim's own module
+-- discovery (`lazy/core/util.lua`'s `lsmod`) scans one directory level at a time and only
+-- descends into a subfolder that has its own init.lua — it does not walk arbitrary nesting on
+-- its own (confirmed by reading that source directly, not assumed). None of the category
+-- folders below has its own init.lua, so this file exists purely to import each one by name;
+-- each import target IS a flat folder of .lua files, which lsmod finds correctly with no
+-- further nesting to resolve. See AUDIT_SUMMARY.md for how this was diagnosed.
 --
--- This file *is* `plugins/init.lua`, so lazy.lua's `{ import = "plugins" }` loads it directly;
--- each line below then imports one category folder, and since every plugin file sits directly
--- inside its category folder (e.g. `plugins/lsp/lspconfig.lua`), lsmod finds those correctly
--- with no further nesting to worry about. Add a line here when adding a new category folder —
--- individual plugin files inside an already-listed category still need nothing extra.
+-- Add a category here the moment you add its folder under lua/plugins/ — otherwise every spec
+-- inside it is silently never loaded, with no error of any kind.
 return {
-	{ import = "plugins.lsp" },
 	{ import = "plugins.completion" },
+	{ import = "plugins.debug" },
 	{ import = "plugins.editor" },
+	{ import = "plugins.explorer" },
+	{ import = "plugins.git" },
+	{ import = "plugins.lang-tools" },
+	{ import = "plugins.lsp" },
+	{ import = "plugins.search" },
+	{ import = "plugins.terminal" },
+	{ import = "plugins.test" },
 	{ import = "plugins.treesitter" },
 	{ import = "plugins.ui" },
-	{ import = "plugins.git" },
-	{ import = "plugins.explorer" },
-	{ import = "plugins.search" },
-	{ import = "plugins.debug" },
-	{ import = "plugins.test" },
-	{ import = "plugins.lang-tools" },
-	{ import = "plugins.terminal" },
 }

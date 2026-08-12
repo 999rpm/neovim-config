@@ -3,6 +3,9 @@
 -- The UI (nvim-dap-ui) and Python support (nvim-dap-python) live in their own
 -- plugins/debug/dap-ui.lua / dap-python.lua; debug-adapter *binaries* are kept installed via
 -- mason-nvim-dap.nvim, configured in plugins/lsp/mason.lua alongside the other Mason installers.
+-- Every adapter below points at its Mason-installed binary under stdpath("data")/mason/... —
+-- same pattern for JS, C/C++/Rust, and Haskell, so none of them depend on the binary being on
+-- the shell's own $PATH.
 return {
 	"mfussenegger/nvim-dap",
 	event = "VeryLazy",
@@ -124,6 +127,39 @@ return {
 		}
 		dap.configurations.c = dap.configurations.cpp
 		dap.configurations.rust = dap.configurations.cpp
+
+		------------------------------------------------------------------
+		-- Haskell
+		------------------------------------------------------------------
+		-- Adapter/config shape is mfussenegger/nvim-dap's own documented example (its wiki's
+		-- "Debug Adapter installation" page) verbatim, with `command` pointed at the
+		-- Mason-installed binary instead of assuming it's on $PATH, matching codelldb above.
+		-- `ghciCmd` assumes a Stack project -- for cabal, change it to something like
+		-- `"cabal repl TARGET --repl-options=-fprint-evld-with-show"` and replace TARGET with
+		-- the actual executable/library/test-suite stanza name from the .cabal file; this is
+		-- inherently per-project, the same way dap.configurations.cpp's `program` above
+		-- prompts per-run rather than hardcoding a path.
+		dap.adapters.haskell = {
+			type = "executable",
+			command = vim.fn.stdpath("data") .. "/mason/bin/haskell-debug-adapter",
+			args = { "--hackage-version=0.0.33.0" },
+		}
+		dap.configurations.haskell = {
+			{
+				type = "haskell",
+				request = "launch",
+				name = "Debug",
+				workspace = "${workspaceFolder}",
+				startup = "${file}",
+				stopOnEntry = true,
+				logFile = vim.fn.stdpath("data") .. "/haskell-dap.log",
+				logLevel = "WARNING",
+				ghciEnv = vim.empty_dict(),
+				ghciPrompt = "λ: ",
+				ghciInitialPrompt = "λ: ",
+				ghciCmd = "stack ghci --test --no-load --no-build --main-is TARGET --ghci-options -fprint-evld-with-show",
+			},
+		}
 
 		------------------------------------------------------------------
 		-- Pickers (FZF primary, Telescope fallback)
