@@ -40,7 +40,7 @@ return {
 				-- "slant" gives the skewed/parallelogram tab look. If it renders oddly in your
 				-- terminal (some emulators need full-height glyphs padded), try "padded_slant"
 				-- instead — bufferline's own docs call this out as terminal-dependent.
-				separator_style = "slant",
+				separator_style = "slope",
 				always_show_bufferline = true,
 				sort_by = "insert_after_current",
 				diagnostics = "nvim_lsp",

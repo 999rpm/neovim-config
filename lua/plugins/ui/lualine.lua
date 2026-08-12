@@ -196,8 +196,8 @@ return {
 			options = {
 				theme = "auto",
 				globalstatus = true,
-				component_separators = { left = "", right = "" }, -- thin chevrons (U+E0B3/U+E0B1)
-				section_separators = { left = "", right = "" }, -- solid arrows (U+E0B2/U+E0B0)
+				component_separators = { left = "", right = "" },
+				section_separators = { left = "", right = "" },
 				-- Buffer-less / utility filetypes lualine shouldn't render a normal statusline for
 				-- — "this isn't a real editing buffer" checks, same spirit as snacks.indent's own
 				-- `filter` function in plugins/ui/snacks.lua.
