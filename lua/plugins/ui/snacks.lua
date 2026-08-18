@@ -2,7 +2,7 @@
 -- mode, lazygit/gitbrowse launchers, quickfile, scroll easing, indent guides). Several modules
 -- are deliberately disabled below because this config already has a dedicated tool doing the
 -- same job — each disabled line says which: `statuscolumn` (plugins/ui/statuscol.lua +
--- options.lua), `dashboard` (plugins/ui/alpha.lua), `bigfile` (config/autocmds.lua's own
+-- options.lua), `dashboard` (plugins/ui/alpha.lua), `bigfile` (autocmds.lua's own
 -- `large_file` group).
 --
 -- `indent` is ON, not off — this config used lukas-reineke/indent-blankline.nvim for a while

@@ -36,6 +36,15 @@ return {
 				lsp = {
 					score_offset = 10,
 				},
+				-- Reads friendly-snippets (this plugin's own dependency, VS-Code-format JSON)
+				-- plus this repo's own user snippets — plugins/editor/nvim-scissors.lua's
+				-- `snippetDir` writes to this exact same path, so anything added/edited there
+				-- shows up here too, not just on disk.
+				snippets = {
+					opts = {
+						search_paths = { vim.fn.stdpath("config") .. "/snippets" },
+					},
+				},
 				lazydev = {
 					name = "LazyDev",
 					module = "lazydev.integrations.blink",

@@ -73,12 +73,10 @@ end, { silent = true, desc = "Yank absolute path" })
 map("n", "<Leader>no", "o<Esc>^Da", { noremap = true, desc = "New line below (no comment)" })
 map("n", "<Leader>nO", "O<Esc>^Da", { noremap = true, desc = "New line above (no comment)" })
 
--- Increment / Decrement numbers (also letters, via nrformats+="alpha" in options.lua).
--- NOTE: this replaces native Normal-mode `>`/`<` (indent operators: `>>`, `>j`, `>ip`, ...)
--- entirely — bare `>`/`<` now always increments/decrements, never waits for a motion.
+-- Increment / Decrement: bare `>`/`<` — see plugins/editor/dial.lua, which owns both keys now
+-- (native Normal-mode indent operators are still fully replaced, exactly as before; only the
+-- engine behind the keys moved to dial.nvim for smarter targets than plain numbers/letters).
 -- Visual-mode indent still works (see the Tab/Shift-Tab mappings above).
-map("n", ">", "<C-a>", { desc = "Increment alpha" })
-map("n", "<", "<C-x>", { desc = "Decrement alpha" })
 
 --  Window Management (Splits)
 map("n", "<M-y>", "<C-w>v", { desc = "Split vertical" })

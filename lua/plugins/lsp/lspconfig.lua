@@ -128,7 +128,8 @@ return {
 				-- │  K        – hover documentation (CUSTOM below: border + size)    │
 				-- │             — safe to override: default is only "K" as long as   │
 				-- │             nothing else maps it, which is the case here         │
-				-- │  grn      – rename symbol                      [global default]  │
+				-- │  grn      – rename symbol      (CUSTOM below: inc-rename.nvim    │
+				-- │             live preview via plugins/lsp/inc-rename.lua)         │
 				-- │  gra      – code action (normal + visual)      [global default]  │
 				-- │  grx      – run code lens                      [global default]  │
 				-- │  gq / gw  – format via 'formatexpr' (gw leaves the cursor alone) │
@@ -190,6 +191,18 @@ return {
 						close_events = { "CursorMoved", "BufLeave", "WinLeave", "LspDetach" },
 					})
 				end, "Hover Documentation")
+
+				-- grn: rename via inc-rename.nvim instead of the native plain-prompt rename —
+				-- same key as the built-in default (see box above), live preview instead.
+				-- Bypasses the map() helper above (no expr support) — expr=true is required
+				-- here: the returned string becomes the command line itself, which is what
+				-- lets inc-rename.nvim's command-preview hook fire at all (per its own README's
+				-- documented keymap pattern); a plain vim.lsp.buf.rename() call wouldn't.
+				if client:supports_method("textDocument/rename", event.buf) then
+					vim.keymap.set("n", "grn", function()
+						return ":IncRename " .. vim.fn.expand("<cword>")
+					end, { buf = event.buf, expr = true, silent = true, desc = "LSP: Rename" })
+				end
 
 				-- <C-k>: signature help from normal mode (built-in default only covers insert mode, via <C-S>)
 				map("<C-k>", function()
@@ -401,7 +414,26 @@ return {
 			eslint = {},
 			html = {},
 			cssls = {},
-			rust_analyzer = {},
+			rust_analyzer = {
+				-- Default check-on-save runs `cargo check`; clippy is strictly more thorough
+				-- (lint-level diagnostics, not just compile errors), the same upgrade gopls'
+				-- `staticcheck` and Python's `ruff` above already make for their languages — this
+				-- was the one server left bare in this list. Key is `check.command`, not
+				-- `checkOnSave.command` (a still-common wrong/deprecated name from older blog
+				-- posts and rust-tools.nvim-era examples that predate the 0.11+ vim.lsp.config()
+				-- API this file uses) — verified against rust-analyzer's own current docs
+				-- (rust-analyzer.github.io/book/other_editors.html) and its Kate-editor example,
+				-- both of which use `check.*`. Inlay hints need no server-specific settings here
+				-- (unlike ts_ls below): rust-analyzer's own default already enables them, and the
+				-- generic capability-gated toggle in the LspAttach block above already covers it.
+				settings = {
+					["rust-analyzer"] = {
+						check = {
+							command = "clippy",
+						},
+					},
+				},
+			},
 			basedpyright = {
 				-- Adapted from jdhao's after/lsp/pyright.lua, translated to basedpyright's own
 				-- settings tree (it forked pyright's `pyright.*`/`python.analysis.*` keys under

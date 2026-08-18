@@ -1,16 +1,14 @@
--- Explicitly imports every category folder below by name. This file's existence is load-bearing,
--- not decorative — confirmed by reading lazy.nvim's own source directly rather than assuming:
--- lazy/core/util.lua's `lsmod` (the function behind `{ import = "plugins" }` in config/lazy.lua)
--- scans one directory level at a time via `vim.uv.fs_scandir`, and only descends into a
--- subfolder if THAT subfolder has its own init.lua. None of the category folders below have one
--- by design (see init.lua's own file-layout comment for why), so without this file, a bare
--- `{ import = "plugins" }` finds nothing inside any of them — every plugin spec in this whole
--- tree would silently never load, with no error to point at why.
+-- Explicitly imports every plugins/<category>/ folder. Required because lazy.nvim's own module
+-- discovery (lazy/core/util.lua's lsmod) only scans one directory level at a time and won't
+-- descend into a category folder on its own unless that folder has its own init.lua (none of
+-- them do, by design — see init.lua's own file-layout note for the full reasoning). Add a new
+-- category folder without adding a line here and every spec inside it silently never loads.
 --
--- This file has gone missing from delivered project knowledge twice before (see
--- AUDIT_SUMMARY.md) — both times because it and the root init.lua are literally both named
--- "init.lua", and whatever sync step prepares files for a chat session only kept one. If this
--- file is ever missing again, this is why, and this is what it should contain.
+-- NOTE: this file has gone missing from project-knowledge uploads to this chat multiple times
+-- (see AUDIT_SUMMARY.md) because the upload step flattens this file's basename against the root
+-- init.lua and keeps only one of the two. If you're reading this because it was just
+-- reconstructed again: the fix is this file itself, not a deeper bug in the config — save it
+-- back into lua/plugins/init.lua in the real tree and nothing else needs to change.
 return {
 	{ import = "plugins.lsp" },
 	{ import = "plugins.completion" },
@@ -24,5 +22,7 @@ return {
 	{ import = "plugins.test" },
 	{ import = "plugins.lang-tools" },
 	{ import = "plugins.terminal" },
+	{ import = "plugins.ai" },
+	{ import = "plugins.frontend" },
 	{ import = "plugins.deps" },
 }

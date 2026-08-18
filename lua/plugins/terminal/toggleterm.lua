@@ -1,7 +1,7 @@
 -- akinsho/toggleterm.nvim: floating/split terminal, plus a dedicated btop monitor terminal.
 -- `close_on_exit = true` (toggleterm's own default, not overridden below) means a terminal job
 -- that fails to spawn closes its window immediately — if a terminal opens and vanishes
--- instantly, check `shell` in config/options.lua before suspecting this file.
+-- instantly, check `shell` in options.lua before suspecting this file.
 return {
 	"akinsho/toggleterm.nvim",
 	version = "*",

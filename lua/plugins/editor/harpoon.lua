@@ -49,13 +49,13 @@ return {
 				return
 			end
 
-			local current = vim.loop.fs_realpath(vim.api.nvim_buf_get_name(0))
+			local current = vim.uv.fs_realpath(vim.api.nvim_buf_get_name(0))
 			if not current then
 				return
 			end
 
 			for i, item in ipairs(items) do
-				local item_path = item.value and vim.loop.fs_realpath(item.value)
+				local item_path = item.value and vim.uv.fs_realpath(item.value)
 				if item_path == current then
 					local next_index = i + dir
 					if next_index < 1 then

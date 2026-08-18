@@ -30,7 +30,7 @@ end
 --- Check if an executable exists on $PATH.
 --- @param name string An executable name or path
 --- @return boolean
-function M.executable(name) -- This util is used by options.lua, plugins/lsp/lspconfig.lua, and plugins/treesitter/treesitter.lua
+function M.executable(name) -- This util is used by options.lua, lspconfig.lua, and treesitter.lua
 	return fn.executable(name) > 0
 end
 
@@ -46,8 +46,8 @@ end
 --- executable() alone can't check those.
 --- @param path string Absolute path to the expected binary/script
 --- @param label string Human-readable name for the notify message, e.g. "debugpy"
-function M.warn_if_missing_mason_bin(path, label) -- This util is used by plugins/debug/dap.lua and plugins/debug/dap-python.lua
-	if (vim.uv or vim.loop).fs_stat(path) == nil then
+function M.warn_if_missing_mason_bin(path, label) -- This util is used by dap.lua and dap-python.lua
+	if vim.uv.fs_stat(path) == nil then
 		vim.schedule(function()
 			vim.notify(
 				string.format(
@@ -68,6 +68,24 @@ function M.warn_if_missing_mason_bin(path, label) -- This util is used by plugin
 	end
 end
 
+--- Warn (once, at plugin-load time) if an environment variable a plugin needs isn't set —
+--- e.g. an API key. Same "check once at startup, one clear message instead of a mid-session
+--- failure" shape as warn_if_missing_mason_bin() above, for the API-key case that one can't
+--- cover (an API key isn't a file on disk to fs_stat()).
+--- @param var_name string e.g. "ANTHROPIC_API_KEY"
+--- @param label string Human-readable name for the notify message, e.g. "avante.nvim"
+function M.warn_if_missing_env(var_name, label) -- This util is used by avante.lua
+	if not vim.env[var_name] or vim.env[var_name] == "" then
+		vim.schedule(function()
+			vim.notify(
+				string.format("%s not set — %s will prompt for it or fail on first use.", var_name, label),
+				vim.log.levels.WARN,
+				{ title = label }
+			)
+		end)
+	end
+end
+
 --- Create (or re-create) a "999rpm-"-namespaced augroup, so every custom augroup in this
 --- config shows up together under `:autocmd`/`:augroup` output and never collides with a
 --- plugin's own internal group names.
@@ -76,7 +94,7 @@ end
 ---   Defaults to `true`. Pass `false` for a group that's deliberately re-entered without
 ---   wiping previously-registered autocmds (e.g. an LSP-attach group adding one per buffer).
 --- @return integer
-function M.augroup(name, clear) -- Used by config/autocmds.lua and most plugins/ files with their own autocmds
+function M.augroup(name, clear) -- Used by autocmds.lua and most plugin files that register their own autocmds
 	if clear == nil then
 		clear = true
 	end
@@ -214,7 +232,7 @@ end
 --- Build the default LSP client capabilities table: adds nvim-ufo's folding-range support and
 --- merges in blink.cmp's completion capabilities when available.
 --- @return lsp.ClientCapabilities
-function M.get_lsp_capabilities() -- This util is used by plugins/lsp/lspconfig.lua
+function M.get_lsp_capabilities() -- This util is used by lspconfig.lua
 	local caps = vim.lsp.protocol.make_client_capabilities()
 
 	caps.textDocument.foldingRange = { -- consumed by nvim-ufo (plugins/ui/ufo.lua) for LSP-based folding
@@ -247,7 +265,7 @@ end
 --- highlights (`indent.indent.hl`) at this exact list too, so bracket nesting and indent depth
 --- share one color source instead of two independently-cycling rainbows.
 --- @type string[]
-M.rainbow_delimiter_groups = { -- This util is used by plugins/treesitter/rainbow-delimiters.lua and plugins/ui/snacks.lua
+M.rainbow_delimiter_groups = { -- This util is used by rainbow-delimiters.lua and snacks.lua
 	"RainbowDelimiterRed",
 	"RainbowDelimiterYellow",
 	"RainbowDelimiterBlue",
@@ -296,7 +314,7 @@ end
 
 --- Return the active Python virtual-env name (venv checked before conda), or "".
 --- @return string
-function M.get_virtual_env() -- This util is used by plugins/ui/lualine.lua
+function M.get_virtual_env() -- This util is used by lualine.lua
 	local venv_path = os.getenv("VIRTUAL_ENV")
 	if venv_path then
 		return fn.fnamemodify(venv_path, ":t")
@@ -306,7 +324,7 @@ end
 
 --- Throttle repeated h/j/k/l/+/- and nag after 10 consecutive presses.
 --- From LazyVim's lua/lazyvim/config/keymaps.lua, not from jdhao's config.
-function M.cowboy() -- This util is used by config/mappings.lua
+function M.cowboy() -- This util is used by mappings.lua
 	for _, key in ipairs({ "h", "j", "k", "l", "+", "-" }) do
 		local count = 0
 		local timer = assert(vim.uv.new_timer())

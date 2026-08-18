@@ -52,7 +52,10 @@ return {
 			bottom_search = true, -- Classic search position
 			command_palette = true, -- Position cmdline in center
 			long_message_to_split = true,
-			inc_rename = false, -- Use standard rename for now
+			-- Renders inc-rename.nvim's live command-preview through Noice's own cmdline UI —
+			-- see plugins/lsp/inc-rename.lua (installs the plugin) and lspconfig.lua's LspAttach
+			-- block (rebinds `grn` to trigger it) for the rest of this feature.
+			inc_rename = true,
 			-- K's hover window rendering, not just its border: `lsp.hover.enabled` above makes
 			-- Noice register its own `textDocument/hover` handler (confirmed in
 			-- lua/noice/lsp/init.lua: `vim.lsp.buf_request(0, "textDocument/hover", params,

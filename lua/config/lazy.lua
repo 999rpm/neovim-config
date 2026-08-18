@@ -8,7 +8,7 @@
 -- plugin *spec* this file discovers and loads; it doesn't reference any of them by name itself.
 local fn = vim.fn
 local api = vim.api
-local uv = vim.uv or vim.loop
+local uv = vim.uv
 
 -- Ensure Lazy path
 local lazypath = fn.stdpath("data") .. "/lazy/lazy.nvim"
@@ -27,17 +27,6 @@ if not uv.fs_stat(lazypath) then
 	end
 end
 vim.opt.rtp:prepend(vim.env.LAZY or lazypath)
-
--- Load user lazy options securely
-local user_lazy_opts = {}
-local has_config, user_setup = pcall(require, "config.setup")
-if has_config and type(user_setup) == "table" and user_setup.lazy_opts then
-	user_lazy_opts = user_setup.lazy_opts() or {}
-end
-
--- Plugin Spec Detection
-local user_path = fn.stdpath("config") .. "/lua"
-local has_user_plugins = uv.fs_stat(user_path .. "/plugins") ~= nil or uv.fs_stat(user_path .. "/plugins.lua") ~= nil
 
 local has_git = fn.executable("git") == 1
 local disabled_plugins = {
@@ -76,9 +65,9 @@ local icons = {
 	lazy = "󰒲 ",
 }
 
-require("lazy").setup(vim.tbl_extend("keep", user_lazy_opts, {
+require("lazy").setup({
 	spec = {
-		has_user_plugins and { import = "plugins" } or nil,
+		{ import = "plugins" }, -- resolves to lua/plugins/init.lua — see that file's own header
 	},
 	defaults = { lazy = false, version = false },
 	lockfile = fn.stdpath("config") .. "/lazy-lock.json",
@@ -101,7 +90,7 @@ require("lazy").setup(vim.tbl_extend("keep", user_lazy_opts, {
 		rtp = { disabled_plugins = disabled_plugins },
 	},
 	debug = false,
-}))
+})
 
 vim.keymap.set("n", "<leader>ol", "<cmd>Lazy<cr>", { desc = "Lazy" })
 vim.keymap.set("n", "<leader>om", "<cmd>Mason<cr>", { desc = "Mason" })

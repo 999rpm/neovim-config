@@ -356,7 +356,11 @@ api.nvim_create_autocmd("BufEnter", {
 	group = augroup("auto_close_win"),
 	desc = "Quit if only utility windows remain",
 	callback = function()
-		local utility_fts = { "qf", "vista", "NvimTree", "neo-tree", "aerial" }
+		-- Only filetypes actually reachable in this config: "qf" is native, "neo-tree" is the
+		-- installed explorer. "vista"/"NvimTree"/"aerial" were removed — none of those three
+		-- plugins are installed here (checked against lazy-lock.json's full list), so they never
+		-- matched anything; dead entries, not a broader safety net.
+		local utility_fts = { "qf", "neo-tree" }
 		local tabwins = api.nvim_tabpage_list_wins(0)
 		for _, win in pairs(tabwins) do
 			local buf = api.nvim_win_get_buf(win)

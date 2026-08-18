@@ -3,8 +3,8 @@
 --
 -- Substantially adapted from jdhao/nvim-config <https://github.com/jdhao/nvim-config> — the
 -- LSP/diagnostics setup (plugins/lsp/lspconfig.lua), several editor-behavior utilities
--- (utils.lua), and the general options/autocmds shape (config/options.lua, config/
--- autocmds.lua) all started from his config and are periodically diffed against his live repo
+-- (utils.lua), and the general options/autocmds shape (options.lua, autocmds.lua) all started
+-- from his config and are periodically diffed against his live repo
 -- (see each file's own header for specifics). mason.lua is this config's own addition — jdhao
 -- manages LSP/tool binaries by hand rather than through mason-lspconfig/mason-tool-installer.
 --
@@ -16,9 +16,24 @@
 --   • xero/dotfiles <https://github.com/xero/dotfiles> — the schemastore.nvim integration in
 --     lspconfig.lua.
 --   • rafi/vim-config <https://github.com/rafi/vim-config> — the context-menu (MenuPopup)
---     block in config/autocmds.lua, and plugins/ui/ufo.lua's provider_selector (the
+--     block in autocmds.lua, and plugins/ui/ufo.lua's provider_selector (the
 --     lsp->treesitter->indent chain with proper UfoFallbackException handling, plus the
 --     per-filetype exclusions).
+--   • ecosse3/nvim <https://github.com/ecosse3/nvim> — plugins/lsp/inc-rename.lua and
+--     plugins/lsp/symbol-usage.lua (both confirmed in ecosse3's own plugin list before adding,
+--     not just plausible-sounding). Reviewing its session-management feature also surfaced that
+--     this config's own sessionoptions setting (options.lua) had nothing calling :mksession
+--     against it — plugins/editor/persistence.lua closes that, but is an independent choice
+--     (matches the folke/* ecosystem already used throughout this config), not a port of
+--     ecosse3's own session plugin. The remaining dozen additions this pass (grug-far, treesj,
+--     text-case, nvim-scissors, symbol-usage's siblings dial/multicursor/gitlinker/octo/yazi,
+--     boundary/template-string/tw-values, avante/opencode/mcphub) were all present in ecosse3's
+--     plugin list too, extracted from there and then independently keymapped from scratch
+--     against this config's own full existing surface — none of ecosse3's own keymaps survived
+--     unchanged; see each file's own header for specifics, and AUDIT_SUMMARY.md's 2026-08-17
+--     entry for the one deliberate substitution (opencode.nvim: ecosse3's own choice,
+--     sudo-tee/opencode.nvim, self-describes as not production-ready; NickvanDyke/opencode.nvim
+--     used instead).
 --
 -- File layout:
 --   init.lua (this file)
@@ -33,21 +48,28 @@
 --         folder on its own unless that folder has its own init.lua, which none of them do by
 --         design (confirmed by reading lazy.nvim's source directly). Add a category folder
 --         without adding it to plugins/init.lua and every spec inside it silently never loads.
---         ├─ lsp/          — lspconfig, mason, lazydev
+--         ├─ lsp/          — lspconfig, mason, lazydev, inc-rename, symbol-usage
 --         ├─ completion/   — blink, copilot, autopairs
 --         ├─ editor/       — flash, harpoon, surround, comment, textobjects, better-escape,
---         │                  ts-autotag, mini (mini.ai only), todo-comments
+--         │                  ts-autotag, mini (mini.ai only), todo-comments, persistence,
+--         │                  grug-far, treesj, text-case, nvim-scissors, dial, multicursor
 --         ├─ treesitter/   — treesitter, context, rainbow-delimiters
 --         ├─ ui/           — alpha, bufferline, lualine, noice, notify, themes, which-key,
 --         │                  statuscol, ufo, snacks,
 --         │                  render-markdown, trouble, colorizer, bufdelete
---         ├─ git/          — gitsigns, diffview
---         ├─ explorer/     — neo-tree, oil
+--         ├─ git/          — gitsigns, diffview, gitlinker, octo
+--         ├─ explorer/     — neo-tree, oil, yazi
 --         ├─ search/       — telescope, fzf
 --         ├─ debug/        — dap, dap-ui, dap-python, dap-virtual-text
 --         ├─ test/         — neotest
 --         ├─ lang-tools/   — conform, lint
 --         ├─ terminal/     — toggleterm
+--         ├─ ai/           — avante, opencode, mcphub — agentic AI tools; plugins/completion/
+--         │                  copilot.lua (inline ghost-text completion) is a different kind of
+--         │                  assistance and stays in completion/, not here
+--         ├─ frontend/     — boundary, template-string, tw-values — narrow, React/Tailwind-
+--         │                  specific tools, ft-gated; split out from editor/ since none of
+--         │                  the three apply outside a handful of frontend filetypes
 --         └─ deps/         — web-devicons, shared (plenary.nvim/nui.nvim) — plugins with more
 --                            than one consumer and nothing of their own to configure; see
 --                            plugins/deps/web-devicons.lua's own note for why these still need
@@ -56,21 +78,25 @@
 -- Feature overview (see each plugin's own file for details/keymaps):
 --   • LSP + diagnostics  — nvim-lspconfig w/ schemastore.nvim, Mason-managed servers
 --     (basedpyright+ruff, ts_ls, gopls, rust_analyzer, lua_ls, hls for Haskell, and more),
---     Trouble for diagnostics/symbols views
+--     Trouble for diagnostics/symbols views, inc-rename.nvim (live rename preview on `grn`),
+--     symbol-usage.nvim (reference counts as virtual text)
 --   • Completion          — blink.cmp (LSP/path/snippets/buffer + lazydev for Lua), Copilot
 --   • Fuzzy finding       — Telescope (files/grep/LSP pickers/help/keymaps/…) + fzf-lua for
 --     a handful of fast common lookups
---   • File navigation     — neo-tree (tree explorer), oil.nvim (directory-as-buffer), Harpoon
---     (pin & jump between a handful of files), Flash (labelled jump/treesitter motions)
+--   • File navigation     — neo-tree (tree explorer), oil.nvim (directory-as-buffer), yazi.nvim
+--     (external terminal file manager, on-demand — <leader>ey), Harpoon (pin & jump between a
+--     handful of files), Flash (labelled jump/treesitter motions)
 --   • Git                 — gitsigns (hunks/blame), Diffview (full diff/history views),
---     LazyGit + "open in browser" via snacks.nvim
+--     LazyGit + "open in browser" via snacks.nvim, gitlinker.nvim (permalink to a specific
+--     line), octo.nvim (GitHub issues/PRs as buffers — needs `gh` CLI, authenticated)
 --   • Debugging & testing — nvim-dap + nvim-dap-ui + dap-virtual-text + nvim-dap-python +
 --     Haskell (haskell-debug-adapter), neotest (Jest adapter) — see plugins/debug/dap.lua's
 --     own boxed tutorial if this is new; colour-coded breakpoint signs, and a startup warning
 --     if a Mason-managed adapter binary isn't actually installed yet rather than a raw ENOENT
 --     mid-session (utils.warn_if_missing_mason_bin())
 --   • Treesitter          — highlighting, incremental parsing, textobjects, sticky context
---     header, rainbow delimiters, auto tag close/rename, folding via nvim-ufo
+--     header, rainbow delimiters, auto tag close/rename, folding via nvim-ufo, treesj (smart
+--     split/join, <leader>cj)
 --   • Formatting & linting— conform.nvim (format-on-save, per-filetype — the sole owner of
 --     that job, see plugins/lsp/lspconfig.lua's note on why LSP-driven format-on-save doesn't
 --     also live there), nvim-lint
@@ -80,9 +106,20 @@
 --     indent/scope guides (snacks.indent's chunk mode, rounded corners, per-level guides
 --     colour-linked to rainbow-delimiters.lua's own bracket colours — one shared rainbow, not
 --     two competing ones), a color-literal highlighter (nvim-colorizer.lua), a right-click
---     context menu (config/autocmds.lua's MenuPopup block)
+--     context menu (autocmds.lua's MenuPopup block)
 --   • Editing QoL         — nvim-surround, Comment.nvim, autopairs, better-escape, mini.ai,
---     todo-comments, bufdelete.nvim (buffer close without disturbing window layout)
+--     todo-comments, bufdelete.nvim (buffer close without disturbing window layout),
+--     persistence.nvim (session save/restore, <leader>q group), grug-far.nvim (project-wide
+--     find & replace, <leader>r group), text-case.nvim (case conversion, `ga` prefix),
+--     nvim-scissors (add/edit snippets, <leader>cs*), dial.nvim (smarter `>`/`<` — booleans/
+--     dates, not just numbers), multicursor.nvim (real multiple cursors, <leader>m group)
+--   • AI                  — Copilot (inline ghost-text, plugins/completion/), avante.nvim
+--     (agentic sidebar, Claude by default — needs ANTHROPIC_API_KEY), opencode.nvim (bridges to
+--     the `opencode` CLI agent), mcphub.nvim (MCP server manager, feeds avante's tool-calling)
+--     — all under the <leader>i "AI" group
+--   • Frontend/React      — boundary.nvim ('use client' RSC boundary markers), template-string
+--     .nvim (auto-backtick on `${`), tw-values.nvim (resolved Tailwind values, <leader>cv) —
+--     all ft-gated to tsx/jsx/etc, invisible in every other filetype
 --   • Misc                — toggleterm (float/split terminal + a btop monitor), render-markdown
 --
 -- Full change history, and the reasoning behind decisions that aren't obvious from reading the

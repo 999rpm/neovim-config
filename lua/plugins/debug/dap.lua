@@ -115,7 +115,7 @@ return {
 		-- names either (same as the signs themselves), so without this every glyph would render
 		-- in whatever "Normal"-ish colour happens to be nearby, defeating the point of having
 		-- distinct signs per state. Linked (not hardcoded hex) so they follow the active theme;
-		-- re-applied on every colorscheme switch by the ColorScheme autocmd in config/autocmds.lua.
+		-- re-applied on every colorscheme switch by the ColorScheme autocmd in autocmds.lua.
 		local function set_dap_highlights()
 			vim.api.nvim_set_hl(0, "DapBreakpoint", { link = "DiagnosticError" })
 			vim.api.nvim_set_hl(0, "DapBreakpointCondition", { link = "DiagnosticWarn" })
