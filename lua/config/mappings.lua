@@ -4,9 +4,6 @@
 -- mapping overrides a native Vim behavior, what that trade-off is — see AUDIT_SUMMARY.md for
 -- the fuller reasoning behind any of them.
 local map = vim.keymap.set
-local utils = require("utils")
-
-utils.cowboy()
 
 --  General / Core
 map({ "n", "v" }, "<space>", "<nop>", { desc = "disable space bar" })
@@ -45,15 +42,15 @@ map("x", "<M-k>", ":move '<-2<CR>gv-gv", { noremap = true, desc = "Move selectio
 map("x", "<M-j>", ":move '>+1<CR>gv-gv", { noremap = true, desc = "Move selection down" })
 
 -- Paste from yank register (not affected by deletions)
-map("n", "<Leader>np", '"0p', { desc = "Paste from yank register (after)" })
-map("n", "<Leader>nP", '"0P', { desc = "Paste from yank register (before)" })
-map("v", "<Leader>np", '"0p', { desc = "Paste from yank register" })
+map("n", "<leader>np", '"0p', { desc = "Paste from yank register (after)" })
+map("n", "<leader>nP", '"0P', { desc = "Paste from yank register (before)" })
+map("v", "<leader>np", '"0p', { desc = "Paste from yank register" })
 
 -- Change/Delete without polluting the register
-map({ "n", "v" }, "<Leader>nc", '"_c', { desc = "Change (no yank)" })
-map({ "n", "v" }, "<Leader>nC", '"_C', { desc = "Change to EOL (no yank)" })
-map({ "n", "v" }, "<Leader>nd", '"_d', { desc = "Delete (no yank)" })
-map({ "n", "v" }, "<Leader>nD", '"_D', { desc = "Delete to EOL (no yank)" })
+map({ "n", "v" }, "<leader>nc", '"_c', { desc = "Change (no yank)" })
+map({ "n", "v" }, "<leader>nC", '"_C', { desc = "Change to EOL (no yank)" })
+map({ "n", "v" }, "<leader>nd", '"_d', { desc = "Delete (no yank)" })
+map({ "n", "v" }, "<leader>nD", '"_D', { desc = "Delete to EOL (no yank)" })
 
 -- Yank buffer's relative path to clipboard
 map("n", "<leader>ny", function()
@@ -70,8 +67,8 @@ map("n", "<leader>nY", function()
 end, { silent = true, desc = "Yank absolute path" })
 
 -- New line without comment continuation
-map("n", "<Leader>no", "o<Esc>^Da", { noremap = true, desc = "New line below (no comment)" })
-map("n", "<Leader>nO", "O<Esc>^Da", { noremap = true, desc = "New line above (no comment)" })
+map("n", "<leader>no", "o<Esc>^Da", { noremap = true, desc = "New line below (no comment)" })
+map("n", "<leader>nO", "O<Esc>^Da", { noremap = true, desc = "New line above (no comment)" })
 
 -- Increment / Decrement: bare `>`/`<` — see plugins/editor/dial.lua, which owns both keys now
 -- (native Normal-mode indent operators are still fully replaced, exactly as before; only the

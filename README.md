@@ -32,9 +32,9 @@ lua/
 │   ├── options.lua          -- vim.opt, not plugin opts
 │   ├── autocmds.lua         -- ditto for autocommands
 │   ├── mappings.lua         -- core keymaps that aren't owned by a specific plugin
-│   └── lazy.lua             -- bootstraps lazy.nvim, hands off to plugins/init.lua
+│   └── lazy.lua             -- bootstraps lazy.nvim, hands off to plugins/loader.lua
 └── plugins/
-    ├── init.lua              -- explicitly imports every folder below (lazy.nvim won't do this on its own — see the file's own comment for why)
+    ├── loader.lua            -- explicitly imports every folder below (lazy.nvim won't do this on its own — see the file's own comment for why; named loader.lua rather than init.lua so it can never collide with the basename of the root init.lua above)
     ├── lsp/                  -- native vim.lsp.config()/vim.lsp.enable(), Mason, lazydev, inc-rename, symbol-usage
     ├── completion/           -- blink.cmp, copilot, autopairs
     ├── treesitter/           -- parsers, sticky context, rainbow delimiters

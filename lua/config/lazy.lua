@@ -1,7 +1,7 @@
 -- Bootstraps folke/lazy.nvim itself (self-installing on first run), then calls its setup()
--- with this config's plugin-manager options: `{ import = "plugins" }` below hands off to
--- `lua/plugins/init.lua`, which explicitly imports each category subfolder by name — lazy.nvim
--- itself does NOT recurse into subfolders on its own (see plugins/init.lua's own header for why,
+-- with this config's plugin-manager options: `{ import = "plugins.loader" }` below hands off to
+-- `lua/plugins/loader.lua`, which explicitly imports each category subfolder by name — lazy.nvim
+-- itself does NOT recurse into subfolders on its own (see plugins/loader.lua's own header for why,
 -- confirmed against lazy.nvim's source) — plus lockfile/dev-path/UI/performance tuning, and the
 -- `<leader>ol` (:Lazy) / `<leader>om` (:Mason) keymaps at the bottom. Every other .lua file under
 -- `lua/plugins/` (grouped into category subfolders — see init.lua's file-layout note) is a
@@ -67,7 +67,7 @@ local icons = {
 
 require("lazy").setup({
 	spec = {
-		{ import = "plugins" }, -- resolves to lua/plugins/init.lua — see that file's own header
+		{ import = "plugins.loader" }, -- resolves to lua/plugins/loader.lua — see that file's own header
 	},
 	defaults = { lazy = false, version = false },
 	lockfile = fn.stdpath("config") .. "/lazy-lock.json",

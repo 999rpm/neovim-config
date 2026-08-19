@@ -42,12 +42,15 @@
 --      ├─ config/                — editor behavior + the plugin manager itself
 --      │  ├─ options.lua, autocmds.lua, mappings.lua, lazy.lua
 --      └─ plugins/                — one file per plugin, auto-imported by lazy.lua
---         plugins/init.lua explicitly imports each category folder below by name (`{ import =
+--         plugins/loader.lua explicitly imports each category folder below by name (`{ import =
 --         "plugins.lsp" }`, etc.) — lazy.nvim's own module discovery (lazy/core/util.lua's
 --         lsmod) only scans one directory level at a time and won't descend into a category
 --         folder on its own unless that folder has its own init.lua, which none of them do by
 --         design (confirmed by reading lazy.nvim's source directly). Add a category folder
---         without adding it to plugins/init.lua and every spec inside it silently never loads.
+--         without adding it to plugins/loader.lua and every spec inside it silently never loads.
+--         Deliberately not named plugins/init.lua: that name collided with this file (both named
+--         "init.lua") every time the tree got flattened to one directory — see loader.lua's own
+--         header for the fix.
 --         ├─ lsp/          — lspconfig, mason, lazydev, inc-rename, symbol-usage
 --         ├─ completion/   — blink, copilot, autopairs
 --         ├─ editor/       — flash, harpoon, surround, comment, textobjects, better-escape,

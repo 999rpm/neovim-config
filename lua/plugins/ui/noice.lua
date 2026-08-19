@@ -1,7 +1,8 @@
 -- folke/noice.nvim: replaces the cmdline, search, and message UI with floating/popup views;
 -- takes over `vim.notify` and routes it through nvim-notify (plugins/ui/notify.lua) so every
--- plain `vim.notify(...)` call elsewhere in this config (utils.lua's cowboy(), autocmds.lua's
--- file-change warning, etc.) renders as a toast instead of a plain `:messages` line.
+-- plain `vim.notify(...)` call elsewhere in this config (autocmds.lua's file-change warning,
+-- plugins/editor/hardtime.lua's hint/restriction messages, etc.) renders as a toast instead of a
+-- plain `:messages` line.
 --
 -- Cross-checked against plugins/completion/blink.lua (Blink handles the completion menu, Noice
 -- handles cmdline/search/message UI — `cmdline` below is tuned not to fight Blink's own popup)

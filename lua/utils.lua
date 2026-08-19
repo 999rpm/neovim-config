@@ -7,7 +7,6 @@
 -- get_titlestr, get_virtual_env) and get_lsp_capabilities are adapted from jdhao/nvim-config's
 -- lua/utils.lua and lua/lsp_utils.lua <https://github.com/jdhao/nvim-config>. get_git_repo(),
 -- get_current_branch_name(), get_repo_info(), and augroup() are this config's own additions.
--- cowboy() is borrowed from LazyVim's lua/lazyvim/config/keymaps.lua.
 
 local fn = vim.fn
 local api = vim.api
@@ -283,7 +282,7 @@ M.rainbow_delimiter_groups = { -- This util is used by rainbow-delimiters.lua an
 --- @param low integer
 --- @param high integer
 --- @return integer
-function M.rand_int(low, high) -- Internal helper for rand_element() below, and used directly by cowboy()
+function M.rand_int(low, high) -- Internal helper for rand_element() below
 	math.randomseed(os.time())
 	return math.random(low, high)
 end
@@ -320,38 +319,6 @@ function M.get_virtual_env() -- This util is used by lualine.lua
 		return fn.fnamemodify(venv_path, ":t")
 	end
 	return os.getenv("CONDA_DEFAULT_ENV") or ""
-end
-
---- Throttle repeated h/j/k/l/+/- and nag after 10 consecutive presses.
---- From LazyVim's lua/lazyvim/config/keymaps.lua, not from jdhao's config.
-function M.cowboy() -- This util is used by mappings.lua
-	for _, key in ipairs({ "h", "j", "k", "l", "+", "-" }) do
-		local count = 0
-		local timer = assert(vim.uv.new_timer())
-		vim.keymap.set("n", key, function()
-			if vim.v.count > 0 then
-				count = 0
-			end
-			if count >= 10 and vim.bo.buftype ~= "nofile" then
-				local ok = pcall(vim.notify, "Hold it Cowboy!", vim.log.levels.WARN, {
-					icon = "🤠",
-					id = "cowboy",
-					keep = function()
-						return count >= 10
-					end,
-				})
-				if not ok then
-					return key
-				end
-			else
-				count = count + 1
-				timer:start(2000, 0, function()
-					count = 0
-				end)
-				return key
-			end
-		end, { expr = true, silent = true })
-	end
 end
 
 return M

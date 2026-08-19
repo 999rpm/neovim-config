@@ -8,6 +8,286 @@ entry here (not back into a file header) after making one.
 Newest entry first. Entries get condensed over time (their conclusions stay, the blow-by-blow
 of how each was reached doesn't) so this file stays worth reading rather than worth skipping.
 
+## 2026-08-20 (second session) — `utils.cowboy()` replaced with hardtime.nvim, on request
+
+Trigger: explicit ask to swap the hjkl throttle from the home-grown `utils.cowboy()` to
+`hardtime.nvim` — the same plugin the previous entry (below) had just cited as a reason to *keep*
+cowboy() (2 reference configs run it with `enabled = false`). That finding was about other
+people's defaults, not a verdict on this config; the person weighed it and chose the plugin
+anyway, which is exactly the kind of call this log has consistently left to them rather than
+re-arguing once made (see e.g. the candidates lists in the last several entries). Implemented the
+swap, not re-litigated it.
+
+### What changed
+
+- **`utils.lua`**: removed `cowboy()` entirely (was the LazyVim-derived hjkl/+/- throttle).
+  `rand_int()`'s EOL comment claimed cowboy() called it directly — checked, it never did (stale
+  even before this pass) — corrected while removing the now-fully-stale claim rather than leaving
+  a dangling reference. Removed the file header's cowboy attribution sentence.
+- **`config/mappings.lua`**: removed the `utils.cowboy()` call and, since that was the only
+  `utils.*` use in the file, the now-dead `local utils = require("utils")` alongside it.
+- **`plugins/ui/noice.lua`**: its header cited `utils.lua's cowboy()` as an example plain-
+  `vim.notify()` source feeding Noice's toast rendering — swapped for
+  `plugins/editor/hardtime.lua`'s hint/restriction messages, which is now the actually-correct
+  example of the same thing.
+- **`plugins/deps/shared.lua`**: added `plugins/editor/hardtime.lua` as a third consumer of
+  `MunifTanjim/nui.nvim` (hardtime's own documented dependency — already installed via
+  `noice.lua`, so this doesn't add a new plugin to the tree, just a second/third reason to keep
+  installing the one already there).
+- **New `plugins/editor/hardtime.lua`**.
+
+### hardtime.lua — what was checked before writing it, not just what it does
+
+Cloned `m4xshen/hardtime.nvim` fresh rather than configuring from memory (per this log's standing
+"verify, don't assume" practice) — current default `lua/hardtime/config.lua`, not a cached or
+remembered version.
+
+**A real conflict, not a hypothetical one**: upstream's default `disable_mouse = true` would have
+fought `options.lua`'s own `opt.mouse = "n"` (deliberate, commented) and broken
+`plugins/editor/multicursor.lua`'s Ctrl+click add/remove-cursor feature outright, which needs the
+mouse enabled to work at all. Confirmed live, not just by reading the source: called hardtime's
+real `setup()` against a real Neovim v0.12.4 binary with `disable_mouse` left at its default,
+watched `vim.o.mouse` get forced back to `""` on activation. Set `disable_mouse = false`
+explicitly; re-ran the same live test with the override in place and confirmed `vim.o.mouse`
+survives untouched.
+
+One small deliberate addition: `restricted_keys["-"]`. cowboy() throttled `h`/`j`/`k`/`l`/`+`/`-`;
+upstream's own `restricted_keys` ships `+` (and its own extra set: `gj`/`gk`/`<C-M>`/`<C-N>`/
+`<C-P>`, which cowboy() never touched) but not `-`, its natural counterpart. Added it back for the
+same symmetry cowboy() already had. Confirmed live that this is a genuine deep-merge, not a
+silent full-table replacement — `vim.tbl_deep_extend("force", ...)`, read directly in
+`lua/hardtime/init.lua` — by checking that `h`, `+`, and the rest of upstream's defaults (all 34
+`disabled_filetypes` entries included) were untouched after the merge.
+
+**Deliberately left at upstream defaults, not tuned toward cowboy's old leniency**:
+`max_time`/`max_count` (upstream: 3 presses per 1000ms) are considerably stricter than cowboy's
+effective ~10-in-a-row-without-a-2s-gap. Chose not to soften these toward cowboy's old feel —
+the person asked to adopt hardtime, not to reskin cowboy under a new name, and hardtime's
+`resetting_keys` table (any real edit command resets the streak) already makes the raw numbers
+less aggressive in practice than they look in isolation. `disabled_filetypes` also left at
+upstream's default rather than given a config-specific override: checked it against every
+dashboard/tree/picker/notify surface this config actually installs (alpha, Avante, dapui.*,
+Diffview.*, lazy, mason, neo-tree.*, neotest-summary, noice, notify, oil, TelescopePrompt,
+Trouble/trouble, qf) — all already excluded by name upstream, so an override here would only
+duplicate what's already covered, with more surface to go stale later.
+
+**`lazy = false`, matching upstream's own install instructions** (checked the current README's
+"Installation" section directly) rather than an `event` trigger like most of this config's other
+`plugins/editor/*.lua` files use — hardtime needs to be watching from the first buffer, not
+deferred. Reading `lua/hardtime/init.lua` directly surfaced something worth recording so a future
+pass doesn't "fix" this into an event trigger without knowing why: `M.setup()` doesn't do its real
+work synchronously at all — it starts its own 500ms timer and defers the actual key-hooking to
+that callback. First test of this file's `opts` came back showing *upstream's unmodified
+defaults* even with real overrides passed in; turned out the test was reading `hardtime.config`
+before the 500ms timer had fired, not that the overrides failed. Re-ran with a `vim.wait(700)`
+after `setup()` and got the expected merged config back. `lazy = false` doesn't defeat that
+internal delay — it just means the countdown to it starts as early as possible.
+
+Added `<leader>tH` ("Toggle Hardtime") under the existing `<leader>t` (Toggle) which-key group —
+no which-key.lua edit needed, since that group already exists with 11 other children and only
+new *group* prefixes need an entry there, not individual leaves (which-key.lua's own header).
+`H` chosen because `h` is already `<leader>th` (toggleterm's horizontal split); the existing
+`tC`/`tc` and `tG`/`tg` pairs in that group already establish case as the way this config
+distinguishes closely-related toggles, so this follows the same pattern rather than inventing a
+new one.
+
+### Testing this pass did
+
+- Live-tested the `disable_mouse` conflict and its fix, and the `restricted_keys` deep-merge,
+  against hardtime.nvim's real `setup()` (not simulated) — see above.
+- Re-ran the same `Config.setup()` + `Plugin.load()` live spec-resolution test from the entry
+  below: **85/85 plugins resolve** (84 from before, + hardtime.nvim) through the real
+  `plugins.loader` → `plugins.editor` chain, 0 errors, 0 notifications. `nui.nvim` correctly
+  stayed a single deduplicated entry rather than doubling, confirming the shared-dependency
+  declaration in `deps/shared.lua` works as documented.
+- Re-ran the same keymap-collision extractor from the entry below against the updated tree: 225
+  bindings now (224 + `<leader>tH`), 0 cross-file collisions, same single (already-verified false
+  positive) same-file flag in `diffview.lua` as before — nothing new.
+- `loadfile()`-parsed all 74 `.lua` files — 0 syntax errors.
+- Swept the whole tree for leftover `cowboy` references after removal — only the new
+  `hardtime.lua`'s own explanatory mentions of what it replaced remain; nothing stale left behind
+  in `utils.lua`, `mappings.lua`, or `noice.lua`.
+
+### Check next time
+
+- `:Lazy sync` (or a restart, since `install.missing` is already true in `config/lazy.lua`) is
+  still needed on the actual machine to clone hardtime.nvim for real and let lazy.nvim write its
+  own lockfile entry — not done here, deliberately: hand-writing a commit hash into
+  `lazy-lock.json` would just be guessing at what `:Lazy sync` does automatically and correctly
+  the moment it runs.
+- If hardtime's nagging turns out too aggressive in practice, `max_time`/`max_count` (left at
+  upstream defaults this pass, see above) are the two to loosen first — `<leader>tH` is the
+  faster escape hatch for one-off bursts of repeated movement.
+
+---
+
+## 2026-08-20 — `plugins/init.lua` collision fixed at the root cause (renamed, not reconstructed),
+## independent from-scratch collision/redundancy scan, linkarzu/dotfiles-latest + nshen/learn-
+## neovim-lua added as first-look reference configs, live lazy.nvim spec-resolution test
+
+Trigger: the standard re-audit request, this time naming 2 genuinely new reference repos
+(linkarzu/dotfiles-latest, nshen/learn-neovim-lua) alongside the 7 already covered in this log.
+Read this log first rather than re-deriving from scratch — confirmed its own account of the
+recurring `plugins/init.lua` flattening bug against this session's own upload (72 `.lua` files,
+not 73; `comm`-diffed the full source/destination filename sets after reconstructing the nested
+tree from README.md's own documented layout — zero files unaccounted for either direction) before
+doing anything else.
+
+### 1. `plugins/init.lua` — fixed the recurring cause instead of re-hitting it an 8th time
+
+Every prior occurrence reconstructed a file named `plugins/init.lua`, which collides with the
+root `init.lua` again the moment this tree gets flattened to one directory (both share the
+basename "init.lua"). Root `init.lua`'s own header already documented *why* the file has to
+exist (lazy.nvim's `lsmod` won't descend into a category folder without its own `init.lua`) —
+that reasoning was correct and is unaffected by a rename. Read `lazy.nvim`'s actual
+`lua/lazy/core/util.lua` `lsmod()` directly (fresh clone, not memory): a plain module file and a
+`dir/init.lua` package resolve through the *same* branch (`match:sub(-4) == ".lua"` fires
+identically either way) — nothing about the mechanism requires the specific name `init.lua`.
+Renamed the file to `plugins/loader.lua` (same 15 `{ import = "plugins.<category>" }` lines,
+same role) and updated the one reference in `config/lazy.lua`
+(`{ import = "plugins" }` → `{ import = "plugins.loader" }`), plus the file-layout notes in root
+`init.lua` and `README.md` that named the old path. This removes the only basename collision left
+in the tree (confirmed only one exists — see §3) permanently, rather than re-fixing it next time.
+
+**Verified live, not just by reasoning through the source**: a full `require("lazy").setup()`
+smoke test in this sandbox's headless mode hit unrelated friction (`Loader.setup()`'s handler/
+autocmd registration silently short-circuited plugin resolution under non-interactive `-l`
+execution — a harness quirk, not a config issue). Went one layer lower instead: called
+`Config.setup()` + `Plugin.load()` directly — the actual spec-parsing code path — against a real
+downloaded Neovim **v0.12.4** binary and a real cloned `lazy.nvim`. Result: **84 plugins
+resolved through `plugins.loader` with zero errors and zero notifications** — an exact match
+for `lazy-lock.json`'s 83 locked entries plus `lazy.nvim` itself. Every category (`lsp`,
+`completion`, `treesitter`, `editor`, `ui`, `git`, `explorer`, `search`, `debug`, `test`,
+`lang-tools`, `terminal`, `ai`, `frontend`, `deps`) is represented in the resolved list by name
+(avante.nvim, blink.cmp, telescope.nvim, all three colorschemes, the full DAP/LSP/treesitter
+stacks, etc.) — not just a count match.
+
+### 2. Independent redundancy/collision scan — rebuilt from scratch, not re-run from a cached script
+
+Wrote a new Python extractor (not reused from a prior pass) that parses both binding styles this
+config actually uses: direct `vim.keymap.set()`/`map()` calls, and lazy.nvim's declarative
+`keys = {}` spec tables (brace-depth aware, so nested tables inside a `keys` block don't get
+misread as sibling entries). **224 bindings extracted, 0 cross-file collisions** — consistent
+with this log's own prior count (216, before this pass's own additions) via a genuinely
+independent method. One same-file flag turned out to be a false positive on inspection:
+`diffview.lua`'s two `map("i", "<CR>", ...)` calls are inside two different Telescope
+`attach_mappings(_, map)` callbacks — that `map` is Telescope's own picker-scoped parameter, not
+this config's `vim.keymap.set` alias; nothing to fix.
+
+Also re-derived, independently: **36 `augroup()` calls, 36 unique names, 0 duplicates**
+(exact match). A deprecated/stale-syntax sweep (`vim.loop`, pre-0.11 `lspconfig.X.setup{}`,
+packer.nvim remnants, `tbl_add_reverse_lookup`, `start_client`/`buf_attach_client`, deprecated
+`nvim_buf_get_option`-family calls, old `:hi` strings, positional `vim.validate`) came back
+**clean across all 8 checks** — nothing to modernize this pass. Traced every option name touched
+in more than one file (`backup`, `relativenumber`/`number`, `smartcase`, `formatoptions`,
+`shortmess`, `wildignore`, etc.): every case is either multiple `:append()` calls building one
+value in the *same* file, or the already-documented `options.lua` (baseline) / `autocmds.lua`
+(reactive) split each file's own header already cross-references — no undocumented redundancy
+found.
+
+`which-key.lua` re-checked against the real inventory above: every `<leader>` prefix with 2+
+children has a group entry, none stale. Two apparent gaps (`<leader>w`, `<leader>m`) turned out
+to be this pass's own extractor missing non-standard local aliases (`multicursor.lua` uses
+`local set = vim.keymap.set`; `lspconfig.lua`'s own `map()` helper takes `lhs` first, not mode
+first) — verified directly by reading both files rather than trusting the script, confirmed both
+groups are real and complete (3 and 13 children respectively). `utils.lua`'s "used by X.lua" EOL
+attribution and the `999rpm-` augroup namespacing (§ above) were both already comprehensive going
+into this pass — reconfirmed, not re-explained.
+
+### 3. kitty.conf — re-verified against the real 224-binding inventory, independently derived
+
+Fresh upload; content unchanged (same `enabled_layouts`/`cursor_trail_decay`/`ctrl+w` fix
+comments, same "ctrl+w intentionally left unbound here" line at 91, matching this file's own
+claim). Extracted kitty's full reserved zone directly from the uploaded file (`alt+1`–`9`, bare
+`ctrl+t`, every `ctrl+shift+*` combo it binds) and checked it against all 224 nvim bindings
+programmatically: **zero `<M-1>`–`<M-9>`, zero bare `<C-t>`, zero `<C-S-*>` of any kind anywhere
+in this config.** Same conclusion as every prior pass, re-derived rather than cited.
+
+### 4. Two new reference repos (first look) + refresh on the other 7
+
+**linkarzu/dotfiles-latest**: not a from-scratch nvim config — a large macOS system-dotfiles repo
+with 4 different nvim variants under `neovim/`; `neobean` is the actively-used one (confirmed via
+its own README: "the Neovim config you see me using on each one of my videos"). Its
+`config/keymaps.lua` (4,528 lines) is almost entirely linkarzu's own blogging/content-creation
+workflow (Imgur uploads, Obsidian-style daily notes, `osascript`/ForkLift calls) — low signal for
+a general-purpose Linux config, nothing ported wholesale. Two things worth noting rather than
+silently skipping: (1) its `hardtime.lua` has `enabled = false` — a real user tried the heavier
+habit-breaking plugin and turned it off, which is evidence *for* keeping this config's existing
+lighter-touch `utils.cowboy()` rather than a reason to swap it; Matt-FTW/dotfiles disables the
+same plugin independently, a second data point. (2) `nzzzv`/`Nzzzv` (center screen after a search
+jump) and `mzJ`z` (preserve cursor column across `J`) appear in both linkarzu variants, in
+Matt-FTW's `smooth-scrolling` extra, and in xero's `commands.lua` — confirmed absent from this
+config's own `mappings.lua` via the inventory above. Four independent sources, a real and verified
+gap, small and reversible — listed in §5, not added (see that section for why).
+
+**nshen/learn-neovim-lua**: explicitly a paid-course companion repo, self-described in its own
+README as since superseded by a newer project (InsisVim). Its `lua/utils/` files are genuinely
+dated — a WSL-specific `clip.exe` yank hack, a macOS-only IME switcher, and a `change-colorscheme.lua`
+built on an old Telescope sorter API (`get_generic_fuzzy_sorter`) plus a call to
+`vim.api.nvim_add_user_command`, which is not a real API (the actual function is
+`nvim_create_user_command`) — a bug in the source repo itself, not something to port. Nothing
+extracted from this repo.
+
+**The other 7** (jdhao, craftzdog, xero, rafi, ecosse3, yutkat, Matt-FTW): freshly re-cloned, not
+cached or assumed unchanged. `git ls-remote` against the GitHub REST API hit this sandbox's shared
+egress IP rate limit (a sandbox artifact, not a finding), so recency was checked by clone content
+instead. Nothing materially new since the 2026-08-18 comparison in this log — re-confirmed rather
+than re-asserted.
+
+### 5. Candidates found, not added
+
+- **`nzzzv`/`Nzzzv` + `mzJ`z`** (§4) — real, multi-source-verified, low-risk keymap additions to
+  `mappings.lua`. Not added: this log's own practice throughout has been to add new keybindings
+  only against an explicit ask or a confirmed bug, not to invent ones a verification pass merely
+  finds elsewhere — the person's own muscle memory is theirs to extend, not to have extended for
+  them.
+- **`guess-indent.nvim`** — open since the 2026-08-18 entry (§6 there), now with stronger
+  evidence: an *active* choice (not just a template default) in 4 of the 9 reference repos
+  checked across this log's history, including yutkat's real `pluginlist.lua`. Still a plugin
+  addition, still the person's call.
+- Everything else still open from the 2026-08-18 candidate list (rustaceanvim, git-conflict.nvim,
+  nvim-window-picker/stickybuf.nvim, neogen, and the smaller aesthetic ones) — unchanged, not
+  re-litigated without new evidence.
+
+### 6. One style fix: `<Leader>` → `<leader>`
+
+`mappings.lua` had 9 keymaps using capitalized `<Leader>` (the no-yank-register and
+new-line-without-comment groups) against 125 uses of lowercase `<leader>` everywhere else in the
+tree (confirmed via the same inventory extraction — every other file already used lowercase
+exclusively). Functionally identical (Vim's key-notation parser treats the `leader` keyword
+case-insensitively), but normalized to match the dominant, otherwise-universal convention.
+
+### Testing this pass actually did
+
+- Reconstructed the real nested tree from this session's flattened upload and diffed the full
+  filename set both directions (`comm -23`) against the flat source — zero files unaccounted for.
+- `loadfile()`-parsed all 73 `.lua` files (via a real Neovim v0.12.4 binary's bundled LuaJIT,
+  `nvim --headless -l`) — 0 syntax errors, before and after every edit in this pass.
+- Live spec-resolution test against real `lazy.nvim` source (not simulated): **84/84 plugins**,
+  0 errors, 0 notifications (§1).
+- Independent, from-scratch Python extraction of all 224 keymap bindings across both styles this
+  config uses; independent augroup-uniqueness check (36/36); an 8-point deprecated-syntax sweep;
+  a full cross-file option-touch trace; kitty.conf re-derived against the real inventory rather
+  than cited from a prior finding (§§2–3).
+- Fresh clones of all 9 reference repos named this session (7 re-confirmed, 2 first-look) — not
+  cached, not assumed (§4).
+- **Did not**: complete a full `:Lazy sync`-equivalent plugin *install* (network/time cost for
+  ~84 real clones wasn't spent this pass, since the lower-level spec-resolution test already gives
+  a concrete, verified answer to the specific thing that needed checking — whether the renamed
+  loader file resolves correctly); test any real interactive UI behavior (same structural
+  limitation every headless pass in this log has).
+
+### Check next time
+
+- If `plugins/loader.lua` is ever missing on a future upload: same root cause (basename
+  flattening) as the seven `plugins/init.lua` occurrences before it, but this file's own new name
+  means it can no longer collide with root `init.lua` specifically — if it still goes missing,
+  something else in the upload path changed and the cause needs re-diagnosing, not assumed to be
+  the same collision.
+- `nzzzv`/`Nzzzv`/`mzJ`z` and `guess-indent.nvim` (§5), if ever raised again specifically.
+
+---
+
 ## 2026-08-18 (third session) — avante's other default actions given real `<leader>i*` slots
 
 Trigger: direct follow-up to the entry below — `auto_set_keymaps = false` fixed the `<leader>a`

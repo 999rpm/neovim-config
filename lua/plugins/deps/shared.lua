@@ -12,7 +12,7 @@
 -- telescope.lua, plugins/test/neotest.lua.
 --
 -- MunifTanjim/nui.nvim: UI component primitives (popup/menu/input/layout). Consumers: plugins/
--- explorer/neo-tree.lua, plugins/ui/noice.lua.
+-- explorer/neo-tree.lua, plugins/ui/noice.lua, plugins/editor/hardtime.lua.
 --
 -- Deliberately NOT here: kevinhwang91/promise-async (plugins/ui/ufo.lua's only consumer — a
 -- single-consumer dependency doesn't need centralizing, there's nothing to deduplicate).
