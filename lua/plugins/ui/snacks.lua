@@ -65,6 +65,19 @@ return {
 			},
 		},
 		dashboard = { enabled = false }, -- plugins/ui/alpha.lua already owns the start screen
+		-- Inline image/LaTeX-math rendering via the terminal's graphics protocol. Left
+		-- unacknowledged for a while (AUDIT_SUMMARY.md): whether this defaults on wasn't
+		-- independently confirmed, and it needs a graphics-protocol-capable terminal to do
+		-- anything at all. Both are now settled: `enabled = true` is genuinely snacks.nvim's own
+		-- current default (verified against lua/snacks/image/image.lua directly, not the docs
+		-- page), so this was already running; stated explicitly here instead of left implicit.
+		-- Whether the terminal side cooperates is outside this repo (kitty and most modern
+		-- terminals support the underlying protocol) — this only controls whether Neovim
+		-- attempts it. `doc`/`math` sub-modules inherit the same `enabled = true`, rendering
+		-- actual referenced image files in markdown and LaTeX-style math expressions
+		-- respectively — a different concern from plugins/ui/render-markdown.lua's own heading/
+		-- checkbox/callout styling in the same filetype, not a competing one.
+		image = {},
 		scroll = { enabled = true },
 		statuscolumn = { enabled = false }, -- plugins/ui/statuscol.lua + options.lua hand-build the statuscolumn; don't fight it
 		input = { enabled = false }, -- Handled by plugins/ui/noice.lua

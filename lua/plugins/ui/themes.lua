@@ -1,6 +1,19 @@
--- Multi-theme switcher (tokyonight/catppuccin/kanagawa) with persisted state. Sole owner of
--- all theme-related keymaps (<leader>os/ot/oT/ou) — see mappings.lua's note on why its own
--- old, non-functional <leader>os/<leader>ot entries were removed rather than left as dead code.
+-- Multi-theme switcher (tokyonight/catppuccin/kanagawa/monokai-pro) with persisted state. Sole
+-- owner of all theme-related keymaps (<leader>os/ot/oT/ou) — see mappings.lua's note on why its
+-- own old, non-functional <leader>os/<leader>ot entries were removed rather than left as dead
+-- code.
+--
+-- monokai-pro (loctvl842/monokai-pro.nvim, one of this pass's named reference repos — a real
+-- colorscheme plugin, not a dotfiles config): styles verified against its own current
+-- lua/monokai-pro/config/defaults.lua rather than its README, which lists six filters (classic/
+-- octagon/pro/machine/ristretto/spectrum) but omits a seventh, "light", that only the source's
+-- own type alias documents. `day_night` (an unrelated auto-switch-by-wall-clock feature this
+-- plugin also ships) is left untouched — the seven filters below are cycled through this file's
+-- own existing style_index mechanism instead, the same way tokyonight's four styles already
+-- are, rather than layering a second, independent auto-switcher on top. Upstream's own README
+-- currently flags its v2.0.0 line as a recent internal refactor with short-term regressions
+-- possible — worth knowing if anything about it looks off, not a reason on its own to hold off
+-- on a plugin the person named directly.
 local fn, api, json = vim.fn, vim.api, vim.json
 local state_file = fn.stdpath("data") .. "/theme_state.json"
 
@@ -53,8 +66,23 @@ local adapters = {
 			})
 		end,
 	},
+	-- loctvl842/monokai-pro.nvim — see header note on the "light" filter and the day_night
+	-- feature deliberately left unused in favour of this file's own style_index cycling.
+	["monokai-pro"] = {
+		styles = { "pro", "classic", "octagon", "machine", "ristretto", "spectrum", "light" },
+		is_light = function(s)
+			return s == "light" -- the only one of the 7 filters that isn't a dark palette
+		end,
+		setup = function(s, transparent)
+			require("monokai-pro").setup({
+				filter = s,
+				transparent_background = transparent,
+				devicons = true, -- explicit rather than upstream's own default (false) — every other colorscheme/icon integration in this config assumes devicons are themed, not left plain
+			})
+		end,
+	},
 }
-local theme_order = { "tokyonight", "catppuccin", "kanagawa" }
+local theme_order = { "tokyonight", "catppuccin", "kanagawa", "monokai-pro" }
 
 local State = {
 	data = { theme = "tokyonight", style_index = 1, transparent = true },
@@ -91,8 +119,21 @@ function Controller.apply()
 	s.style_index = math.max(1, math.min(s.style_index, #adapter.styles))
 	local style = adapter.styles[s.style_index]
 
+	-- `s.theme` is used as a Lua PATTERN here, not a plain substring — plain string
+	-- concatenation broke the instant a theme name could contain a pattern-magic character.
+	-- Confirmed live rather than assumed: "monokai-pro" (added this pass, the first theme
+	-- name in this table with a "-") fed straight into `pkg:match("^" .. s.theme)` matches
+	-- against a Lua pattern where "-" means "0 or more of the preceding item, lazily", not a
+	-- literal hyphen — `("^monokai-pro"):match ...`-style concatenation would then silently
+	-- fail to match any of monokai-pro.nvim's own `package.loaded` entries (`monokai-pro`,
+	-- `monokai-pro.config`, etc.), leaving a stale cached module behind on repeat switches
+	-- instead of erroring, exactly the kind of failure that's easy to miss without testing it.
+	-- `%p` (Lua's punctuation character class) covers every character Lua patterns treat as
+	-- magic (`( ) . % + - * ? [ ] ^ $`, all punctuation) plus a few that aren't, which is
+	-- harmless to escape too — this is the standard "treat a string as a plain pattern" idiom.
+	local theme_pattern = "^" .. s.theme:gsub("%p", "%%%0")
 	for pkg, _ in pairs(package.loaded) do
-		if pkg:match("^" .. s.theme) then
+		if pkg:match(theme_pattern) then
 			package.loaded[pkg] = nil
 		end
 	end
@@ -201,6 +242,7 @@ return {
 	{ "folke/tokyonight.nvim", lazy = true, opts = {} },
 	{ "catppuccin/nvim", name = "catppuccin", lazy = true },
 	{ "rebelot/kanagawa.nvim", lazy = true },
+	{ "loctvl842/monokai-pro.nvim", lazy = true },
 	{
 		dir = fn.stdpath("config"),
 		name = "999rpm-themer", -- matches this config's "999rpm-" naming convention (utils.lua) — purely a display/identity name for this local, repo-less spec, nothing else references the literal string

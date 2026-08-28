@@ -20,7 +20,7 @@ return {
 	event = "UIEnter",
 
 	dependencies = {
-		"nvim-tree/nvim-web-devicons",
+		"echasnovski/mini.nvim",
 		"famiu/bufdelete.nvim", -- full spec in plugins/ui/bufdelete.lua; listed here for install/load ordering only
 	},
 

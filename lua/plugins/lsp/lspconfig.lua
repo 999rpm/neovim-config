@@ -414,26 +414,12 @@ return {
 			eslint = {},
 			html = {},
 			cssls = {},
-			rust_analyzer = {
-				-- Default check-on-save runs `cargo check`; clippy is strictly more thorough
-				-- (lint-level diagnostics, not just compile errors), the same upgrade gopls'
-				-- `staticcheck` and Python's `ruff` above already make for their languages — this
-				-- was the one server left bare in this list. Key is `check.command`, not
-				-- `checkOnSave.command` (a still-common wrong/deprecated name from older blog
-				-- posts and rust-tools.nvim-era examples that predate the 0.11+ vim.lsp.config()
-				-- API this file uses) — verified against rust-analyzer's own current docs
-				-- (rust-analyzer.github.io/book/other_editors.html) and its Kate-editor example,
-				-- both of which use `check.*`. Inlay hints need no server-specific settings here
-				-- (unlike ts_ls below): rust-analyzer's own default already enables them, and the
-				-- generic capability-gated toggle in the LspAttach block above already covers it.
-				settings = {
-					["rust-analyzer"] = {
-						check = {
-							command = "clippy",
-						},
-					},
-				},
-			},
+			-- rust_analyzer intentionally NOT here — plugins/lsp/rustaceanvim.lua owns that
+			-- client entirely now (a previously-open candidate, added per AUDIT_SUMMARY.md).
+			-- Upstream's own README warns that also enabling it through nvim-lspconfig causes
+			-- conflicts; see that file's header for what it covers instead (clippy-on-save,
+			-- runnables, richer hover, DAP autoload) and why the equivalent settings moved there
+			-- rather than staying duplicated in both places.
 			basedpyright = {
 				-- Adapted from jdhao's after/lsp/pyright.lua, translated to basedpyright's own
 				-- settings tree (it forked pyright's `pyright.*`/`python.analysis.*` keys under

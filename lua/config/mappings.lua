@@ -26,6 +26,15 @@ map("i", "<M-m>", "<Esc>", { desc = "Normal Mode" })
 --  Search & Highlights
 map("n", "<Esc>", "<cmd>nohlsearch<CR>", { desc = "Clear search highlight" })
 
+-- Center the screen and open any fold at the landing line after a search jump — native n/N
+-- land exactly on the match with no such guarantee, which on a long file/deep fold often means
+-- the match sits at the very top/bottom edge of the window, or inside a still-closed fold. A
+-- previously-open candidate (AUDIT_SUMMARY.md): appears independently in linkarzu/
+-- dotfiles-latest, Matt-FTW/dotfiles, and xero/dotfiles — added now that a new keymap is an
+-- explicit ask rather than a verification-pass judgment call.
+map("n", "n", "nzzzv", { desc = "Next search match (centered)" })
+map("n", "N", "Nzzzv", { desc = "Prev search match (centered)" })
+
 --  Editing & Text Manipulation
 map("n", "<C-a>", "gg<S-v>G", { desc = "Select all (native increment moved to '>' below)" })
 map({ "n", "v" }, "x", '"_x', { noremap = true, desc = "Delete char (no yank)" })
@@ -34,6 +43,12 @@ map("x", "<S-Tab>", "<gv", { noremap = true, desc = "Indent left" })
 map("x", "<Tab>", ">gv", { noremap = true, desc = "Indent right" })
 
 map("v", "p", '"_dP', { noremap = true, desc = "Paste over selection (no yank)" })
+
+-- J (join line below) leaves the cursor at the new joint by default, which reads as the cursor
+-- jumping when joining several lines in a row. Sets mark z, joins, then jumps straight back.
+-- Same provenance as n/N above: a previously-open candidate, independently present in both
+-- linkarzu/dotfiles-latest variants and Matt-FTW/dotfiles' smooth-scrolling extra.
+map("n", "J", "mzJ`z", { desc = "Join line (cursor stays put)" })
 
 -- Drag current line(s) vertically and auto-indent
 map("n", "<M-k>", "<cmd>move-2<CR>==", { desc = "Move line up" })

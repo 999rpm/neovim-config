@@ -197,7 +197,17 @@ return {
 			},
 		}
 		dap.configurations.c = dap.configurations.cpp
-		dap.configurations.rust = dap.configurations.cpp
+		-- A real copy, not another alias to the same table: plugins/lsp/rustaceanvim.lua's
+		-- `autoload_configurations` (its own default, on) appends discovered runnables straight
+		-- into `dap.configurations.rust` via `table.insert` (confirmed by reading
+		-- lua/rustaceanvim/commands/debuggables.lua directly). `dap.configurations.rust =
+		-- dap.configurations.cpp` — the previous line here — assigns the same table by
+		-- reference, not a copy; every Rust runnable appended that way would have silently
+		-- landed in `dap.configurations.cpp`/`.c` too, showing Rust test binaries in a C/C++
+		-- debug picker. `vim.deepcopy()` gives rust its own independent table so the two
+		-- languages' configurations can diverge from here — this file's own initial single
+		-- codelldb entry stays available under Rust either way, just no longer shared.
+		dap.configurations.rust = vim.deepcopy(dap.configurations.cpp)
 
 		------------------------------------------------------------------
 		-- Haskell

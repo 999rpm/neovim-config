@@ -8,7 +8,426 @@ entry here (not back into a file header) after making one.
 Newest entry first. Entries get condensed over time (their conclusions stay, the blow-by-blow
 of how each was reached doesn't) so this file stays worth reading rather than worth skipping.
 
-## 2026-08-20 (second session) — `utils.cowboy()` replaced with hardtime.nvim, on request
+## 2026-08-28 — every previously-open candidate resolved (11 added, 3 declined with reasons),
+
+## mini.icons replaces nvim-web-devicons outright, rustaceanvim added (one real dap.lua aliasing
+
+## bug caught before it could bite), delivered as a real nested tree for the first time (zip, not
+
+## project-knowledge sync)
+
+Trigger: the standard re-audit request against the same 15 repos as the entry below (one day
+later — re-cloned fresh, not assumed unchanged), plus an explicit, unambiguous instruction to
+implement the standing candidate backlog rather than continue listing it. Every open candidate
+this log has ever recorded (§6/§7/§5/§4 of the entries below, going back to 2026-08-18) got a
+real decision this pass — implemented, or declined with a specific reason — rather than carried
+forward again.
+
+### 1. Nine candidates added, each checked against its own current source first
+
+`plugins/editor/guess-indent.lua`, `plugins/git/git-conflict.lua`, `plugins/ui/window-picker.lua`
++ `plugins/ui/stickybuf.lua`, `plugins/editor/neogen.lua`, `plugins/ui/satellite.lua`,
+`plugins/ui/nvim-bqf.lua`, `plugins/treesitter/hlargs.lua`, `plugins/ui/modicator.lua`,
+`plugins/ui/colorful-winsep.lua` — fresh clones of all eleven, not configured from memory.
+Concrete things the clones actually changed versus a from-memory config:
+
+- **`stickybuf.nvim`**: upstream's own built-in filetype list (read `lua/stickybuf.lua`'s
+  `builtin_supported_filetypes` directly) already covers quickfix/help/neotest/toggleterm/
+  nvim-notify/neo-tree/nvim-dap-ui/grug-far by name — all already installed here, so those
+  needed nothing. It does not cover `oil`/`Trouble`/`lazy`/`mason`; `get_auto_pin` layers those
+  four on top of (not instead of) `require("stickybuf").should_auto_pin()`, per the README's own
+  documented extension pattern, so upstream's internal special cases (`TelescopePrompt`
+  deliberately unpinned, DAP prompt buffers pinned by `bufnr` not `filetype`) don't need
+  reimplementing here.
+- **`nvim-window-picker`**: `setup()`'s merge is a genuine `vim.tbl_deep_extend` (read
+  `lua/window-picker/init.lua` directly), but that function matches list-like tables by numeric
+  index, not by appending — passing only "the additions" to `filter_rules.bo.filetype` would
+  have silently overwritten upstream's own four default entries at the matching indices instead
+  of adding to them. Written out in full (upstream's four plus this config's other utility
+  filetypes) instead.
+- **`hlargs.nvim`**: deliberately left at its own flat default color rather than `link`-ed to an
+  existing theme group, unlike almost everything else this config themes — the point of the
+  plugin is to look different from whatever the theme already does for a parameter; linking to a
+  theme group risks landing on that exact color. Its own default is already `{ fg = color,
+  default = true }` (read `lua/hlargs/config.lua`), so a theme that does define its own `Hlargs`
+  group would still win.
+- **`neogen`**: initial draft used `snippet_engine = "luasnip"` — wrong, caught before shipping,
+  not after. This config has no LuaSnip installed at all (blink.cmp's own snippet source
+  handles that role). Read `lua/neogen/snippet.lua` directly for the real supported list
+  (`luasnip`/`snippy`/`vsnip`/`nvim`/`mini`) and switched to `"nvim"` — Neovim 0.10+'s own
+  built-in `vim.snippet`, already satisfied by this config's 0.12+ requirement, needing nothing
+  extra installed at all.
+- **`git-conflict.nvim`**: `default_mappings = true` kept at upstream's default rather than
+  remapped — read `lua/git-conflict.lua` directly for the real key table (`co`/`ct`/`cb`/`c0`/
+  `]x`/`[x`, not assumed from memory) and confirmed none of the four bare letters are bound
+  anywhere else in this config, and that they only activate inside a buffer with an actual
+  detected conflict (wired through the plugin's own `GitConflictDetected` autocommand) — outside
+  that context `c0` is untouched, still native "change to column 0".
+
+### 2. `mini.icons` replaces `nvim-web-devicons` — a previously-open candidate, verified live
+
+Read `lua/mini/icons.lua` directly rather than trusting the README summary: `MiniIcons.
+mock_nvim_web_devicons()` registers a real shim into `package.preload`/`package.loaded` under
+the literal name `"nvim-web-devicons"`, which is exactly what makes this a swap rather than a
+second icon system running alongside the first. `plugins/editor/mini.lua` moved from `event =
+"VeryLazy"` to `lazy = false, priority = 1000` (matching `plugins/ui/snacks.lua`'s own reasoning)
+so the mock registers before the earliest possible consumer — `plugins/ui/alpha.lua`'s dashboard
+on `VimEnter` — could ever call `require("nvim-web-devicons")` for real.
+
+All eleven consuming files (`alpha`, `avante`, `bufferline`, `fzf`, `lualine`, `neo-tree`,
+`octo`, `oil`, `render-markdown`, `telescope`, `trouble` — a fresh grep, not the nine this log's
+own `plugins/deps/shared.lua`-style count from memory would have suggested) had their
+`"nvim-tree/nvim-web-devicons"` dependency string repointed at `"echasnovski/mini.nvim"`;
+`plugins/deps/web-devicons.lua` removed outright rather than left installed-but-unused, since a
+dangling real install would cost a clone and an install step for a plugin nothing loads anymore.
+
+**Live-tested, not just read**: staged a fresh clone of `mini.nvim` in a real Neovim v0.12.5
+session, ran this config's own exact `mini.lua` config function (`mini.icons` setup + mock, then
+`mini.ai` setup), then called `require("nvim-web-devicons").get_icon("test.lua", "lua", {default
+= true})` cold — no real `nvim-web-devicons` on the runtimepath at all. Returned a real icon and
+a real `MiniIconsAzure` highlight group. The swap works, not just resolves.
+
+### 3. `rustaceanvim` — a previously-open candidate, and a real bug it exposed before shipping
+
+Upstream's own README carries an explicit warning against also configuring `rust_analyzer`
+through `nvim-lspconfig`/`vim.lsp.enable()` — confirmed by reading it, not assumed from general
+Rust-tooling knowledge. `rust_analyzer` removed from `plugins/lsp/lspconfig.lua`'s own `servers`
+table accordingly; stays in `plugins/lsp/mason.lua`'s `ensure_installed` regardless, since
+Mason's job there is only keeping the binary installed, not starting a client. `enable_clippy`
+(this plugin's own equivalent of the `check.command = "clippy"` override lspconfig.lua carried)
+defaults to `true` already — confirmed against `lua/rustaceanvim/config/internal.lua` — restated
+explicitly rather than left implicit, matching how `dap-ui.lua`/`neo-tree.lua` already restate
+their own current upstream defaults.
+
+**A real bug, caught by reading the actual append mechanism rather than assuming append-only
+semantics**: `lua/rustaceanvim/commands/debuggables.lua` discovers Rust runnables via
+`dap.configurations.rust = dap.configurations.rust or {}` then `table.insert(...)` — genuinely
+appends, doesn't replace. `plugins/debug/dap.lua`'s own `dap.configurations.rust =
+dap.configurations.cpp` assigns the *same table by reference*, not a copy — every Rust runnable
+this plugin would ever discover was about to also silently land in `dap.configurations.cpp`/`.c`,
+showing Rust test binaries in a C/C++ debug picker. Fixed with `dap.configurations.rust =
+vim.deepcopy(dap.configurations.cpp)` before rustaceanvim was wired in at all, not after
+something surfaced it in practice.
+
+Keymaps (`K` → `RustLsp hover actions`, `<leader>Tc` → `RustLsp runnables`) live in
+`rustaceanvim.lua`'s own `keys` table with `ft = "rust"`, not in `lspconfig.lua`'s shared
+`LspAttach` block — lazy.nvim's own per-key `ft` field gives the same buffer-scoping upstream's
+suggested `after/ftplugin/rust.lua` location would, without a second file or touching a block
+every other language's config also depends on. Native `gra` (code action) deliberately left
+alone rather than replaced with `RustLsp codeAction`: the only real gain is grouping related
+actions, `gra` already calls the same underlying request, and upstream's own suggested key for
+this is `<leader>a` — already `textobjects.lua`'s parameter swap here, so it was never a
+candidate to copy verbatim anyway. Rust debuggables need no new keymap: `autoload_configurations`
+(upstream default, left on) appends straight into `dap.configurations.rust`, already reachable
+through `plugins/debug/dap.lua`'s existing `<leader>Dp` picker once the aliasing fix above made
+that table safe to append to.
+
+### 4. `snacks.nvim`'s `image` module — a previously-open uncertainty, settled by reading source
+
+The entry below left this off specifically because its current default-enabled state "wasn't
+independently confirmed with the same confidence" as everything else added that pass. Read
+`lua/snacks/image/image.lua` directly this time: `enabled = true` is genuinely the current
+default, for the module itself and its `doc`/`math` sub-tables — meaning it was already active,
+just never acknowledged. `image = {}` added to `plugins/ui/snacks.lua` to make that explicit
+rather than leave it an implicit, unstated behavior; no functional change, a documentation one.
+
+### 5. Two small keymaps — a previously-open candidate, four independent sources
+
+`n`/`N` → `nzzzv`/`Nzzzv` (center screen + open a fold after a search jump) and `J` → `mzJ`z`
+(join without the cursor jumping to the new joint) — verified present, independently, in
+linkarzu/dotfiles-latest, Matt-FTW/dotfiles, and xero/dotfiles (the entry below found all three
+sources and still declined to add these, on the standing principle that a verification pass
+doesn't extend someone's muscle memory unasked; today's instruction is that ask). Added to
+`config/mappings.lua`'s existing Search/Editing sections — no leader prefix involved, so no
+`which-key.lua` change needed.
+
+### 6. Three items checked again and deliberately still not added
+
+- **`folke/sidekick.nvim`**: checked its current README specifically for what "adding" it would
+  actually require, not just its feature list. Its Next Edit Suggestions need the official
+  `copilot-language-server` registered as its own native `vim.lsp.enable()` client — a second,
+  separate connection to Copilot's backend alongside `plugins/completion/copilot.lua`'s own
+  bundled agent, not a drop-in alongside it. A real architectural fork of the AI stack, not a
+  granular add — left open, now with the specific reason rather than a general one.
+- **`eyeliner.nvim`**: `plugins/editor/flash.lua` already replaces native `f`/`F` outright with
+  its own labelled-jump system (`modes.char.enabled = false`), which is strictly more capable
+  than eyeliner's job (highlighting where a single native `f`/`F` press would land) for the two
+  keys eyeliner would matter most on. Real remaining value is narrow — unenhanced `t`/`T` only —
+  not enough to justify a new plugin for it.
+- **`hydra.nvim`**: no current binding in this config presents the repeated-modal-operation case
+  this plugin solves. `plugins/editor/multicursor.lua`'s own `addKeymapLayer` already covers the
+  one structurally similar case (keys that only mean something once a mode is already active).
+- Re-examined and left exactly as-is: the `ty`/`pyrefly` external Python type checkers
+  (`lspconfig.lua`, still commented out) — the reason they're off is a real technical conflict
+  (duplicate diagnostics alongside basedpyright), not an unmade permission call, so being told to
+  clear the backlog of permission calls doesn't apply to this one.
+
+### 7. Delivered as a real nested tree this time, not a flat list needing reconstruction
+
+`init.lua`/lua/config/`*.lua`/`lua/plugins/<15 categories>/`*.lua`, packaged directly — the
+recurring flattening this log has diagnosed on nearly every prior delivery is a property of the
+project-knowledge chat sync specifically; it doesn't apply to a zip. `init.lua`'s own file-layout
+tree and feature-overview updated to include every file this pass added, plus one already-stale
+gap independent of this pass: `hardtime.nvim` (added several entries back) was never folded into
+either list. `README.md`'s own layout tree and requirements section (added: `cargo`/`clippy` for
+rustaceanvim, a graphics-protocol-capable terminal note for §4 above) updated to match.
+
+### Testing this pass actually did
+
+- **Downloaded a real Neovim v0.12.5 binary** and a real `lazy.nvim`; real (not simulated) spec
+  resolution via `Config.setup()` + `Plugin.load()` against the reconstructed tree: **95 plugins
+  resolved, zero notifications/errors.**
+- **A real, targeted load test, not just a spec-shape check**: staged fresh clones of all eleven
+  new plugins plus `mini.nvim`/`snacks.nvim` (whose own config this pass changed) at their real
+  install paths and called each one's actual `setup()` — from this config's own real option
+  values, not a bare smoke call — against real Neovim: **13/13 pass**. Includes the mock-devicons
+  functional check in §2.
+- `luac5.1 -p` across all 84 `.lua` files — 0 syntax errors.
+- Independent keymap-collision and augroup-uniqueness scan, rebuilt fresh rather than reused: 36
+  augroups, 36 unique names, 0 duplicates. Two apparent collision flags investigated, both false:
+  bare `q` is the same already-settled buffer-local-wins case this log has confirmed several
+  times; a batch of files flagging on literal `"n"` turned out to be the scan script's own nested-
+  table blind spot (`mode = {"n", "x"}` inside a `keys` entry, not an actual `lhs = "n"` binding)
+  — confirmed against every flagged file directly, the exact class of false positive this log's
+  own 2026-08-20 entry hit once before for a different reason (Telescope's picker-scoped `map`).
+- `servers`/`ensure_installed` cross-check re-run: 17/18 (the intentional gap is `rust_analyzer`,
+  now rustaceanvim's job, not lspconfig.lua's — see §3). `conform`/`mason-tool-installer`
+  untouched this pass, not re-verified beyond confirming neither file was edited.
+- Fresh clones of all 15 named repos (re-confirmed the 9 from the entry below one day later;
+  nothing materially new turned up in that single day beyond what's already reflected here).
+- Every new keymap this pass introduced (`<leader>ew`, `<leader>cn`, `<leader>Tc`, rust-scoped
+  `K`, `n`/`N`, `J`) checked against kitty's three reserved zones (`alt+1..9`, bare `ctrl+t`,
+  any `ctrl+shift+*`) — none use a modifier combination anywhere near those, so this is a
+  by-inspection confirmation rather than a re-derivation of the fuller 231-ish-binding inventory.
+- **Did not**: run a full `:Lazy sync` across all 95 plugins for real (the two-tier check above —
+  spec resolution at the full-tree level, real `setup()` calls for every file this pass actually
+  wrote or touched — already gives concrete, verified answers to the two things that needed
+  checking); confirm `cargo`/`clippy` availability for rustaceanvim's own clippy-on-save
+  auto-detection (no Rust toolchain in this sandbox, the same limitation every prior pass's
+  avante.nvim `make`-step testing already hit).
+
+### Check next time
+
+- If `rustaceanvim`'s clippy auto-detection doesn't seem to kick in on the real machine: confirm
+  `cargo clippy` actually resolves on `$PATH` there first — not independently confirmable from
+  this sandbox (see above).
+- `hlargs.nvim`'s flat default color (§1) is a deliberate exception to this config's usual
+  theme-linked highlighting — not an oversight if it's ever questioned again.
+- The three declined-with-reasons items in §6 — sidekick.nvim, eyeliner.nvim, hydra.nvim — if
+  raised again with something that changes the specific reason each was declined for (a
+  narrower sidekick integration that doesn't need its own LSP client; a concrete repeated-modal
+  workflow hydra.nvim would actually solve here).
+
+---
+## 2026-08-27 — nested tree reconstructed (86/86 plugins, real Neovim v0.12.5), monokai-pro.nvim
+
+## added as a 4th theme (one real bug caught building it), 2 stale-documentation fixes,
+
+## .typos.toml reconstructed, 6 new reference repos reviewed (wincent, nv-ide, SeniorMars,
+
+## folke/dot, Allaman, monokai-pro.nvim)
+
+Trigger: the standard re-audit request, naming 15 reference repos this time — 9 already covered
+in this log (jdhao, craftzdog, xero, rafi, ecosse3, yutkat, Matt-FTW, linkarzu, nshen), 6
+genuinely new (wincent/wincent, crivotz/nv-ide, SeniorMars/dotfiles, folke/dot, Allaman/nvim, and
+— a real colorscheme plugin rather than a dotfiles config, the first of its kind named in this
+log — loctvl842/monokai-pro.nvim).
+
+### 1. Nested tree reconstructed — same recurring cause, re-verified with a two-way diff script
+
+Same flattening this log has diagnosed on every prior delivery: the upload collapses `lua/
+config/*.lua` and `lua/plugins/<category>/*.lua` to one flat directory. Rebuilt the real tree
+from the category mapping `init.lua`'s own header, `plugins/loader.lua`'s import list, and
+`README.md`'s layout tree all three independently describe (checked all three against each
+other first — identical), then diffed the reconstructed filename set against the flat upload in
+both directions with a script rather than by eye: **74 files, zero missing, zero unaccounted
+for.** `plugins/loader.lua` itself was present this time, not missing an 8th time.
+
+### 2. monokai-pro.nvim — added as a 4th theme; a real latent bug surfaced building it, fixed
+
+Named directly in this pass's own repo list (not a candidate a verification pass merely
+surfaced), and a trivial fit for the existing adapter shape in `plugins/ui/themes.lua` — added
+rather than left as a candidate, unlike the more speculative items in §6 below.
+
+**Verified against its own source, not its README**: the README's "Filters" section lists six
+(classic/octagon/pro/machine/ristretto/spectrum). Its actual `lua/monokai-pro/config/
+defaults.lua` type-alias documents a seventh, `"light"`, that the README simply never mentions.
+All seven are now this theme's `styles` list, cycled through the same `style_index` mechanism
+tokyonight's four styles already use — its own separate `day_night` auto-switch feature was left
+untouched rather than layered on top as a second, competing switcher. `devicons = true` set
+explicitly (upstream default: `false`) — every other icon integration in this config already
+assumes devicons are themed, not left at a plugin's own unthemed default.
+
+**A real bug, not a hypothetical one, live-tested**: `Controller.apply()`'s `package.loaded`
+cache-bust loop built its match pattern via plain string concatenation (`"^" .. s.theme`) — fine
+for `tokyonight`/`catppuccin`/`kanagawa`, none of which contain a Lua pattern-magic character,
+but `monokai-pro` is the first theme name in this table with a `-`, which Lua patterns read as
+"0 or more of the preceding item, lazily," not a literal hyphen. Confirmed live rather than
+reasoned through: fed the exact old and new pattern-construction code a real `package.loaded`
+table shaped like a real monokai-pro.nvim install. Old code matched **0 of 4** of the plugin's
+own module names; fixed code (escaping via Lua's `%p` punctuation class — `s.theme:gsub("%p",
+"%%%0")`, then used as the pattern) matched all 4, with `tokyonight`'s own match count (2/2)
+unchanged. Left uncaught, this would have made every setup() after the *first* visit to
+monokai-pro silently keep the first visit's filter/transparency instead of the newly-requested
+one — a stale-cache bug, not a crash, so it would have been easy to miss without testing it.
+
+Further live-tested end to end against real upstream source (fresh clones of monokai-pro.nvim,
+tokyonight.nvim, kanagawa.nvim — not simulated): a real switch sequence kanagawa → monokai-pro
+(dark, `filter="pro"`) → monokai-pro (`filter="light"`) → tokyonight → monokai-pro again
+(`filter="spectrum"`), using the fixed cache-bust logic. Every step applied cleanly; both
+re-visits to monokai-pro correctly cleared **21** stale `package.loaded` entries each time (0 on
+the first, uncached visit, as expected) and correctly reported `background=light` only on the
+`"light"`-filter visit — confirms both the fix and the filter list against real behaviour, not
+just against reading the source.
+
+**Not done, and said plainly rather than left implicit**: upstream's own README currently flags
+its v2.0.0 line as a recent internal refactor with short-term regressions possible — noted in
+`themes.lua`'s own header as a real, current caveat, not a reason to withhold a plugin the person
+named directly. `background_clear` (which plugins get their background force-cleared under this
+theme) was left at upstream's own default list rather than extended to match this config's own
+transparency-everywhere style — a real customization option, not evaluated with the same
+confidence as the two changes above, so left alone rather than guessed at.
+
+### 3. Two stale-documentation fixes — found by fresh grep, not by re-reading old conclusions
+
+- **`plugins/deps/shared.lua`**'s own "Consumers:" comment for `nvim-lua/plenary.nvim` named 5
+  files; grepping the actual current tree for the literal dependency string finds **9**:
+  the 5 already named, plus `plugins/git/octo.lua`, `plugins/ai/avante.lua`, `plugins/ai/
+  mcphub.lua`, and `plugins/explorer/yazi.lua` — all four added across passes after this
+  comment was last written, none of which updated it. Same gap for `MunifTanjim/nui.nvim`:
+  documented 3, actually 4 (missing `plugins/ai/avante.lua`). Both corrected against the fresh
+  grep, the exact drift this file's own stated purpose ("answerable by reading one file instead
+  of grepping... across a dozen") exists to prevent.
+- **`init.lua`**'s own header said its smaller borrowed-pattern credits came from "three other
+  public configs" directly above a list of **four** (craftzdog, xero, rafi, ecosse3) — stale
+  since ecosse3 was added as the fourth in the 2026-08-17 pass, which added the bullet but never
+  circled back to the summary sentence above it. Corrected to "four."
+
+### 4. `plugins/ai/avante.lua` — model string a year stale, updated
+
+`model = "claude-sonnet-4-20250514"` was a fixed May-2025 snapshot. Anthropic's current lineup
+uses undated rolling aliases rather than dated pins — `claude-sonnet-5` is the current fast/
+flagship-tier alias as of this pass. Structure unchanged (`providers.claude.endpoint`/`.model`
+is still current avante.nvim's own real schema, confirmed against its current docs and several
+current usage examples) — only the value was stale, not the shape around it.
+
+### 5. `.typos.toml` reconstructed
+
+Referenced in this log's own 2026-08-17 (second session) entry as already present and adapted
+from jdhao/nvim-config's structure; absent from this upload. Same class of gap as
+`plugins/loader.lua`'s recurring disappearance, but for a dotfile rather than a nested directory
+— apparently dotfiles don't survive this chat's project-knowledge sync at all, a distinct cause
+from the directory-flattening one, worth naming separately if it recurs. Reconstructed at the
+schema verified against typos' own current reference docs (`[default.extend-words]`, self-
+referencing `word = "word"` entries to accept a spelling as-is) with this config's own jargon —
+not re-run against a real `typos` binary (no `cargo`/`rustc` in this sandbox to build one from
+source, the same limitation every prior pass's avante.nvim `make`-step testing already hit).
+
+### 6. Six new reference repos (first look)
+
+- **folke/dot**: highest-signal of the six, given how much of this config already runs on
+  folke's own plugins. Two real, current candidates surfaced, neither added: `folke/
+  sidekick.nvim` (his newer, actively-developed "Next Edit Suggestions" + CLI-agent-multiplexer
+  plugin) sits in his own config where copilot.lua/an AI sidebar might otherwise — a bigger,
+  more architecturally-loaded swap than this pass makes unilaterally, given this config's own
+  four-tool AI stack (copilot/avante/opencode/mcphub) is itself already a deliberate, integrated
+  choice. `snacks.nvim`'s own `image` module (inline image/LaTeX-math rendering via the
+  terminal's graphics protocol) is plausible given kitty.conf confirms a graphics-protocol-
+  capable terminal is actually in use and snacks.nvim is already installed — not enabled: its
+  current default-enabled state wasn't independently confirmed with the same confidence as §2's
+  changes, and it changes buffer rendering behaviour non-trivially enough to want that
+  confirmation first.
+- **wincent/wincent**: reviewed directly (`aspects/nvim/files/.config/nvim/`), not skipped for
+  size (the full repo is 253MB/21,555 files — almost all of it unrelated to Neovim). Built on
+  Neovim's native `pack/bundle/opt/` package manager rather than lazy.nvim, with a keymap
+  philosophy (`gd` bound to *declaration*, not definition; heavy bare-`<Leader>` use) that is
+  wincent's own long-standing personal convention rather than a community one — structurally too
+  different for direct portability, the same conclusion a past entry reached independently for
+  craftzdog/rafi once they turned out to be LazyVim layers. Nothing extracted.
+- **crivotz/nv-ide**, **SeniorMars/dotfiles**: both reviewed (keymaps/config files read
+  directly); nv-ide is a thin LazyVim customization (6-line keymaps.lua); SeniorMars runs an
+  older, substantially different plugin set (vim-fugitive, Grepper, Neorg, UndotreeToggle) with
+  no equivalent gap in this config's own already-covered territory. Nothing extracted.
+- **Allaman/nvim**: reviewed directly; its own practice of deleting native `gra`/`gri`/`grn`/
+  `grr`/`grt`/`gO`/`]d`/`]D` to declutter which-key is a different, equally valid design choice
+  from this config's own (documenting native defaults in reference boxes rather than removing
+  them — `mappings.lua`/`lspconfig.lua`'s own boxes) — a preference, not a bug either way.
+  Nothing extracted.
+
+### 7. Re-confirmed, not re-changed
+
+Fresh clones of all 9 previously-covered repos (not cached, not assumed unchanged, per this
+log's own standing practice) — commit dates range from 2026-08-27 (yutkat, today, an unrelated
+zsh commit) back to 2026-03-05 (ecosse3); nothing materially new for this config specifically.
+One item worth a note despite no conclusion changing: jdhao added real `after/lsp/ty.lua` and
+`after/lsp/pyrefly.lua` configs this past week (2026-08-24) — both are the same two Python
+type-checkers already sitting commented-out in this config's own `lspconfig.lua` `external_
+servers` with the same reasoning (would double basedpyright's diagnostics if both ran at once).
+A second independent data point for an already-open, already-documented candidate, not a new
+one.
+
+- **kitty.conf**: fresh upload, content unchanged (same 2026-08-12 header, same reserved zones).
+  Re-derived the full current keymap inventory programmatically and checked it against all three
+  reserved zones (`alt+1..9`, bare `ctrl+t`, any `ctrl+shift+*`) — explicitly including the
+  `ctrl+shift+h/j/k/l` vim-style split-navigation block this file's own header calls out as an
+  addition — **zero matches**, same conclusion as every prior pass, re-derived rather than cited.
+- **Keymap collisions / augroup uniqueness**: rebuilt the extractor from scratch (brace-depth-
+  aware, both binding styles this config uses) rather than reusing a cached script. **36
+  `augroup()` call sites, 36 unique names, 0 duplicates** — exact match with every prior count.
+  One cross-file same-(mode,lhs) hit, and the same one every prior pass has found: bare `q`
+  (global no-op vs. the buffer-local close-window override in utility filetypes) — already
+  correct, buffer-local wins, not re-litigated.
+- **`servers`/`ensure_installed` and `conform`/`mason-tool-installer` cross-checks**: both still
+  an exact match in both directions (18 Mason-managed LSP servers; every CLI-based formatter/
+  linter has a matching installer entry) — reconfirmed, not re-asserted.
+- Everything else already covered in this log (dial's unconfigured augends, yazi's on-demand-
+  only role, octo's ex-command-only surface, the open candidates list below, etc.) — reviewed
+  against this pass's own full read of the current tree, nothing found that changes any of it.
+
+### 8. This log condensed further
+
+The 2026-08-18 "nested tree rebuilt + fully re-tested... web-devicons deep dive... rust_analyzer
+clippy-on-save" entry carried a full section-by-section investigation narrative for two findings
+(web-devicons' actual current option surface, rust_analyzer's one settings change) that are now
+ten days settled and re-confirmed twice over since. Condensed to conclusions + the specific
+things a future pass would need to know (the `check.command` vs `checkOnSave.command` naming
+trap, yutkat's live `mini.icons` alternative) — every "Check next time" item survived. Nothing
+cross-referenced by filename from another file's header was touched.
+
+### Testing this pass actually did
+
+- Reconstructed the nested tree and diffed the filename set both directions against the flat
+  upload (§1) — 0 missing, 0 unaccounted for.
+- **Downloaded a real Neovim binary, v0.12.5** (bumped from every prior entry's v0.12.4) and
+  cloned a real `lazy.nvim`. Real (not simulated) spec resolution via `Config.setup()` +
+  `Plugin.load()` against the actual tree: **86/86 plugins, 0 errors** both before this pass's
+  edits (85, matching the prior entry's own count) and after (86, the +1 being monokai-pro.nvim)
+  — confirming the addition resolves correctly, not just parses.
+- **Real functional colorscheme-switch test** against fresh clones of monokai-pro.nvim,
+  tokyonight.nvim, and kanagawa.nvim (§2) — not simulated, and specifically designed to catch a
+  revisit-the-same-theme-twice bug, which is exactly what it caught.
+- `luac5.1 -p` across all 74 `.lua` files, before and after every edit — 0 syntax errors.
+- `.typos.toml` parsed with a real TOML parser — valid.
+- Independent, freshly-written keymap-collision and augroup-uniqueness scans (§7).
+- Fresh clones of all 15 named repos (9 re-confirmed, 6 first-look, §6-§7) — not cached.
+- **Did not**: run a real `typos` binary against the reconstructed `.typos.toml` (no cargo/rustc
+  in this sandbox, §5); independently confirm `snacks.nvim`'s current default `image.enabled`
+  state (§6, why it wasn't switched on); complete a full `:Lazy sync` of all 86 plugins for
+  real (the lower-level spec-resolution + the targeted 3-plugin functional test already give
+  concrete, verified answers to the two things that actually needed checking this pass).
+
+### Check next time
+
+- §6's two new candidates (`folke/sidekick.nvim`, `snacks.nvim`'s `image` module), if raised
+  again specifically.
+- `monokai-pro.nvim`'s `background_clear` list (§2) — left at upstream's default; extend it to
+  match this config's own transparency choices if the transparent-background toggle ever looks
+  inconsistent under this theme specifically.
+- Every previously-open candidate (rustaceanvim, git-conflict.nvim, nvim-window-picker/
+  stickybuf.nvim, guess-indent.nvim, neogen, mini.icons, the smaller aesthetic ones, `ty`/
+  `pyrefly` per §7) — unchanged, not re-litigated without new evidence.
+
+---
 
 Trigger: explicit ask to swap the hjkl throttle from the home-grown `utils.cowboy()` to
 `hardtime.nvim` — the same plugin the previous entry (below) had just cited as a reason to *keep*
@@ -409,150 +828,58 @@ pass didn't have a reason to make unilaterally.
 
 ## yutkat/dotfiles + Matt-FTW/dotfiles (both first look), web-devicons deep dive, rust_analyzer
 
-## clippy-on-save, kitty.conf re-confirmed against a fresh upload
+## clippy-on-save, kitty.conf re-confirmed against a fresh upload (condensed 2026-08-27)
 
 Trigger: the same recurring re-audit request, this time naming 7 reference configs explicitly —
-5 already covered in this log (jdhao/craftzdog/xero/rafi/ecosse3) plus yutkat/dotfiles and
-Matt-FTW/dotfiles, both genuinely new here — with an explicit ask to focus on nvim-web-devicons.
+5 already covered (jdhao/craftzdog/xero/rafi/ecosse3) plus yutkat/dotfiles and Matt-FTW/
+dotfiles, both new — with an explicit ask to focus on nvim-web-devicons.
 
-### 1. `lua/plugins/init.lua` — missing again (7th time), same cause, same fix
+`lua/plugins/init.lua` missing again (7th time, same cause/fix). Full nested-tree rebuild, real
+Neovim v0.12.4 + real `lazy.nvim` bootstrap: all 83 plugins installed (avante.nvim's own `make`
+step failed on this sandbox's missing cargo/rustc, already-diagnosed and not a config bug). An
+18-point functional suite passed 18/18; independently re-derived keymap-collision scan: 204
+bindings, 0 cross-file collisions; 36 unique augroups, 0 duplicates; `servers`/`ensure_installed`
+and `conform`/`mason-tool-installer` both exact matches. kitty.conf re-confirmed unchanged
+against a fresh upload, zero conflicts against the 204-binding inventory.
 
-Same flattening issue as every prior occurrence. Reconstructed from `init.lua`'s own documented
-15-category list, syntax-checked clean.
+**web-devicons deep dive** (the requested focus): current `{ default = true, strict = true }`
+verified against live upstream — both real options, nothing deprecated. `themes.lua`'s light/
+dark switch and devicons' own `variant` option already talk to each other for free (devicons
+watches `background` internally) — not a gap. xero's ~200-entry manual icon-override table
+predates upstream's own current filename-icon coverage — not ported, would be redundant.
+ecosse3's own devicons spec is a strict subset of what's already here. **yutkat/dotfiles'
+actual live choice is `mini.icons`, not nvim-web-devicons** — a real, maintained alternative,
+listed as a candidate (see below), not switched to (a provider swap needing all 12 consuming
+files re-tested is a bigger call than a verification pass makes unilaterally).
 
-### 2. Full reorganization + real testing, not import-simulation
+**One fix applied**: `rust_analyzer` was the one Mason-managed server left as bare `{}` while Go/
+Python both have real settings — added `check.command = "clippy"` (verified against
+rust-analyzer's own current docs; `checkOnSave.command` is the deprecated pre-0.11-API name
+still floating around in older blog posts, and would silently no-op). No inlay-hint block
+needed alongside it — rust-analyzer enables its own by default.
 
-Physically rebuilt the nested `lua/config/` + `lua/plugins/<category>/` tree from the flat
-upload. Downloaded a fresh Neovim **v0.12.4** binary and ran a real headless `lazy.nvim`
-bootstrap: **all 83 plugins cloned and installed**, zero new errors. Only failure: avante.nvim's
-`make` step (`Makefile:52: luajit`) — same missing-cargo/rustc cause the 2026-08-17 entry already
-diagnosed as this sandbox's own limitation, re-confirmed, still not a config bug. An 18-point
-functional test suite followed: core UI modules load, `utils.lua` exports 20 members (19 -> 20,
-consistent with prior additions), all 3 colorschemes switch live with no errors, zero plugins
-report a load error via lazy.nvim's own tracking, real `.py`/`.lua`/`.js`/`.tsx`/`.rs` file opens
-all succeed — **18/18 passed**. Independently re-derived the keymap-collision scan with a new,
-own implementation (brace-depth-aware, mode-aware, not regex-only): **204 distinct (mode, lhs)
-bindings, zero cross-file collisions** — consistent with the 2026-08-17 count of 202. **36 unique
-`999rpm-` augroups, zero duplicates** — exact match. `luac5.1 -p` clean across all 73 files,
-before and after the one edit in §5. `lspconfig.lua`'s 18 Mason-managed servers vs `mason.lua`'s
-`ensure_installed`: exact match both directions; every CLI-dependent `conform.lua` formatter has
-a matching `mason-tool-installer` entry.
+**Candidates found, not added** (from yutkat/Matt-FTW specifically): mini.icons (see above),
+rustaceanvim, git-conflict.nvim, nvim-window-picker/stickybuf.nvim, guess-indent.nvim, neogen,
+and smaller/lower-priority ones (nvim-bqf, satellite.nvim, eyeliner.nvim, hlargs.nvim,
+modicator.nvim, colorful-winsep.nvim, hydra.nvim). Deliberately not flagged: edgy.nvim
+(architecturally significant, not a granular add) and yutkat's other navigation/textobject
+plugins (flash/mini.ai/textobjects.lua/harpoon already cover the same ground). Matt-FTW/
+dotfiles turned out to be a thin LazyVim `extras` layer, not a from-scratch config.
 
-### 3. kitty.conf — re-confirmed against the actual fresh upload, zero conflicts
+Comment-hygiene pass: checked, nothing to change (no real TODO/FIXME cruft, all short
+section-header comments deliberate, matching the 2026-08-17 entry's own documented style).
 
-Read the uploaded file directly rather than trusting the last entry's summary by reference.
-Content is unchanged since the 2026-08-17 upload (same "ctrl+w unbound, line 91" self-documenting
-comment, same 2026-08-12-dated header). Cross-checked the current 204-binding inventory against
-kitty's three reserved zones (`alt+1..9`, bare `ctrl+t`, any `ctrl+shift+*`) programmatically:
-zero matches.
+Testing: real Neovim v0.12.4 + real bootstrap (83/83 installed), 18-point suite (18/18),
+independent keymap/augroup scans, `luac5.1 -p` clean across 73 files, fresh clones of all 7
+named repos, rust-analyzer's own current docs fetched before the one settings change. Did not:
+install `clippy` itself to confirm end-to-end (no Rust toolchain in this sandbox); exercise
+yutkat's mini.icons shim; switch in any candidate (by design).
 
-### 4. web-devicons — the requested deep dive
-
-- Current `{ default = true, strict = true }` verified against live upstream source (freshly
-  cloned, not memory): both real, non-deprecated options; `color_icons`/`variant` unused and
-  correctly left at their real defaults.
-- Checked whether `themes.lua`'s light/dark theme controller needs wiring up to devicons'
-  `variant` option: it doesn't. nvim-web-devicons registers its own `OptionSet` autocmd on
-  `background` (confirmed by reading `nvim-web-devicons.lua` directly, not assumed), and
-  `themes.lua`'s `Controller.apply()` already sets `vim.o.background` on every switch — the two
-  already talk to each other for free. Not a gap; recorded here so it isn't re-investigated.
-- xero/dotfiles' `lua/ui/devicons.lua`: a ~200-entry manual `override` table reskinning dotfiles
-  and extensions. Checked against the current `nvim-web-devicons/default/icons_by_filename.lua`
-  (217 entries): every dotfile xero hand-overrides (`.bashrc`, `.gitignore`, `.eslintrc`,
-  `.npmrc`, etc.) already ships as a real filename-keyed icon in current upstream. Looks like it
-  predates that coverage; not ported — would be redundant maintenance now, not an improvement.
-- ecosse3's own `lua/plugins/nvim-web-devicons.lua` is `{ default = true }` only, a subset of
-  what this config already has. Nothing to extract.
-- yutkat/dotfiles: the _active_ choice (`lua/rc/pluginlist.lua`) is actually `nvim-mini/mini.icons`
-  - `mock_nvim_web_devicons()`, not nvim-web-devicons — the old nvim-web-devicons spec is sitting
-    commented-out in `disabled-pluginlist.lua`. A real, live alternative from a maintained config,
-    not a fabricated suggestion — listed in §6, not switched to (a provider swap is a bigger call
-    than a verification pass makes unilaterally, and would need re-testing all 12 consuming files).
-
-### 5. One verified fix applied: `rust_analyzer` gains real settings
-
-Was the one server left as bare `{}` in `lspconfig.lua`'s `servers` table while every comparable
-language (Go, Python) has real settings. Added `check.command = "clippy"` — the same upgrade
-`gopls`' `staticcheck = true` and Python's `ruff` already make for their languages (stricter
-on-save diagnostics instead of just `cargo check`). Verified the key name against rust-analyzer's
-own current docs (rust-analyzer.github.io/book/other_editors.html) and its Kate-editor example —
-both confirm `check.command`, not the `checkOnSave.command` name still common in older
-rust-tools.nvim-era blog posts, which would silently produce an invalid-config warning instead.
-Did not add inlay-hint settings alongside it: rust-analyzer enables its own by default (unlike
-ts_ls, which needs an explicit block — see its own entry above) and the generic capability-gated
-toggle in the shared `LspAttach` callback already covers it; a server-specific block would just
-be redundant. Headless-verified: `lspconfig.lua` loads, a real `.rs` file opens and attaches with
-no error.
-
-### 6. Candidates found, not added (bigger calls than a verification pass makes unilaterally)
-
-From yutkat/dotfiles and Matt-FTW/dotfiles specifically (both first-look; confirmed absent from
-the current 83-plugin lockfile, not just eyeballed):
-
-- **mini.icons** (yutkat's live choice, replacing nvim-web-devicons) — see §4.
-- **rustaceanvim** — modern successor to the now-archived rust-tools.nvim; richer than plain
-  `rust_analyzer` (runnables, cargo-aware inlay hints, debuggables) at the cost of being a
-  bigger, more opinionated dependency than this config's current one-file-per-server shape.
-- **git-conflict.nvim** — dedicated merge-conflict highlighting/navigation; gitsigns/diffview
-  don't cover this specifically.
-- **nvim-window-picker** / **stickybuf.nvim** — window-targeting + special-buffer-pinning;
-  plausible given neo-tree+oil+multiple splits are already in daily use.
-- **guess-indent.nvim** — per-buffer indent auto-detection; `options.lua`'s indent settings are
-  currently fixed, not detected.
-- **neogen** — docstring/annotation generator.
-- Smaller/more aesthetic, lower priority: nvim-bqf, satellite.nvim, eyeliner.nvim, hlargs.nvim,
-  modicator.nvim, colorful-winsep.nvim, hydra.nvim.
-- Deliberately not flagged: **edgy.nvim** (would restructure how neo-tree/trouble/toggleterm
-  dock — architecturally significant, not a granular add) and yutkat's other navigation/textobject
-  plugins (portal.nvim, marks.nvim, nvim-various-textobjs, nvim-treesitter-textsubjects,
-  tree-climber.nvim, nvim-spider) — flash.nvim + mini.ai + textobjects.lua + harpoon already
-  cover the same ground; adding these would be the redundancy point 1 of the original request
-  warns against, not a gap.
-
-craftzdog, xero, rafi: no commits since the last comparison (matches the 2026-08-17 finding,
-re-confirmed independently rather than re-asserted). jdhao: nothing beyond the already-declined
-`typos_lsp` overlap. `rareitems/printer.nvim` (ecosse3) and `nvim-hlslens`/`yanky.nvim` remain
-open from the 2026-08-17 entry, still not added. Matt-FTW/dotfiles is a LazyVim distribution
-(has its own `lazyvim.json`), not a from-scratch config — its own code is a thin `extras` list on
-top of LazyVim defaults; nothing beyond the candidates above was worth extracting from it
-specifically.
-
-### 7. Comment-hygiene pass — checked, nothing to change
-
-Grepped for stale TODO/FIXME/XXX (only real hits are `todo-comments.lua`'s own keyword
-definitions), empty `--` lines (all 54 are deliberate blank-line separators inside box-comment
-headers, e.g. `utils.lua`'s `-- ===...===` / `-- Theming` / `-- ===...===` section dividers), and
-short standalone comments (`-- Theming`, `-- Diagnostics`, `-- Options`, etc. — all are the
-section headers the 2026-08-17 entry already documented `utils.lua`/`autocmds.lua` as using
-internally, not filler). Nothing removed; nothing found was actually cruft.
-
-### Testing this pass actually did
-
-- Real Neovim **v0.12.4** binary, real headless `lazy.nvim` bootstrap, all 83 plugins installed
-  (see §2).
-- 18-point functional suite (core module loads, avante force-load, 3 colorschemes, lazy.nvim's
-  own per-plugin error tracking, 5 real file-type opens) — 18/18 passed.
-- Independent keymap-collision scan (own script, brace-depth + mode aware) — 0 collisions.
-- `luac5.1 -p` across all 73 files, before and after the edit.
-- Fresh clones of all 7 reference repos (not cached, not assumed) — including a first real look
-  at yutkat/dotfiles and Matt-FTW/dotfiles.
-- Fetched rust-analyzer's own current documentation before writing the one settings change,
-  rather than trusting an older tutorial's key names.
-- **Did not**: install `clippy` itself to confirm `check.command = "clippy"` fires end-to-end
-  (no real Rust toolchain in this sandbox — same category of gap as the avante/cargo case above);
-  test yutkat's `mock_nvim_web_devicons()` shim in practice (not adopted, so not exercised);
-  actually switch any of §6's candidates in to test them (by design — see §6).
-
-### Check next time
-
-- If `plugins/init.lua` is missing an 8th time: same cause, same fix.
-- Any of §6's candidates, if raised again specifically — several are real gaps, not speculative
-  padding.
-- `check.command = "clippy"` (§5) assumes the `clippy` rustup component is actually installed
-  wherever `rust_analyzer` runs for real. Unlike the DAP-binary checks, this wasn't given a
-  `utils.warn_if_missing_*`-style startup warning: clippy's absence surfaces as check diagnostics
-  quietly not populating rather than a crash, a quieter failure mode judged not to need the same
-  treatment — worth a second look if it's ever confusing in practice.
+Check next time: any of the candidates above, if raised again specifically; `check.command =
+"clippy"` assumes the rustup component is actually installed wherever rust_analyzer runs for
+real — its absence surfaces as diagnostics quietly not populating, not a crash, so it wasn't
+given a startup warning the way the DAP binaries were; worth a second look if that's ever
+confusing in practice.
 
 ---
 

@@ -4,7 +4,7 @@
 -- default toggle.
 return {
 	"goolord/alpha-nvim",
-	dependencies = { "nvim-tree/nvim-web-devicons" },
+	dependencies = { "echasnovski/mini.nvim" },
 	config = function()
 		local startify = require("alpha.themes.startify")
 		-- available: devicons, mini, default is mini

@@ -12,7 +12,7 @@
 return {
 	"nvim-lualine/lualine.nvim",
 	event = "VeryLazy",
-	dependencies = { "nvim-tree/nvim-web-devicons" },
+	dependencies = { "echasnovski/mini.nvim" },
 	config = function()
 		local lazy_status = require("lazy.status")
 		local utils = require("utils")

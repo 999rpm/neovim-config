@@ -18,7 +18,7 @@ return {
 				return vim.fn.executable("make") == 1
 			end,
 		},
-		"nvim-tree/nvim-web-devicons",
+		"echasnovski/mini.nvim",
 		"nvim-telescope/telescope-ui-select.nvim",
 	},
 

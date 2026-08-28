@@ -9,7 +9,8 @@
 - `ripgrep` and `fd` for Telescope/fzf-lua. Optional — search falls back to slower built-ins without them.
 - Node.js, if you want Copilot, mcphub.nvim, or the JS/TS/CSS/HTML/Tailwind language servers.
 - The `tree-sitter` CLI installs automatically via Mason on first launch — see `plugins/treesitter/treesitter.lua` for details.
-- Optional, only needed for specific plugins/git/lang-tools additions: `make` (avante.nvim's build step), the `gh` CLI, authenticated (octo.nvim), the `yazi` binary (yazi.nvim), an `ANTHROPIC_API_KEY` environment variable (avante.nvim) — each one warns once at startup instead of failing silently if missing; see that plugin's own file.
+- A terminal that supports the Kitty graphics protocol (kitty itself, and most modern terminals) for `snacks.nvim`'s inline image/LaTeX-math rendering. Everything else in this config still works without one.
+- Optional, only needed for specific plugins/git/lang-tools additions: `make` (avante.nvim's build step), the `gh` CLI, authenticated (octo.nvim), the `yazi` binary (yazi.nvim), `cargo`/`clippy` (rustaceanvim, for Rust projects), an `ANTHROPIC_API_KEY` environment variable (avante.nvim) — each one warns once at startup instead of failing silently if missing; see that plugin's own file.
 
 ## Install
 
@@ -35,12 +36,12 @@ lua/
 │   └── lazy.lua             -- bootstraps lazy.nvim, hands off to plugins/loader.lua
 └── plugins/
     ├── loader.lua            -- explicitly imports every folder below (lazy.nvim won't do this on its own — see the file's own comment for why; named loader.lua rather than init.lua so it can never collide with the basename of the root init.lua above)
-    ├── lsp/                  -- native vim.lsp.config()/vim.lsp.enable(), Mason, lazydev, inc-rename, symbol-usage
+    ├── lsp/                  -- native vim.lsp.config()/vim.lsp.enable(), Mason, lazydev, inc-rename, symbol-usage, rustaceanvim (Rust's own LSP client — kept separate from the rest, see its own file header)
     ├── completion/           -- blink.cmp, copilot, autopairs
-    ├── treesitter/           -- parsers, sticky context, rainbow delimiters
-    ├── editor/                -- flash, harpoon, mini.ai, surround, comment, todo-comments, persistence, grug-far, treesj, text-case, nvim-scissors, dial, multicursor, etc.
-    ├── ui/                    -- statusline, bufferline, dashboard, theming, folding, noice
-    ├── git/                   -- gitsigns, diffview, gitlinker, octo
+    ├── treesitter/           -- parsers, sticky context, rainbow delimiters, hlargs (parameter highlighting)
+    ├── editor/                -- flash, harpoon, mini.ai/mini.icons, surround, comment, todo-comments, persistence, hardtime, grug-far, treesj, text-case, nvim-scissors, dial, multicursor, guess-indent, neogen, etc.
+    ├── ui/                    -- statusline, bufferline, dashboard, theming, folding, noice, window-picker, stickybuf, satellite, nvim-bqf, modicator, colorful-winsep
+    ├── git/                   -- gitsigns, diffview, gitlinker, octo, git-conflict
     ├── explorer/              -- neo-tree, oil, yazi
     ├── search/                -- telescope, fzf-lua
     ├── debug/                 -- nvim-dap and friends
@@ -49,7 +50,7 @@ lua/
     ├── terminal/              -- toggleterm
     ├── ai/                    -- avante, opencode, mcphub (agentic AI tools — copilot is separate, in completion/)
     ├── frontend/              -- boundary, template-string, tw-values (React/Tailwind-specific, ft-gated)
-    └── deps/                  -- shared library plugins (plenary, nui, web-devicons) with nothing of their own to configure — centralized so "what does this run on" is one file, not a grep
+    └── deps/                  -- shared library plugins (plenary, nui) with nothing of their own to configure — centralized so "what does this run on" is one file, not a grep. nvim-web-devicons is not one of these anymore: plugins/editor/mini.lua's mini.icons replaced it outright.
 ```
 
 ## License

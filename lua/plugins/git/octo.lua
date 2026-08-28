@@ -12,7 +12,7 @@ return {
 	cmd = "Octo",
 	dependencies = {
 		"nvim-lua/plenary.nvim",
-		"nvim-tree/nvim-web-devicons",
+		"echasnovski/mini.nvim",
 		"nvim-telescope/telescope.nvim",
 	},
 	keys = {

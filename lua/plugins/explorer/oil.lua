@@ -6,7 +6,7 @@
 return {
 	"stevearc/oil.nvim",
 	cmd = "Oil",
-	dependencies = { "nvim-tree/nvim-web-devicons" },
+	dependencies = { "echasnovski/mini.nvim" },
 	init = function()
 		if vim.fn.argc() == 1 then
 			local stat = vim.uv.fs_stat(vim.fn.argv(0))

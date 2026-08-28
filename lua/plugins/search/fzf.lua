@@ -3,7 +3,7 @@
 -- picker/LSP coverage — see that file's own header for why both are kept.
 return {
 	"ibhagwan/fzf-lua",
-	dependencies = { "nvim-tree/nvim-web-devicons" },
+	dependencies = { "echasnovski/mini.nvim" },
 
 	keys = {
 		{ "<leader>ff", "<cmd>FzfLua files<cr>", desc = "Files" },

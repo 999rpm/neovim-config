@@ -55,7 +55,7 @@ return {
 				"html",
 				"cssls",
 				"tailwindcss",
-				"rust_analyzer",
+				"rust_analyzer", -- binary only: plugins/lsp/rustaceanvim.lua, not lspconfig.lua's `servers` table, starts this client — Mason's job here is unaffected either way
 				"basedpyright",
 				"ruff",
 				"dockerls",

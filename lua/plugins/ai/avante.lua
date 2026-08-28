@@ -22,14 +22,19 @@ return {
 	dependencies = {
 		"nvim-lua/plenary.nvim",
 		"MunifTanjim/nui.nvim",
-		"nvim-tree/nvim-web-devicons",
+		"echasnovski/mini.nvim",
 	},
 	opts = {
 		provider = "claude",
 		providers = {
+			-- Anthropic's own current lineup uses undated rolling aliases rather than the
+			-- fixed dated snapshots common through 2025 (e.g. the previous value here,
+			-- claude-sonnet-4-20250514, a May 2025 pin over a year stale by this pass) --
+			-- claude-sonnet-5 is the current fast/flagship-tier alias as of this pass; check
+			-- Anthropic's own model list if this ever 404s rather than reverting to a dated pin.
 			claude = {
 				endpoint = "https://api.anthropic.com",
-				model = "claude-sonnet-4-20250514",
+				model = "claude-sonnet-5",
 			},
 		},
 		behaviour = {
