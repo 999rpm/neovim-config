@@ -1,12 +1,9 @@
--- stevearc/oil.nvim: edit a directory as a normal buffer (rename/delete/create files by
--- editing text and `:w`), instead of plugins/explorer/neo-tree.lua's persistent sidebar tree.
--- `default_file_explorer = true` below plus neo-tree's own `hijack_netrw_behavior =
--- "disabled"` is a deliberate split, not a conflict: opening a directory path directly
--- (`nvim .`, `:e dir/`) goes to oil; the `<leader>ee`/`<leader>er` sidebar toggle is unaffected.
+-- stevearc/oil.nvim: edit a directory like a buffer; writing the buffer applies the renames, creates and deletes.
+-- In an oil buffer: <CR> open, - parent directory, _ cwd, g? help, gs sort, g. hidden files, <C-p> preview.
 return {
 	"stevearc/oil.nvim",
 	cmd = "Oil",
-	dependencies = { "echasnovski/mini.nvim" },
+	dependencies = { "nvim-mini/mini.nvim" },
 	init = function()
 		if vim.fn.argc() == 1 then
 			local stat = vim.uv.fs_stat(vim.fn.argv(0))

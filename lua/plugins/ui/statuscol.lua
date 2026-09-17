@@ -1,10 +1,4 @@
--- luukvbaal/statuscol.nvim: click-able, clean-fold-aware statuscolumn (line numbers + sign
--- column + fold column) — replaces the hand-written `'statuscolumn'` string options.lua would
--- otherwise need. `builtin.foldfunc` renders a fold-open/close glyph on any line that starts a
--- fold, regardless of nesting depth (see options.lua's `foldcolumn` note for why width "1" is
--- deliberate here, not a wider stacked column) — fold segment is listed last/rightmost below so
--- its single glyph sits flush against the first indent guide in the text area, not floating in
--- its own strip.
+-- luukvbaal/statuscol.nvim: line numbers, signs and the fold column in a fixed order, each clickable.
 return {
 	{
 		"luukvbaal/statuscol.nvim",

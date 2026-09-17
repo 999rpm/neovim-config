@@ -1,8 +1,4 @@
--- ravitemer/mcphub.nvim: install/manage/browse Model Context Protocol servers from inside
--- Nvim, and expose them as tools to plugins/ai/avante.lua's agent (its own docs: "integrate MCP
--- functionality for Avante through mcphub.nvim"). Needs Node/npm — already a documented
--- requirement of this config (README.md, for Copilot/JS-TS-ecosystem LSP servers), not a new
--- one; the `build` step below installs its one additional global npm package.
+-- ravitemer/mcphub.nvim: MCP server manager (:MCPHub). Needs Node and installs the mcp-hub binary on build.
 return {
 	"ravitemer/mcphub.nvim",
 	dependencies = { "nvim-lua/plenary.nvim" },
@@ -15,7 +11,7 @@ return {
 		if not require("utils").executable("npm") then
 			vim.schedule(function()
 				vim.notify(
-					"mcphub.nvim needs Node/npm to install its 'mcp-hub' binary — see this "
+					"mcphub.nvim needs Node/npm to install its 'mcp-hub' binary. See this "
 						.. "config's README.md for the Node requirement already documented "
 						.. "there (shared with Copilot/JS-TS language servers).",
 					vim.log.levels.WARN,

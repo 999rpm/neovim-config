@@ -1,19 +1,5 @@
--- Multi-theme switcher (tokyonight/catppuccin/kanagawa/monokai-pro) with persisted state. Sole
--- owner of all theme-related keymaps (<leader>os/ot/oT/ou) — see mappings.lua's note on why its
--- own old, non-functional <leader>os/<leader>ot entries were removed rather than left as dead
--- code.
---
--- monokai-pro (loctvl842/monokai-pro.nvim, one of this pass's named reference repos — a real
--- colorscheme plugin, not a dotfiles config): styles verified against its own current
--- lua/monokai-pro/config/defaults.lua rather than its README, which lists six filters (classic/
--- octagon/pro/machine/ristretto/spectrum) but omits a seventh, "light", that only the source's
--- own type alias documents. `day_night` (an unrelated auto-switch-by-wall-clock feature this
--- plugin also ships) is left untouched — the seven filters below are cycled through this file's
--- own existing style_index mechanism instead, the same way tokyonight's four styles already
--- are, rather than layering a second, independent auto-switcher on top. Upstream's own README
--- currently flags its v2.0.0 line as a recent internal refactor with short-term regressions
--- possible — worth knowing if anything about it looks off, not a reason on its own to hold off
--- on a plugin the person named directly.
+-- Colorschemes and the switcher that drives them. State (theme, style, transparency) persists in stdpath("data")/theme_state.json.
+-- Keys: <leader>ou pick a style, <leader>os cycle style, <leader>ot cycle theme, <leader>oT toggle transparency.
 local fn, api, json = vim.fn, vim.api, vim.json
 local state_file = fn.stdpath("data") .. "/theme_state.json"
 
@@ -66,10 +52,11 @@ local adapters = {
 			})
 		end,
 	},
-	-- loctvl842/monokai-pro.nvim — see header note on the "light" filter and the day_night
-	-- feature deliberately left unused in favour of this file's own style_index cycling.
 	["monokai-pro"] = {
 		styles = { "pro", "classic", "octagon", "machine", "ristretto", "spectrum", "light" },
+		colorscheme = function(s)
+			return s == "pro" and "monokai-pro" or "monokai-pro-" .. s -- colors/monokai-pro.lua pins the "pro" filter; the per-filter files do not
+		end,
 		is_light = function(s)
 			return s == "light" -- the only one of the 7 filters that isn't a dark palette
 		end,
@@ -77,7 +64,7 @@ local adapters = {
 			require("monokai-pro").setup({
 				filter = s,
 				transparent_background = transparent,
-				devicons = true, -- explicit rather than upstream's own default (false) — every other colorscheme/icon integration in this config assumes devicons are themed, not left plain
+				devicons = true, -- explicit rather than upstream's own default (false); every other colorscheme/icon integration in this config assumes devicons are themed, not left plain
 			})
 		end,
 	},
@@ -119,18 +106,6 @@ function Controller.apply()
 	s.style_index = math.max(1, math.min(s.style_index, #adapter.styles))
 	local style = adapter.styles[s.style_index]
 
-	-- `s.theme` is used as a Lua PATTERN here, not a plain substring — plain string
-	-- concatenation broke the instant a theme name could contain a pattern-magic character.
-	-- Confirmed live rather than assumed: "monokai-pro" (added this pass, the first theme
-	-- name in this table with a "-") fed straight into `pkg:match("^" .. s.theme)` matches
-	-- against a Lua pattern where "-" means "0 or more of the preceding item, lazily", not a
-	-- literal hyphen — `("^monokai-pro"):match ...`-style concatenation would then silently
-	-- fail to match any of monokai-pro.nvim's own `package.loaded` entries (`monokai-pro`,
-	-- `monokai-pro.config`, etc.), leaving a stale cached module behind on repeat switches
-	-- instead of erroring, exactly the kind of failure that's easy to miss without testing it.
-	-- `%p` (Lua's punctuation character class) covers every character Lua patterns treat as
-	-- magic (`( ) . % + - * ? [ ] ^ $`, all punctuation) plus a few that aren't, which is
-	-- harmless to escape too — this is the standard "treat a string as a plain pattern" idiom.
 	local theme_pattern = "^" .. s.theme:gsub("%p", "%%%0")
 	for pkg, _ in pairs(package.loaded) do
 		if pkg:match(theme_pattern) then
@@ -146,7 +121,7 @@ function Controller.apply()
 
 	vim.o.background = adapter.is_light(style) and "light" or "dark"
 	adapter.setup(style, s.transparent)
-	vim.cmd.colorscheme(s.theme)
+	vim.cmd.colorscheme(adapter.colorscheme and adapter.colorscheme(style) or s.theme)
 end
 
 function Controller.update(modifier_fn)
@@ -157,17 +132,6 @@ function Controller.update(modifier_fn)
 	if package.loaded["lualine"] then
 		require("lualine").refresh()
 	end
-	-- Fires "ThemeChanged" for anything that needs to re-derive colors after a switch. NOT
-	-- bufferline.lua, despite an earlier version of this comment claiming otherwise: that
-	-- plugin registers its own native `ColorScheme` autocmd internally (lua/bufferline.lua's
-	-- `setup_autocommands`, confirmed by reading it directly) and recomputes its derived
-	-- highlights from that, independently of this custom event. plugins/treesitter/
-	-- rainbow-delimiters.lua and plugins/ui/snacks.lua's rainbow-linked indent guides also
-	-- don't need this: both reference RainbowDelimiter*/named group links rather than caching
-	-- hex values, so `vim.cmd.colorscheme()` above already refreshes them for free, no event
-	-- needed. plugins/debug/dap.lua's sign highlights DO need it (Dap* groups are `link`s set
-	-- once at plugin-load time, before a theme switch would otherwise touch them) — see that
-	-- file's own ColorScheme autocmd, separate from this one since it's dap-specific.
 	api.nvim_exec_autocmds("User", { pattern = "ThemeChanged" })
 end
 
@@ -245,7 +209,7 @@ return {
 	{ "loctvl842/monokai-pro.nvim", lazy = true },
 	{
 		dir = fn.stdpath("config"),
-		name = "999rpm-themer", -- matches this config's "999rpm-" naming convention (utils.lua) — purely a display/identity name for this local, repo-less spec, nothing else references the literal string
+		name = "999rpm-themer", -- matches this config's "999rpm-" naming convention (utils.lua); purely a display/identity name for this local, repo-less spec, nothing else references the literal string
 		lazy = false,
 		priority = 1000,
 		config = init,

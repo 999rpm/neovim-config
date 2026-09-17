@@ -1,24 +1,5 @@
--- jake-stewart/multicursor.nvim: real multiple cursors (as opposed to Visual-block `I`/`A`,
--- which only ever inserts, or `:s`/macros, which don't show you what's about to happen). Ships
--- zero keymaps by design — its own README: "Requires users to define all keymaps in their
--- Neovim config" — so every binding below is a deliberate choice against this config's full
--- existing keymap surface, not upstream defaults.
---
--- Upstream's own example config uses bare `<up>`/`<down>`/`<c-q>`/`<leader>n`/`<leader>s`/
--- `<leader>a`/`<leader>t`/`[d`/`]d` for various actions — every one of those is already taken in
--- this config (window resize, Quit, the No-yank/Search group prefixes, the parameter-swap
--- keys, the Toggle/Test group prefixes, native diagnostic-jump). None of upstream's suggested
--- keys survive unchanged below; see each binding's own comment for where it actually landed.
---
--- Two different key classes here:
---   1. Top-level (always active) — need genuinely free keys, all live under a new `<leader>m`
---      "Multicursor" group (which-key.lua) except the mouse handlers (unused elsewhere).
---   2. Layered (`mc.addKeymapLayer` below) — only exist while 2+ cursors are already active, so
---      reusing an otherwise-busy key here is genuinely safe, not a conflict: outside multicursor
---      mode the existing binding is completely untouched. `<left>`/`<right>`/`<esc>` below are
---      upstream's own suggested layer bindings, kept as-is (window-resize arrows and nohlsearch
---      Esc are exactly what they were outside multicursor mode; inside it, arrows aren't a loss
---      since h/j/k/l/motions still move each cursor normally).
+-- jake-stewart/multicursor.nvim: multiple cursors under <leader>m, plus <C-Up>/<C-Down> and <C-LeftMouse>.
+-- Native <C-LeftMouse> (jump to tag) is still on g<LeftMouse>.
 return {
 	"jake-stewart/multicursor.nvim",
 	branch = "1.0",
@@ -28,10 +9,6 @@ return {
 		mc.setup()
 		local set = vim.keymap.set
 
-		-- Add cursor above/below (line). <C-Up>/<C-Down>, not bare arrows — those are already
-		-- window-resize (mappings.lua) at the top level, unconditionally, so they can't be
-		-- reused here the way <left>/<right> can be below (this needs to work with 0 or 1
-		-- cursors already active, i.e. it can't be layer-scoped).
 		set({ "n", "x" }, "<C-Up>", function()
 			mc.lineAddCursor(-1)
 		end, { desc = "Add Cursor Above" })
@@ -46,7 +23,6 @@ return {
 			mc.lineSkipCursor(1)
 		end, { desc = "Skip Line Down" })
 
-		-- Add/skip a cursor by matching the word/selection under the cursor.
 		set({ "n", "x" }, "<leader>mn", function()
 			mc.matchAddCursor(1)
 		end, { desc = "Match Add Next" })
@@ -69,18 +45,12 @@ return {
 		set({ "n", "x" }, "<leader>mi", mc.sequenceIncrement, { desc = "Sequence Increment" })
 		set({ "n", "x" }, "<leader>mI", mc.sequenceDecrement, { desc = "Sequence Decrement" })
 
-		-- Add and remove cursors with the mouse (Ctrl + left click) — unused elsewhere.
 		set("n", "<C-LeftMouse>", mc.handleMouse, { desc = "Add/Remove Cursor (Mouse)" })
-		set("n", "<C-LeftDrag>", mc.handleMouseDrag)
-		set("n", "<C-LeftRelease>", mc.handleMouseRelease)
+		set("n", "<C-LeftDrag>", mc.handleMouseDrag, { desc = "which_key_ignore" }) -- half of <C-LeftMouse> above, not a key to press on its own
+		set("n", "<C-LeftRelease>", mc.handleMouseRelease, { desc = "which_key_ignore" })
 
-		-- Operator-pending: `gmip` adds a cursor on every line of a paragraph, `gm` + any
-		-- motion/textobject generally. Native `gm` (go to screen-middle column-wise) is rarely
-		-- used and is overridden here on purpose — the same trade already made for `gc`/`ga` in
-		-- comment.lua/text-case.lua once real value replaces it.
-		set({ "n", "x" }, "gm", mc.addCursorOperator, { desc = "Add Cursor (motion)" })
+		set({ "n", "x" }, "<leader>mm", mc.addCursorOperator, { desc = "Add Cursor (motion)" })
 
-		-- Only active once 2+ cursors already exist — see header note on why this is safe.
 		mc.addKeymapLayer(function(layerSet)
 			layerSet({ "n", "x" }, "<left>", mc.prevCursor)
 			layerSet({ "n", "x" }, "<right>", mc.nextCursor)
@@ -93,9 +63,6 @@ return {
 			end)
 		end)
 
-		-- Cursor appearance — matches this config's real installed groups (utils.rainbow_
-		-- delimiter_groups isn't relevant here; these are nvim-dap.lua-style plain `link`s so
-		-- they follow the active theme instead of a hardcoded hex).
 		local hl = vim.api.nvim_set_hl
 		hl(0, "MultiCursorCursor", { reverse = true })
 		hl(0, "MultiCursorVisual", { link = "Visual" })

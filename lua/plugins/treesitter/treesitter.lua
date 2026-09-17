@@ -1,18 +1,5 @@
--- nvim-treesitter/nvim-treesitter: parser install + highlighting, on the "main" branch API
--- (a full rewrite of the old, now-frozen "master" branch — confirmed against the project's own
--- README). `main` requires Neovim 0.12+ (stated in its own README's Requirements section) —
--- if `:checkhealth nvim-treesitter` or startup complains, check `:version` first; this is a
--- hard requirement of the plugin itself, not something this config can degrade around. `main`'s
--- setup() takes no `highlight`/`indent`/`ensure_installed`/`incremental_selection` table the
--- way `master` did:
---   • ensure_installed          -> require("nvim-treesitter").install({...}) (called below)
---   • highlight.enable          -> manual `vim.treesitter.start()` on FileType (see autocmd below)
---   • indent.enable             -> not set; no `indentexpr` is configured
---   • incremental_selection     -> removed outright in `main`, no replacement key. The closest
---     overlapping functionality already in this config: `as`/`is` (treesitter local-scope
---     select, plugins/editor/textobjects.lua) and mini.ai's own objects (plugins/editor/mini.lua).
---   • folding (foldmethod/foldexpr) — deliberately absent here: nvim-ufo (plugins/ui/ufo.lua)
---     needs foldmethod to stay "manual" (its own default) to manage folds itself.
+-- nvim-treesitter (main branch): parser installs and highlighting.
+-- Parsers install through the tree-sitter CLI (mason.lua installs it). :TSUpdate refreshes them.
 return {
 	{
 		"nvim-treesitter/nvim-treesitter",
@@ -21,6 +8,7 @@ return {
 		cmd = { "TSUpdate", "TSInstall", "TSLog", "TSUninstall" },
 		build = ":TSUpdate",
 		config = function()
+			local utils = require("utils")
 			local ensure_installed = {
 				"lua",
 				"vim",
@@ -35,9 +23,8 @@ return {
 				"jsdoc",
 				"javascript",
 				"typescript",
-				"json",
+				"json", -- also serves the jsonc filetype: core maps ft jsonc -> lang json, and `main` ships no separate jsonc parser
 				"json5",
-				"jsonc",
 				"tsx",
 				"bash",
 				"nu",
@@ -45,52 +32,49 @@ return {
 				"c",
 				"cpp",
 				"rust",
-				"mdx",
 				"haskell",
+				"regex", -- noice.lua's cmdline highlighting and snacks.picker both ask for this by name in their own healthchecks
+				"latex", -- snacks.image's inline math and render-markdown's LaTeX blocks; the feature was advertised without the parser that backs it
 			}
 
 			local ts = require("nvim-treesitter")
 			ts.setup({})
-			-- install() is a genuine no-op for anything already installed — confirmed by reading
-			-- nvim-treesitter's own install_lang(): it returns immediately with zero I/O when
-			-- `vim.list_contains(config.get_installed(), lang)`, so calling this unconditionally
-			-- on every startup costs nothing once parsers exist, and fetches whatever's missing
-			-- in the background otherwise. Async — does not block startup.
-			-- Gated on the `tree-sitter` CLI actually being present: `main`'s own install.lua
-			-- (confirmed by reading it directly) shells out to `tree-sitter generate`/`tree-sitter
-			-- build` unconditionally, with no C-compiler fallback — every parser above would
-			-- otherwise fail with the same ENOENT, once per parser, per startup, until it's on
-			-- $PATH. `tree-sitter-cli` is Mason-managed (see mason.lua's ensure_installed), so
-			-- this only fires for real before Mason finishes installing it for the first time —
-			-- same utils.executable() gating pattern as `nu`/`rg` in options.lua.
-			if require("utils").executable("tree-sitter") then
+			if utils.executable("tree-sitter") then
 				ts.install(ensure_installed)
 			else
-				vim.notify(
-					"tree-sitter CLI not found — parsers won't auto-install until Mason finishes "
-						.. "installing tree-sitter-cli (or install it yourself: your OS package manager, "
-						.. "or `cargo install tree-sitter-cli` — nvim-treesitter's own README explicitly "
-						.. "asks for anything but npm). Run :TSUpdate once it's on $PATH.",
-					vim.log.levels.WARN,
-					{ title = "nvim-treesitter" }
+				utils.warn_if_missing_exec( -- shared warn-once helper; see utils.lua
+					"tree-sitter",
+					"nvim-treesitter",
+					"Parsers cannot auto-install until Mason finishes installing tree-sitter-cli, or "
+						.. "until it is installed directly (an OS package, or `cargo install "
+						.. "tree-sitter-cli`, which upstream's README prefers over npm). Run "
+						.. ":TSUpdate once it is on $PATH."
 				)
 			end
 
-			vim.g.skip_ts_context_commentstring_module = true -- plugins/editor/comment.lua wires ts_context_commentstring manually
-			vim.treesitter.language.register("markdown", "mdx")
+			vim.treesitter.language.register("markdown", "mdx") -- mdx has no parser of its own in `main`; this line is what gives .mdx files highlighting, not an ensure_installed entry
 
-			-- Start the highlighter per-buffer. Wrapped in pcall since `main` no longer treats
-			-- "no parser for this filetype" as something to silently skip on its own — you're
-			-- expected to guard it yourself now that `setup()` doesn't take a `highlight` table.
+			local function start(buf, ft)
+				local lang = vim.treesitter.language.get_lang(ft) or ft
+				if pcall(vim.treesitter.language.add, lang) then
+					pcall(vim.treesitter.start, buf, lang)
+				end
+			end
+
 			vim.api.nvim_create_autocmd("FileType", {
-				group = require("utils").augroup("treesitter-highlight"),
+				group = utils.augroup("treesitter-highlight"),
+				desc = "999rpm: start the treesitter highlighter for each new filetype",
 				callback = function(ev)
-					local lang = vim.treesitter.language.get_lang(ev.match) or ev.match
-					if pcall(vim.treesitter.language.add, lang) then
-						pcall(vim.treesitter.start, ev.buf, lang)
-					end
+					start(ev.buf, ev.match)
 				end,
 			})
+
+			for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+				local ft = vim.bo[buf].filetype
+				if vim.api.nvim_buf_is_loaded(buf) and ft ~= "" then
+					start(buf, ft)
+				end
+			end
 		end,
 	},
 }

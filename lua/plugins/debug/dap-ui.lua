@@ -1,16 +1,13 @@
--- rcarriga/nvim-dap-ui: breakpoints/scopes/watches/stack-frame panels and a REPL, opened and
--- closed automatically as nvim-dap sessions start and end.
+-- rcarriga/nvim-dap-ui: scopes, breakpoints, stacks and REPL panels that open and close with the session.
+-- In a panel: <CR> expand or edit, o step into value, d remove, e edit, r send to REPL.
 return {
 	"rcarriga/nvim-dap-ui",
-	event = "VeryLazy", -- matches plugins/debug/dap.lua's own trigger — same effective load timing as when this rode along as its dependency
-	dependencies = { "nvim-neotest/nvim-nio", "mfussenegger/nvim-dap" },
+	event = "VeryLazy", -- matches plugins/debug/dap.lua's own trigger; same effective load timing as when this rode along as its dependency
+	dependencies = { "nvim-neotest/nvim-nio", "mfussenegger/nvim-dap" }, -- nvim-nio is shared; see plugins/deps/shared.lua for its other consumer
 	config = function()
 		local dap = require("dap")
 		local dapui = require("dapui")
 
-		-- Icon values below are nvim-dap-ui's own current defaults (lua/dapui/config/init.lua) -
-		-- restated explicitly rather than omitted, so this stays correct even if a future
-		-- upstream release changes its defaults out from under an implicit fallback.
 		dapui.setup({
 			icons = {
 				expanded = "",
@@ -32,7 +29,10 @@ return {
 			},
 		})
 
-		dap.listeners.after.event_initialized["dapui_auto"] = function()
+		dap.listeners.before.attach["dapui_auto"] = function()
+			dapui.open()
+		end
+		dap.listeners.before.launch["dapui_auto"] = function()
 			dapui.open()
 		end
 		dap.listeners.before.event_terminated["dapui_auto"] = function()

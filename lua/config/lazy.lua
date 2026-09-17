@@ -1,16 +1,8 @@
--- Bootstraps folke/lazy.nvim itself (self-installing on first run), then calls its setup()
--- with this config's plugin-manager options: `{ import = "plugins.loader" }` below hands off to
--- `lua/plugins/loader.lua`, which explicitly imports each category subfolder by name — lazy.nvim
--- itself does NOT recurse into subfolders on its own (see plugins/loader.lua's own header for why,
--- confirmed against lazy.nvim's source) — plus lockfile/dev-path/UI/performance tuning, and the
--- `<leader>ol` (:Lazy) / `<leader>om` (:Mason) keymaps at the bottom. Every other .lua file under
--- `lua/plugins/` (grouped into category subfolders — see init.lua's file-layout note) is a
--- plugin *spec* this file discovers and loads; it doesn't reference any of them by name itself.
+-- lazy.nvim bootstrap and runtime settings. :Lazy opens the manager, <leader>ol is its key.
 local fn = vim.fn
 local api = vim.api
 local uv = vim.uv
 
--- Ensure Lazy path
 local lazypath = fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not uv.fs_stat(lazypath) then
 	print("Installing lazy.nvim...")
@@ -32,23 +24,15 @@ local has_git = fn.executable("git") == 1
 local disabled_plugins = {
 	"gzip",
 	"matchit",
-	-- "matchparen",
 	"netrwPlugin",
 	"rplugin",
 	"tarPlugin",
 	"tohtml",
-	-- "tutor",
 	"zipPlugin",
 	"vimballPlugin",
 	"2html_plugin",
 }
 
--- `git = { added = ..., modified = ..., removed = ... }` used to live here too, alongside the
--- rest. Removed rather than fixed: grepped lazy.nvim's current source for `icons.git` and it's
--- read nowhere at all (confirmed against a fresh clone of lua/lazy/view/render.lua, the only
--- place `Config.options.ui.icons.*` gets consumed) - unlike every icon below, which IS read
--- (cmd/config/event/ft/etc. all appear in render.lua). Dead config from an older lazy.nvim
--- version rather than a real, currently-broken feature.
 local icons = {
 	cmd = "󰞷 ",
 	config = "󰒓 ",
@@ -67,12 +51,11 @@ local icons = {
 
 require("lazy").setup({
 	spec = {
-		{ import = "plugins.loader" }, -- resolves to lua/plugins/loader.lua — see that file's own header
+		{ import = "plugins.loader" }, -- resolves to lua/plugins/loader.lua; see that file's own header
 	},
 	defaults = { lazy = false, version = false },
 	lockfile = fn.stdpath("config") .. "/lazy-lock.json",
 	concurrency = 10,
-	-- Optimized dev path resolution
 	dev = { path = fn.stdpath("config") .. "/dev" },
 	install = { missing = has_git, colorscheme = {} },
 	checker = { enabled = has_git, notify = true },
@@ -95,7 +78,6 @@ require("lazy").setup({
 vim.keymap.set("n", "<leader>ol", "<cmd>Lazy<cr>", { desc = "Lazy" })
 vim.keymap.set("n", "<leader>om", "<cmd>Mason<cr>", { desc = "Mason" })
 
--- Helper command to disable plugins (useful for debugging)
 api.nvim_create_user_command("LazyDisable", function()
 	local config = require("lazy.core.config")
 	local loader = require("lazy.core.loader")

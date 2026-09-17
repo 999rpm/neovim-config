@@ -1,13 +1,5 @@
--- MagicDuck/grug-far.nvim: project-wide find & replace in a real, editable buffer (live preview,
--- undo-able, multi-file) — a different tool than plugins/search/telescope.lua's live_grep or
--- plugins/search/fzf.lua's live_grep: those FIND, this REPLACES. Given its own `<leader>r`
--- namespace rather than nested under `<leader>s`: upstream's commonly-suggested `<leader>sr` is
--- already this config's LSP "Goto References" (plugins/lsp/lspconfig.lua, via telescope.lua's
--- LspAttach block) — reusing it here would shadow that, not extend it.
---
--- Buffer-local keymaps inside the grug-far buffer itself default to <localleader> (its own
--- README flags this as something to have configured) — already set to ";" in options.lua,
--- nothing further needed for those to work.
+-- MagicDuck/grug-far.nvim: project-wide search and replace in a buffer. Needs ripgrep.
+-- In the buffer: <localleader>r replace all, <localleader>s sync lines, <localleader>c abort, q close.
 return {
 	"MagicDuck/grug-far.nvim",
 	cmd = { "GrugFar", "GrugFarWithin" },

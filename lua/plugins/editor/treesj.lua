@@ -1,7 +1,4 @@
--- Wansmer/treesj: treesitter-aware smart join/split for any language it has a parser for —
--- toggle between "one line" and "multi-line, one item per line" for the node under the cursor
--- (function args, object literals, arrays, etc). Complements native `J` (line join, untouched)
--- rather than replacing it — `J` still does its own always-available thing.
+-- Wansmer/treesj: split or join a node across lines. <leader>ct toggles, <leader>cs splits, <leader>cj joins.
 return {
 	"Wansmer/treesj",
 	dependencies = { "nvim-treesitter/nvim-treesitter" },

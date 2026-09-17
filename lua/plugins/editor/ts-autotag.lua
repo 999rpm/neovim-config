@@ -1,6 +1,4 @@
--- windwp/nvim-ts-autotag: auto-close/-rename HTML/JSX/TSX tags via treesitter.
--- Kept values: close tags only when you type "</" yourself, not automatically the instant an
--- opening tag finishes. Flip `enable_close` to true for immediate auto-close instead.
+-- windwp/nvim-ts-autotag: renames the matching HTML/JSX tag and closes a tag typed as "</".
 return {
 	"windwp/nvim-ts-autotag",
 	event = "BufReadPre",
@@ -9,7 +7,7 @@ return {
 			opts = {
 				enable_close = false, -- Don't auto-insert a closing tag right after the opening tag
 				enable_rename = true, -- Renaming one side of a tag pair renames the other automatically
-				enable_close_on_slash = true, -- Do auto-complete the tag when you type the "</" yourself
+				enable_close_on_slash = true, -- Complete the tag on a manually typed "</"
 			},
 		})
 	end,

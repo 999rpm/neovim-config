@@ -1,14 +1,5 @@
--- lewis6991/gitsigns.nvim: inline hunk signs, current-line blame, and per-hunk stage/reset/
--- preview — the inline, buffer-local complement to plugins/git/diffview.lua's full-repo
--- diff/history views and plugins/ui/snacks.lua's LazyGit/gitbrowse launchers (`<leader>g*`
--- below is shared with those two; snacks.lua's own keys live under the same group without
--- colliding on a specific key).
---
--- Hunk navigation is on `]c`/`[c` — gitsigns.nvim's own documented convention, and also
--- Neovim's *native* diff-mode navigation keys, which is why the `if vim.wo.diff then
--- return ... end` escape hatch below matters: inside a real diff view (e.g.
--- plugins/git/diffview.lua's windows) it falls through to genuine native diff-hunk
--- navigation instead of gitsigns' own.
+-- lewis6991/gitsigns.nvim: signs, hunk actions and inline blame.
+-- Keys: ]c/[c next/previous hunk, <leader>gs stage, <leader>gr reset, <leader>gp preview, <leader>gf blame line, ih hunk text object.
 return {
 	"lewis6991/gitsigns.nvim",
 	event = { "BufReadPre", "BufNewFile" },
@@ -32,13 +23,13 @@ return {
 
 			local function map(mode, lhs, rhs, opts)
 				opts = opts or {}
-				opts.buffer = bufnr
+				opts.buf = bufnr -- `buf`, not `buffer`: 0.12's canonical field name for both vim.keymap.set and nvim_create_autocmd
 				vim.keymap.set(mode, lhs, rhs, opts)
 			end
 
 			map("n", "]c", function()
 				if vim.wo.diff then
-					return "]c" -- inside a real diff window (e.g. diffview.lua): fall through to native diff-hunk nav
+					return "]c" -- native diff mode: fall through to Nvim's own diff-hunk nav
 				end
 				vim.schedule(function()
 					gs.nav_hunk("next")
@@ -62,8 +53,8 @@ return {
 			map("n", "<leader>gf", function()
 				gs.blame_line({ full = true })
 			end, { desc = "Blame Line (Popup)" })
-			map("n", "<leader>tg", gs.toggle_current_line_blame, { desc = "Toggle Cursor Blame" })
-			map("n", "<leader>tG", gs.toggle_linehl, { desc = "Toggle Line Highlights" })
+			map("n", "<leader>og", gs.toggle_current_line_blame, { desc = "Toggle Cursor Blame" })
+			map("n", "<leader>oG", gs.toggle_linehl, { desc = "Toggle Line Highlights" })
 			map({ "o", "x" }, "ih", gs.select_hunk, { desc = "Select Hunk" })
 		end,
 	},

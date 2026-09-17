@@ -1,12 +1,10 @@
--- nvim-neo-tree/neo-tree.nvim: sidebar file-tree explorer, with git status and diagnostics
--- shown inline per file. The persistent-sidebar complement to plugins/explorer/oil.lua's
--- buffer-as-directory editing style — see that file's own header for the split between them.
+-- nvim-neo-tree/neo-tree.nvim: sidebar tree with git status and diagnostics. barbar.lua shifts the tabline beside it.
 return {
 	"nvim-neo-tree/neo-tree.nvim",
 	branch = "v3.x",
 	dependencies = {
 		"nvim-lua/plenary.nvim",
-		"echasnovski/mini.nvim",
+		"nvim-mini/mini.nvim",
 		"MunifTanjim/nui.nvim",
 	},
 	cmd = "Neotree",
@@ -45,8 +43,6 @@ return {
 				expander_collapsed = "",
 				expander_expanded = "",
 			},
-			-- Values below are neo-tree's own current defaults (lua/neo-tree/defaults.lua),
-			-- restated explicitly rather than omitted for the same reason as dap-ui.lua.
 			git_status = {
 				symbols = {
 					added = "✚",

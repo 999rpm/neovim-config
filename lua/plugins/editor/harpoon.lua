@@ -1,10 +1,9 @@
--- ThePrimeagen/harpoon (harpoon2 branch): pin a handful of files, jump between them fast.
--- All keymaps live under `<leader>h*`, matching which-key.lua's "Harpoon" group.
+-- ThePrimeagen/harpoon (harpoon2): pin a few files and jump between them.
+-- Menu keys: <Tab>/<S-Tab> down/up, <CR> open, <C-v>/<C-s> vsplit/split, q or <Esc> close; editing lines reorders or removes entries.
 return {
 	"ThePrimeagen/harpoon",
 	branch = "harpoon2",
 	dependencies = { "nvim-lua/plenary.nvim" },
-
 	config = function()
 		local harpoon = require("harpoon")
 		harpoon:setup({
@@ -13,68 +12,56 @@ return {
 				sync_on_ui_close = true,
 			},
 		})
+		harpoon:extend({
+			UI_CREATE = function(cx)
+				local function map(lhs, rhs, desc)
+					vim.keymap.set("n", lhs, rhs, { buf = cx.bufnr, desc = desc })
+				end
+				map("<Tab>", "j", "Next entry")
+				map("<S-Tab>", "k", "Previous entry")
+				map("<C-v>", function()
+					harpoon.ui:select_menu_item({ vsplit = true })
+				end, "Open in vsplit")
+				map("<C-s>", function()
+					harpoon.ui:select_menu_item({ split = true })
+				end, "Open in split")
+			end,
+		})
 
-		vim.keymap.set("n", "<leader>ha", function()
-			harpoon:list():add()
-		end, { desc = "Harpoon Add File" })
-
-		vim.keymap.set("n", "<leader>hh", function()
-			harpoon.ui:toggle_quick_menu(harpoon:list())
-		end, { desc = "Harpoon Menu" })
-
-		vim.keymap.set("n", "<leader>hd", function()
-			harpoon:list():remove()
-		end, { desc = "Harpoon Remove File" })
-
-		vim.keymap.set("n", "<leader>h1", function()
-			harpoon:list():select(1)
-		end, { desc = "Harpoon File 1" })
-		vim.keymap.set("n", "<leader>h2", function()
-			harpoon:list():select(2)
-		end, { desc = "Harpoon File 2" })
-		vim.keymap.set("n", "<leader>h3", function()
-			harpoon:list():select(3)
-		end, { desc = "Harpoon File 3" })
-		vim.keymap.set("n", "<leader>h4", function()
-			harpoon:list():select(4)
-		end, { desc = "Harpoon File 4" })
-
-		----------------------------------------------------------------
-		-- Context-Aware Cycling (<leader>hp / <leader>hn)
-		----------------------------------------------------------------
-		local function cycle(dir)
+		local function cycle(step)
 			local list = harpoon:list()
-			local items = list.items
-			if not items or #items == 0 then
-				return
-			end
-
 			local current = vim.uv.fs_realpath(vim.api.nvim_buf_get_name(0))
-			if not current then
+			if not current or #list.items == 0 then
 				return
 			end
-
-			for i, item in ipairs(items) do
-				local item_path = item.value and vim.uv.fs_realpath(item.value)
-				if item_path == current then
-					local next_index = i + dir
-					if next_index < 1 then
-						next_index = #items
-					elseif next_index > #items then
-						next_index = 1
-					end
-					list:select(next_index)
+			for i, item in ipairs(list.items) do
+				if item.value and vim.uv.fs_realpath(item.value) == current then
+					list:select((i - 1 + step) % #list.items + 1)
 					return
 				end
 			end
 		end
 
-		vim.keymap.set("n", "<leader>hp", function()
-			cycle(-1)
-		end, { desc = "Harpoon Previous File" })
-
-		vim.keymap.set("n", "<leader>hn", function()
+		local map = vim.keymap.set
+		map("n", "<leader>ha", function()
+			harpoon:list():add()
+		end, { desc = "Add file" })
+		map("n", "<leader>hd", function()
+			harpoon:list():remove()
+		end, { desc = "Remove file" })
+		map("n", "<leader>hh", function()
+			harpoon.ui:toggle_quick_menu(harpoon:list())
+		end, { desc = "Menu" })
+		for i = 1, 4 do
+			map("n", "<leader>h" .. i, function()
+				harpoon:list():select(i)
+			end, { desc = "File " .. i })
+		end
+		map("n", "<leader>hn", function()
 			cycle(1)
-		end, { desc = "Harpoon Next File" })
+		end, { desc = "Next file" })
+		map("n", "<leader>hp", function()
+			cycle(-1)
+		end, { desc = "Previous file" })
 	end,
 }

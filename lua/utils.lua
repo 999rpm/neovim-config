@@ -1,270 +1,267 @@
--- Shared helpers used by more than one file under config/ or plugins/. Anything used by only
--- one file lives in that file instead — this module is for genuine cross-file reuse only.
--- Every function below is tagged with an EOL comment naming which file(s) actually call it, so
--- an unused one is easy to spot and remove.
---
--- Base (may_create_dir, executable, has, is_compatible_version, rand_int, rand_element,
--- get_titlestr, get_virtual_env) and get_lsp_capabilities are adapted from jdhao/nvim-config's
--- lua/utils.lua and lua/lsp_utils.lua <https://github.com/jdhao/nvim-config>. get_git_repo(),
--- get_current_branch_name(), get_repo_info(), and augroup() are this config's own additions.
-
+-- Shared helpers. Every entry names the files that call it.
 local fn = vim.fn
 local api = vim.api
-local version = vim.version
 
 local M = {}
 
--- ============================================================================
--- General helpers
--- ============================================================================
-
---- Create a directory if it does not exist.
---- @param dir string
-function M.may_create_dir(dir) -- General helper, not currently called anywhere in this config
+---@param dir string
+function M.may_create_dir(dir) -- This util is used by autocmds.lua
 	if fn.isdirectory(dir) == 0 then
 		fn.mkdir(dir, "p")
 	end
 end
 
---- Check if an executable exists on $PATH.
---- @param name string An executable name or path
---- @return boolean
-function M.executable(name) -- This util is used by options.lua, lspconfig.lua, and treesitter.lua
+---@param name string
+---@return boolean
+function M.executable(name) -- This util is used by options.lua, lspconfig.lua, treesitter.lua, lint.lua, copilot.lua, yazi.lua and mcphub.lua
 	return fn.executable(name) > 0
 end
 
---- Warn (once, at plugin-load time — not mid-debug-session) if a Mason-installed binary a DAP
---- adapter depends on isn't actually at its expected path yet. Mason's own install can still be
---- running in the background on a fresh machine, or can have failed outright (e.g. debugpy's
---- venv creation needs a system python3/python on $PATH to build from — if that's missing,
---- Mason never gets to create the venv at all); either way, the *first* sign of that today is a
---- raw ENOENT the moment you actually try to debug, which names the missing file but not why
---- it's missing or what to do about it. Same "check once at startup, one clear message" shape as
---- utils.executable()'s own callers (options.lua's nu/rg, treesitter.lua's tree-sitter-cli) —
---- this is the equivalent for a Mason-managed *absolute path* rather than a $PATH lookup, since
---- executable() alone can't check those.
---- @param path string Absolute path to the expected binary/script
---- @param label string Human-readable name for the notify message, e.g. "debugpy"
+---Leading-edge throttle: calls inside the window are dropped, not queued.
+---@param callback fun()
+---@param ms integer
+---@return fun()
+function M.throttle(callback, ms) -- This util is used by lualine.lua
+	local last = 0
+	return function()
+		local now = vim.uv.now()
+		if now - last < ms then
+			return
+		end
+		last = now
+		callback()
+	end
+end
+
+---@param msg string
+---@param title string
+local function warn(msg, title)
+	vim.schedule(function()
+		vim.notify(msg, vim.log.levels.WARN, { title = title })
+	end)
+end
+
+---@param path string absolute path of a Mason-installed file
+---@param label string Mason package name
 function M.warn_if_missing_mason_bin(path, label) -- This util is used by dap.lua and dap-python.lua
-	if vim.uv.fs_stat(path) == nil then
-		vim.schedule(function()
-			vim.notify(
-				string.format(
-					"%s not found at:\n%s\n\nMason may still be installing it, or the install failed "
-						.. "(debugpy/codelldb/js-debug-adapter/haskell-debug-adapter all need Mason to have "
-						.. "finished successfully — a missing system python3 is the most common reason a "
-						.. "pyvenv-based install like debugpy's never completes). Check `:Mason` (press 'i' "
-						.. "on the entry if it's not installed) or `:MasonLog` for the actual error, then "
-						.. "`:MasonInstall %s` to retry.",
-					label,
-					path,
-					label
-				),
-				vim.log.levels.WARN,
-				{ title = "DAP" }
-			)
-		end)
+	if not vim.uv.fs_stat(path) then
+		warn(("%s not found at %s. Check :Mason or :MasonLog, then run :MasonInstall %s."):format(label, path, label), "DAP")
 	end
 end
 
---- Warn (once, at plugin-load time) if an environment variable a plugin needs isn't set —
---- e.g. an API key. Same "check once at startup, one clear message instead of a mid-session
---- failure" shape as warn_if_missing_mason_bin() above, for the API-key case that one can't
---- cover (an API key isn't a file on disk to fs_stat()).
---- @param var_name string e.g. "ANTHROPIC_API_KEY"
---- @param label string Human-readable name for the notify message, e.g. "avante.nvim"
+---@param var_name string
+---@param label string
 function M.warn_if_missing_env(var_name, label) -- This util is used by avante.lua
-	if not vim.env[var_name] or vim.env[var_name] == "" then
-		vim.schedule(function()
-			vim.notify(
-				string.format("%s not set — %s will prompt for it or fail on first use.", var_name, label),
-				vim.log.levels.WARN,
-				{ title = label }
-			)
-		end)
+	if (vim.env[var_name] or "") == "" then
+		warn(("%s is not set; %s will fail on first use."):format(var_name, label), label)
 	end
 end
 
---- Create (or re-create) a "999rpm-"-namespaced augroup, so every custom augroup in this
---- config shows up together under `:autocmd`/`:augroup` output and never collides with a
---- plugin's own internal group names.
---- @param name string e.g. "no-paste" or "lsp-attach" (hyphens or underscores, either works)
---- @param clear boolean|nil Passed straight through to `nvim_create_augroup`'s `clear` field.
----   Defaults to `true`. Pass `false` for a group that's deliberately re-entered without
----   wiping previously-registered autocmds (e.g. an LSP-attach group adding one per buffer).
---- @return integer
-function M.augroup(name, clear) -- Used by autocmds.lua and most plugin files that register their own autocmds
-	if clear == nil then
-		clear = true
+---@param name string executable looked up on $PATH
+---@param label string
+---@param hint string
+function M.warn_if_missing_exec(name, label, hint) -- This util is used by octo.lua, yazi.lua, treesitter.lua and mcphub.lua
+	if not M.executable(name) then
+		warn(("'%s' not found on $PATH. %s"):format(name, hint), label)
 	end
-	return api.nvim_create_augroup("999rpm-" .. name:gsub("_", "-"), { clear = clear })
 end
 
---- Check whether a Nvim feature flag is set.
---- @param feat string e.g. `"nvim-0.11"` or `"unix"`
---- @return boolean
-function M.has(feat) -- General helper, not currently called anywhere in this config
-	return fn.has(feat) == 1
+---Augroup namespaced as "999rpm-<name>".
+---@param name string
+---@param clear? boolean defaults to true
+---@return integer
+function M.augroup(name, clear) -- This util is used by autocmds.lua, lspconfig.lua, treesitter.lua, lint.lua, dap.lua, lualine.lua, barbar.lua and nvim-bqf.lua
+	return api.nvim_create_augroup("999rpm-" .. name:gsub("_", "-"), { clear = clear ~= false })
 end
 
---- Check if the running Nvim matches an expected version string. Emits a warning (not an
---- error) when versions differ so the config still loads either way.
---- @param expected_version string e.g. `"0.11.0"`
---- @return boolean
-function M.is_compatible_version(expected_version) -- General helper, not currently called anywhere in this config
-	local expect_ver = version.parse(expected_version)
-	if expect_ver == nil then
-		api.nvim_echo({ { string.format("Unsupported version string: %s", expected_version) } }, true, { err = true })
-		return false
-	end
+-- Shell
 
-	local actual_ver = vim.version()
-	if version.cmp(expect_ver, actual_ver) ~= 0 then
-		local msg = string.format(
-			"Expect nvim version %s, but your current nvim version is %s.%s.%s. Use at your own risk!",
-			expected_version,
-			actual_ver.major,
-			actual_ver.minor,
-			actual_ver.patch
-		)
-		api.nvim_echo({ { msg } }, true, { err = true })
+local nu_shell_options = { -- values from nushell/integrations (nvim/init.lua)
+	shellcmdflag = "--login --stdin --no-newline -c",
+	shellredir = "out+err> %s",
+	shellpipe = "| complete | update stderr { ansi strip } | tee { get stderr | save --force --raw %s } | into record",
+	shellquote = "",
+	shellxquote = "",
+	shellxescape = "",
+	shelltemp = false,
+}
+
+local posix_shell_options = {
+	shellcmdflag = "-c",
+	shellredir = ">%s 2>&1",
+	shellpipe = "2>&1| tee",
+	shellquote = "",
+	shellxquote = "",
+	shellxescape = "",
+	shelltemp = false,
+}
+
+local csh_shell_options = vim.tbl_extend("force", posix_shell_options, { shellpipe = "|& tee", shellredir = ">&" })
+
+---Login shell from the passwd database (follows chsh without a new login), then $SHELL, then sh.
+---@return string
+function M.login_shell() -- This util is used by options.lua
+	local ok, passwd = pcall(vim.uv.os_get_passwd)
+	for _, shell in ipairs({ ok and passwd and passwd.shell or "", vim.env.SHELL or "" }) do
+		if shell ~= "" and fn.executable(shell) == 1 then
+			return shell
+		end
 	end
-	return true
+	return "sh"
 end
 
--- ============================================================================
--- Git helpers
--- ============================================================================
+---Set the shell* options that match 'shell': nushell values for nu, Vim's own shell-family values otherwise.
+function M.apply_shell_options() -- This util is used by options.lua and autocmds.lua
+	local name = fn.fnamemodify(vim.o.shell, ":t")
+	local set = name == "nu" and nu_shell_options or (name:match("csh$") and csh_shell_options or posix_shell_options)
+	for option, value in pairs(set) do
+		vim.o[option] = value
+	end
+end
 
---- Run a git command and return its stdout, or nil on failure.
---- @param cmd string[]
---- @return string|nil
-function M.run_git_cmd(cmd) -- Internal helper for get_repo_info()/_process_abbrev_head() below
-	local result = fn.system(cmd)
-	if result == nil or vim.startswith(result, "fatal:") then
+---Run a Lua function as a terminal-mode window move; floating windows get the key instead.
+---@param dir "h"|"j"|"k"|"l"
+---@param key string
+---@return fun(): string
+function M.term_wincmd(dir, key) -- This util is used by mappings.lua
+	return function()
+		if api.nvim_win_get_config(0).relative ~= "" then
+			return key
+		end
+		return "<Cmd>wincmd " .. dir .. "<CR>"
+	end
+end
+
+-- Git
+
+---@param cmd string[]
+---@return string?
+local function run_git(cmd)
+	local out = fn.system(cmd)
+	if vim.v.shell_error ~= 0 then
 		return nil
 	end
-	return result
+	return vim.trim(out)
 end
 
---- Return true when cwd is inside a git work-tree. Also fires `User InGitRepo` for
---- lazy-loading triggers.
---- @return boolean
-function M.inside_git_repo() -- General helper, not currently called anywhere in this config
-	local result = vim.system({ "git", "rev-parse", "--is-inside-work-tree" }, { text = true }):wait()
-	if result.code ~= 0 then
-		return false
+---Branch for the current buffer: gitsigns' cached head, else one cached `git rev-parse` per buffer.
+---@return string
+function M.get_current_branch_name() -- This util is used by options.lua
+	local head = vim.tbl_get(vim.b, "gitsigns_status_dict", "head")
+	if head and head ~= "" then
+		return head
 	end
-	vim.cmd([[doautocmd User InGitRepo]])
-	return true
+	local cached = vim.b._999rpm_branch
+	if cached == nil then
+		local dir = fn.expand("%:p:h")
+		cached = fn.isdirectory(dir) == 1 and (run_git({ "git", "-C", dir, "rev-parse", "--abbrev-ref", "HEAD" }) or "") or ""
+		if cached == "HEAD" then
+			cached = run_git({ "git", "-C", dir, "rev-parse", "--short", "HEAD" }) or cached
+		end
+		vim.b._999rpm_branch = cached
+	end
+	return cached
 end
 
---- Return the git root for the current buffer. Prefers gitsigns' cached
---- `vim.b.gitsigns_status_dict.root`; falls back to `git rev-parse` via get_repo_info() below.
---- @return string|nil
-function M.get_git_repo() -- General helper, kept alongside get_current_branch_name() below, which IS used
-	local gsd = vim.b.gitsigns_status_dict
-	if gsd and gsd.root and #gsd.root > 0 then
-		return gsd.root
-	end
-	local git_root, _ = M.get_repo_info()
-	return git_root
-end
+-- LSP
 
---- Return the current branch name. Prefers gitsigns' cached `vim.b.gitsigns_status_dict.head`;
---- same fallback as get_git_repo() above.
---- @return string|nil
-function M.get_current_branch_name() -- This util is used by options.lua (titlestring)
-	local gsd = vim.b.gitsigns_status_dict
-	if gsd and gsd.head and #gsd.head > 0 then
-		return gsd.head
-	end
-	local _, abbrev_head = M.get_repo_info()
-	return abbrev_head
-end
-
---- Return `(git_root, abbrev_head)` via `git rev-parse` — the fallback get_git_repo()/
---- get_current_branch_name() use when gitsigns has no cached data yet (e.g. buffer just
---- opened, gitsigns hasn't attached).
---- @return string|nil, string|nil
-function M.get_repo_info() -- Internal helper: fallback used by get_git_repo()/get_current_branch_name() above
-	local cwd = fn.expand("%:p:h")
-	local raw = M.run_git_cmd({
-		"git",
-		"-C",
-		cwd,
-		"--no-pager",
-		"rev-parse",
-		"--show-toplevel",
-		"--absolute-git-dir",
-		"--abbrev-ref",
-		"HEAD",
-	})
-	if not raw then
-		return nil, nil
-	end
-	local results = vim.split(fn.trim(raw), "\n")
-	return results[1], M._process_abbrev_head(results[2], results[3], cwd)
-end
-
---- Internal helper: resolve "HEAD" to its short SHA when in detached-HEAD state. (Independent
---- of, but functionally mirrors, gitsigns.nvim's own internal function of the same purpose.)
---- @param gitdir string|nil
---- @param head_str string
---- @param path string
---- @return string
-function M._process_abbrev_head(gitdir, head_str, path)
-	if not gitdir then
-		return head_str
-	end
-	if head_str == "HEAD" then
-		local result = M.run_git_cmd({ "git", "-C", path, "--no-pager", "rev-parse", "--short", "HEAD" })
-		return result and fn.trim(result) or head_str
-	end
-	return head_str
-end
-
--- ============================================================================
--- LSP helpers
--- ============================================================================
-
---- Build the default LSP client capabilities table: adds nvim-ufo's folding-range support and
---- merges in blink.cmp's completion capabilities when available.
---- @return lsp.ClientCapabilities
+---Client capabilities with folding ranges (nvim-ufo) and blink.cmp completion.
+---@return lsp.ClientCapabilities
 function M.get_lsp_capabilities() -- This util is used by lspconfig.lua
 	local caps = vim.lsp.protocol.make_client_capabilities()
-
-	caps.textDocument.foldingRange = { -- consumed by nvim-ufo (plugins/ui/ufo.lua) for LSP-based folding
-		dynamicRegistration = false,
-		lineFoldingOnly = true,
-	}
-
-	local has_blink, blink = pcall(require, "blink.cmp")
-	if has_blink then
-		-- Hand OUR capabilities in as blink.cmp's override argument so IT merges them in
-		-- (the pattern blink.cmp's own docs show), rather than merging both tables ourselves.
-		caps = blink.get_lsp_capabilities(caps)
-	end
-
-	return caps
+	caps.textDocument.foldingRange = { dynamicRegistration = false, lineFoldingOnly = true }
+	local ok, blink = pcall(require, "blink.cmp")
+	return ok and blink.get_lsp_capabilities(caps) or caps
 end
 
--- ============================================================================
--- Theming
--- ============================================================================
+---Registers the "virtual_lines_rounded" diagnostic handler: the built-in virtual_lines for the
+---cursor line only, drawn with a rounded corner.
+function M.setup_rounded_virtual_lines() -- This util is used by lspconfig.lua
+	local builtin = vim.diagnostic.handlers.virtual_lines
+	local state = {} ---@type table<integer, table<integer, {diagnostics: vim.Diagnostic[], opts: table, lnum?: integer}>>
+	local group = api.nvim_create_augroup("999rpm-virtual-lines", { clear = true })
 
---- The 7 highlight-group names rainbow-delimiters.nvim defines for its own nesting colors
---- (RainbowDelimiterRed/Yellow/Blue/Orange/Green/Violet/Cyan, in that order — deliberately
---- non-ROYGBIV so adjacent levels contrast more; verified against the plugin's own
---- lua/rainbow-delimiters/default.lua rather than assumed). plugins/treesitter/
---- rainbow-delimiters.lua points at this same list rather than a hand-typed copy, and it
---- follow the active colorscheme: tokyonight/catppuccin/kanagawa (themes.lua) all ship their
---- own overrides for these exact group names, so no hex codes need to be hand-maintained here.
---- Second consumer as of this pass: plugins/ui/snacks.lua points its per-level indent-guide
---- highlights (`indent.indent.hl`) at this exact list too, so bracket nesting and indent depth
---- share one color source instead of two independently-cycling rainbows.
---- @type string[]
-M.rainbow_delimiter_groups = { -- This util is used by rainbow-delimiters.lua and snacks.lua
+	local function round(namespace, bufnr)
+		local vl_ns = vim.diagnostic.get_namespace(namespace).user_data.virt_lines_ns
+		if not vl_ns then
+			return
+		end
+		for _, mark in ipairs(api.nvim_buf_get_extmarks(bufnr, vl_ns, 0, -1, { details = true })) do
+			local lines = mark[4].virt_lines
+			if lines then
+				for _, line in ipairs(lines) do
+					for _, chunk in ipairs(line) do
+						chunk[1] = chunk[1]:gsub("└", "╰")
+					end
+				end
+				api.nvim_buf_set_extmark(bufnr, vl_ns, mark[2], mark[3], {
+					id = mark[1],
+					virt_lines = lines,
+					virt_lines_overflow = "scroll",
+				})
+			end
+		end
+	end
+
+	local function render(namespace, bufnr, force)
+		local entry = state[namespace] and state[namespace][bufnr]
+		local win = fn.bufwinid(bufnr)
+		if not entry or win == -1 then
+			return
+		end
+		local lnum = api.nvim_win_get_cursor(win)[1] - 1
+		if lnum == entry.lnum and not force then
+			return
+		end
+		entry.lnum = lnum
+		local on_line, spanning = {}, {}
+		for _, d in ipairs(entry.diagnostics) do
+			if d.lnum == lnum then
+				table.insert(on_line, d)
+			elseif lnum > d.lnum and lnum <= (d.end_lnum or d.lnum) then
+				table.insert(spanning, d)
+			end
+		end
+		local opts = vim.tbl_extend("force", entry.opts, {
+			virtual_lines = { current_line = false, format = entry.opts.virtual_lines_rounded.format },
+		})
+		builtin.show(namespace, bufnr, #on_line > 0 and on_line or spanning, opts)
+		round(namespace, bufnr)
+	end
+
+	vim.diagnostic.handlers.virtual_lines_rounded = {
+		show = function(namespace, bufnr, diagnostics, opts)
+			state[namespace] = state[namespace] or {}
+			state[namespace][bufnr] = { diagnostics = diagnostics, opts = opts }
+			if not vim.b[bufnr]._999rpm_vlines then
+				vim.b[bufnr]._999rpm_vlines = true
+				api.nvim_create_autocmd("CursorMoved", {
+					group = group,
+					buf = bufnr,
+					desc = "999rpm: redraw rounded virtual lines for the cursor line",
+					callback = function()
+						for ns in pairs(state) do
+							render(ns, bufnr, false)
+						end
+					end,
+				})
+			end
+			render(namespace, bufnr, true)
+		end,
+		hide = function(namespace, bufnr)
+			if state[namespace] then
+				state[namespace][bufnr] = nil
+			end
+			builtin.hide(namespace, bufnr)
+		end,
+	}
+end
+
+-- Theming
+
+---RainbowDelimiter groups, in rainbow-delimiters' own order. Colors follow the active theme.
+---@type string[]
+M.rainbow_delimiter_groups = { -- This util is used by rainbow-delimiters.lua, snacks.lua and satellite.lua
 	"RainbowDelimiterRed",
 	"RainbowDelimiterYellow",
 	"RainbowDelimiterBlue",
@@ -274,49 +271,12 @@ M.rainbow_delimiter_groups = { -- This util is used by rainbow-delimiters.lua an
 	"RainbowDelimiterCyan",
 }
 
--- ============================================================================
--- Randomness
--- ============================================================================
-
---- Return a random integer in [low, high] inclusive.
---- @param low integer
---- @param high integer
---- @return integer
-function M.rand_int(low, high) -- Internal helper for rand_element() below
-	math.randomseed(os.time())
-	return math.random(low, high)
-end
-
---- Return a random element from a sequence.
---- @param seq any[]
---- @return any
-function M.rand_element(seq) -- General helper, not currently called anywhere in this config
-	return seq[M.rand_int(1, #seq)]
-end
-
--- ============================================================================
--- UI / misc
--- ============================================================================
-
---- Build a window-title string: hostname (Linux only), buffer path, last-modified time.
---- @return string
-function M.get_titlestr() -- General helper, not currently called anywhere in this config (options.lua's titlestring uses get_current_branch_name() instead)
-	local title_str = vim.g.is_linux and (fn.hostname() .. "  ") or ""
-	local buf_path = fn.expand("%:p:~")
-	title_str = title_str .. buf_path .. "  "
-
-	if vim.bo.buflisted and buf_path ~= "" then
-		title_str = title_str .. fn.strftime("%Y-%m-%d %H:%M:%S%z", fn.getftime(fn.expand("%")))
-	end
-	return title_str
-end
-
---- Return the active Python virtual-env name (venv checked before conda), or "".
---- @return string
+---Active Python virtual environment (venv before conda), or "".
+---@return string
 function M.get_virtual_env() -- This util is used by lualine.lua
-	local venv_path = os.getenv("VIRTUAL_ENV")
-	if venv_path then
-		return fn.fnamemodify(venv_path, ":t")
+	local venv = os.getenv("VIRTUAL_ENV")
+	if venv then
+		return fn.fnamemodify(venv, ":t")
 	end
 	return os.getenv("CONDA_DEFAULT_ENV") or ""
 end

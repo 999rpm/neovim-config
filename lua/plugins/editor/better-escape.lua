@@ -1,42 +1,15 @@
--- max397574/better-escape.nvim: leave insert/terminal/visual/select/cmdline mode by typing
--- "jj" or "jk" instead of reaching for Escape, without the usual timeoutlen delay on the
--- first of the two keys.
+-- max397574/better-escape.nvim: jj/jk leave insert and cmdline mode, jk leaves visual and select mode.
 return {
 	"max397574/better-escape.nvim",
 	event = "InsertEnter",
-	config = function()
-		require("better_escape").setup({
-			timeout = vim.o.timeoutlen, -- after `timeout` passes, pressing the escape key is left alone
-			default_mappings = true,
-			mappings = {
-				i = {
-					j = {
-						k = "<Esc>",
-						j = "<Esc>",
-					},
-				},
-				c = {
-					j = {
-						k = "<C-c>",
-						j = "<C-c>",
-					},
-				},
-				t = {
-					j = {
-						k = "<C-\\><C-n>",
-					},
-				},
-				v = {
-					j = {
-						k = "<Esc>",
-					},
-				},
-				s = {
-					j = {
-						k = "<Esc>",
-					},
-				},
-			},
-		})
-	end,
+	opts = {
+		timeout = vim.o.timeoutlen,
+		default_mappings = false, -- the defaults also map j in terminal mode, which breaks j/k in lazygit and yazi
+		mappings = {
+			i = { j = { k = "<Esc>", j = "<Esc>" } },
+			c = { j = { k = "<C-c>", j = "<C-c>" } },
+			v = { j = { k = "<Esc>" } },
+			s = { j = { k = "<Esc>" } },
+		},
+	},
 }

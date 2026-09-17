@@ -1,7 +1,5 @@
--- saghen/blink.cmp: completion engine (LSP/path/snippets/buffer + lazydev.lua's Lua-API
--- source), with its own signature-help popup — plugins/ui/noice.lua explicitly disables its
--- LSP signature integration in favor of this one (see noice.lua's `lsp.signature.enabled =
--- false`).
+-- saghen/blink.cmp: completion and signature help.
+-- Keys: <Tab>/<S-Tab> next/previous item, <CR> accept, <C-Space> open menu, <C-e> hide, <C-k> documentation, <C-b>/<C-f> scroll docs.
 return {
 	"saghen/blink.cmp",
 	version = "*",
@@ -9,7 +7,7 @@ return {
 		"rafamadriz/friendly-snippets",
 		"folke/lazydev.nvim", -- full config in plugins/lsp/lazydev.lua; listed here for install/load ordering only
 	},
-	event = "InsertEnter", -- Better than VimEnter (loads only when you start typing)
+	event = "InsertEnter", -- later than VimEnter: nothing loads until insert mode actually starts
 
 	opts = {
 		keymap = {
@@ -36,10 +34,6 @@ return {
 				lsp = {
 					score_offset = 10,
 				},
-				-- Reads friendly-snippets (this plugin's own dependency, VS-Code-format JSON)
-				-- plus this repo's own user snippets — plugins/editor/nvim-scissors.lua's
-				-- `snippetDir` writes to this exact same path, so anything added/edited there
-				-- shows up here too, not just on disk.
 				snippets = {
 					opts = {
 						search_paths = { vim.fn.stdpath("config") .. "/snippets" },
@@ -53,11 +47,6 @@ return {
 			},
 		},
 
-		-- accept = { auto_brackets = { enabled = true } }, -- blink's own native "insert () after
-		-- accepting a function/method completion" (added v0.7.0) — the modern replacement for
-		-- wiring nvim-autopairs into the completion-accept event the old nvim-cmp way. Left off
-		-- by default since it hasn't been verified conflict-free against autopairs.lua's normal
-		-- typed-bracket pairing in this specific setup; uncomment to try it.
 		completion = {
 			menu = {
 				border = "rounded",

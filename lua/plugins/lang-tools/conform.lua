@@ -1,9 +1,5 @@
--- stevearc/conform.nvim: format-on-save, per-filetype, with an LSP-formatting fallback
--- (`lsp_format = "fallback"`) for anything without a dedicated formatter. The sole owner of
--- format-on-save in this config — see plugins/lsp/lspconfig.lua's note on why a second,
--- LSP-only formatting mechanism doesn't also live there. `["_"]`'s catch-all deliberately
--- excludes `"trim_whitespace"`: autocmds.lua's own `trim_whitespace` group already strips
--- trailing whitespace on every save, before this plugin even runs.
+-- stevearc/conform.nvim: formatting on save with per-filetype formatters, LSP as fallback.
+-- Keys: <leader>cf format now, <leader>of buffer toggle, <leader>oF global toggle, <leader>ci :ConformInfo.
 return {
 	"stevearc/conform.nvim",
 	event = { "BufWritePre" },
@@ -18,7 +14,7 @@ return {
 			desc = "Format buffer",
 		},
 		{
-			"<leader>tc",
+			"<leader>of",
 			function()
 				vim.b.disable_autoformat = not vim.b.disable_autoformat
 				vim.notify("Buffer Autoformat: " .. (vim.b.disable_autoformat and "OFF" or "ON"), vim.log.levels.INFO)
@@ -26,7 +22,7 @@ return {
 			desc = "Toggle format on save (buffer)",
 		},
 		{
-			"<leader>tC",
+			"<leader>oF",
 			function()
 				vim.g.disable_autoformat = not vim.g.disable_autoformat
 				vim.notify("Global Autoformat: " .. (vim.g.disable_autoformat and "OFF" or "ON"), vim.log.levels.INFO)
@@ -66,16 +62,14 @@ return {
 			dockerfile = { "prettier" },
 			bash = { "shfmt" },
 			zsh = { "shfmt" },
-			c = { "clang-format" }, -- hyphenated: the live formatter name in conform's registry; "clang_format" (underscored) is an explicit deprecated alias, the reverse of what you'd guess
+			c = { "clang-format" }, -- hyphenated: the live formatter name in conform's registry; "clang_format" (underscored) is an explicit deprecated alias, the reverse of the usual convention
 			cpp = { "clang-format" },
 			haskell = { "ormolu" },
 			sql = { "sqlfluff" },
 			go = { "gofumpt" },
 			cmake = { "cmake_format" },
-			rust = { lsp_format = "fallback" },
+			rust = { lsp_format = "fallback" }, -- an option key, not a formatter name; conform's own allowed_default_opts is { timeout_ms, lsp_format, quiet, stop_after_first }
 			toml = { lsp_format = "fallback" },
-
-			["_"] = { "lsp_format" }, -- catch-all: anything not listed above formats via its LSP client, if it has one
 		},
 	},
 }

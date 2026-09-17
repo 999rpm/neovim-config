@@ -1,18 +1,8 @@
--- nvim-lualine/lualine.nvim: the statusline — mode, git branch/ahead-behind/diff, filename,
--- Python venv, diagnostics, active LSP clients, trailing-whitespace/mixed-indent warnings,
--- lazy.nvim update count, and cursor position. `component_separators`/`section_separators`
--- (below) use Nerd Font "Powerline Extra Symbols" glyphs (U+E0BA-U+E0BC, the angled/slanted
--- separator variants ryanoasis/powerline-extra-symbols documents beyond the classic U+E0B0-
--- U+E0B3 arrows) — a font-dependent Private Use Area range, so they render as blank/invisible
--- in any plain-text view that isn't using the Nerd Font this config already assumes elsewhere
--- (options.lua's `g.have_nerd_font`) — don't mistake that for the strings actually being empty.
--- This is a separate, independent style choice from plugins/ui/bufferline.lua's own
--- `separator_style = "slope"` (that governs bufferline's tab shapes only) — the two aren't
--- trying to visually match each other.
+-- nvim-lualine/lualine.nvim: statusline. Separators match the tabline (U+E0BA, U+E0BB, U+E0BC).
 return {
 	"nvim-lualine/lualine.nvim",
 	event = "VeryLazy",
-	dependencies = { "echasnovski/mini.nvim" },
+	dependencies = { "nvim-mini/mini.nvim" },
 	config = function()
 		local lazy_status = require("lazy.status")
 		local utils = require("utils")
@@ -30,8 +20,6 @@ return {
 				TERMINAL = "󰞷 ",
 			},
 			diagnostics = { error = "󰃤 ", warn = "󰀦 ", info = "󰭷 ", hint = "󰌵 " },
-			-- Same codepoints as plugins/explorer/neo-tree.lua's git_status symbols (added/modified/
-			-- removed), so "what changed" reads the same way in the tree and the statusline.
 			diff = { added = "✚ ", modified = " ", removed = "✖ " },
 			git = { ahead = "󰮽", behind = "󰮷" },
 		}
@@ -57,7 +45,7 @@ return {
 			end
 		end
 
-		local function update_git_status()
+		local update_git_status = utils.throttle(function()
 			async_cmd("git fetch origin", function(res)
 				if res.code == 0 then
 					git_status_cache.fetch_success = true
@@ -65,9 +53,13 @@ return {
 					async_cmd("git rev-list --count @{upstream}..HEAD", handle_git_output("ahead_count"))
 				end
 			end)
-		end
+		end, 30000)
 
-		vim.api.nvim_create_autocmd({ "BufEnter", "FocusGained" }, { callback = update_git_status })
+		vim.api.nvim_create_autocmd({ "BufEnter", "FocusGained" }, {
+			group = utils.augroup("lualine-git-status"),
+			desc = "999rpm: refresh the statusline's ahead/behind counts (throttled)",
+			callback = update_git_status,
+		})
 
 		local function get_git_ahead_behind()
 			local msg = ""
@@ -80,7 +72,6 @@ return {
 			return msg
 		end
 
-		-- > Python Virtual Env
 		local function virtual_env()
 			if vim.bo.filetype ~= "python" then
 				return ""
@@ -89,7 +80,6 @@ return {
 			return venv ~= "" and (" " .. venv) or ""
 		end
 
-		-- > Trailing Whitespace
 		local function trailing_space()
 			if not vim.o.modifiable then
 				return ""
@@ -98,7 +88,6 @@ return {
 			return space ~= 0 and "TW:" .. space or ""
 		end
 
-		-- > Mixed Indentation
 		local function mixed_indent()
 			if not vim.o.modifiable then
 				return ""
@@ -203,10 +192,7 @@ return {
 				globalstatus = true,
 				component_separators = { left = "", right = "" },
 				section_separators = { left = "", right = "" },
-				-- Buffer-less / utility filetypes lualine shouldn't render a normal statusline for
-				-- — "this isn't a real editing buffer" checks, same spirit as snacks.indent's own
-				-- `filter` function in plugins/ui/snacks.lua.
-				disabled_filetypes = { "alpha", "neo-tree", "Trouble", "lazy", "TelescopePrompt", "dashboard" },
+				disabled_filetypes = { "alpha", "neo-tree", "Trouble", "lazy", "snacks_picker_list", "snacks_picker_input", "dashboard" },
 			},
 			sections = {
 				lualine_a = { components.mode },

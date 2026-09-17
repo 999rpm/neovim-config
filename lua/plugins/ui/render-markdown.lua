@@ -1,13 +1,11 @@
--- MeanderingProgrammer/render-markdown.nvim: rendered headings/icons, styled code blocks,
--- bullet/checkbox icons, callouts (NOTE/TIP/WARNING/IMPORTANT), anti-conceal for editing
--- clarity. Toggle with <leader>um.
+-- MeanderingProgrammer/render-markdown.nvim: renders headings, code blocks, lists and callouts in place. <leader>um toggles.
 return {
 	"MeanderingProgrammer/render-markdown.nvim",
 	ft = { "markdown" },
 
 	dependencies = {
 		"nvim-treesitter/nvim-treesitter",
-		"echasnovski/mini.nvim",
+		"nvim-mini/mini.nvim",
 	},
 
 	keys = {
@@ -40,9 +38,6 @@ return {
 			border = "thin", -- lower visual + render cost
 		},
 
-		-- The 4-level bullet cycle below is render-markdown's own verified upstream default
-		-- (plain Unicode geometric shapes, not Nerd Font glyphs - renders correctly even without
-		-- one installed, unlike most other icons in this config).
 		bullet = {
 			icons = { "● ", "○ ", "◆ ", "◇ " },
 		},
