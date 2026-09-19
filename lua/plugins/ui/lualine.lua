@@ -81,17 +81,16 @@ return {
 		end
 
 		local function trailing_space()
-			if not vim.o.modifiable then
+			if not vim.bo.modifiable then
 				return ""
 			end
-			local space = fn.search([[\s\+$]], "nwc")
-			return space ~= 0 and "TW:" .. space or ""
+			return utils.buf_cached("trailing_space", function() -- whole-buffer search: once per edit, not once per statusline redraw
+				local space = fn.search([[\s\+$]], "nwc")
+				return space ~= 0 and "TW:" .. space or ""
+			end)
 		end
 
-		local function mixed_indent()
-			if not vim.o.modifiable then
-				return ""
-			end
+		local function scan_mixed_indent()
 			local space_pat = [[\v^ +]]
 			local tab_pat = [[\v^\t+]]
 			local space_indent = fn.search(space_pat, "nwc")
@@ -115,6 +114,13 @@ return {
 			else
 				return "MI:" .. space_indent
 			end
+		end
+
+		local function mixed_indent()
+			if not vim.bo.modifiable then
+				return ""
+			end
+			return utils.buf_cached("mixed_indent", scan_mixed_indent) -- up to four whole-buffer searches; cached like trailing_space above
 		end
 
 		local function get_lsp_clients()
@@ -192,7 +198,10 @@ return {
 				globalstatus = true,
 				component_separators = { left = "", right = "" },
 				section_separators = { left = "", right = "" },
-				disabled_filetypes = { "alpha", "neo-tree", "Trouble", "lazy", "snacks_picker_list", "snacks_picker_input", "dashboard" },
+				disabled_filetypes = {
+					statusline = { "alpha", "neo-tree", "Trouble", "lazy", "mason", "snacks_picker_list", "snacks_picker_input" },
+					winbar = {},
+				}, -- explicit shape: a bare list is copied into both by lualine's own normaliser, which is not what a global statusline wants
 			},
 			sections = {
 				lualine_a = { components.mode },

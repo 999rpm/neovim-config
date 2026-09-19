@@ -259,7 +259,7 @@ return {
 				cwd = "${workspaceFolder}",
 			},
 		}
-		dap.configurations.c = dap.configurations.cpp
+		dap.configurations.c = vim.deepcopy(dap.configurations.cpp) -- deepcopy, not assignment: a shared table makes one language's discovered runnables appear in the other's picker
 		dap.configurations.rust = vim.deepcopy(dap.configurations.cpp)
 
 		local haskell_debug_bin = vim.fn.stdpath("data") .. "/mason/bin/haskell-debug-adapter"

@@ -47,9 +47,10 @@ api.nvim_create_autocmd("BufRead", {
 	group = augroup("non_utf8_file"),
 	desc = "999rpm: warn when a file is read in a non-UTF-8 encoding",
 	pattern = "*",
-	callback = function()
-		if vim.bo.fileencoding ~= "utf-8" then
-			vim.notify("File not in UTF-8 format!", vim.log.levels.WARN)
+	callback = function(ev)
+		local enc = vim.bo[ev.buf].fileencoding
+		if enc ~= "" and enc ~= "utf-8" then -- "" means 'encoding' is used, which is utf-8 here; only a real non-utf-8 read warns
+			vim.notify("File read in a non-UTF-8 encoding", vim.log.levels.WARN)
 		end
 	end,
 })
@@ -86,14 +87,14 @@ api.nvim_create_autocmd("FileChangedShellPost", {
 	group = auto_read_group,
 	desc = "999rpm: announce a buffer reloaded from disk",
 	callback = function()
-		vim.notify("File changed on disk. Buffer reloaded!", vim.log.levels.WARN)
+		vim.notify("File changed on disk, buffer reloaded", vim.log.levels.WARN)
 	end,
 })
 
 api.nvim_create_autocmd("BufWritePre", {
 	group = augroup("undo_disable"),
 	desc = "999rpm: no persistent undo/backup for transient files",
-	pattern = { "/tmp/*", "*.tmp", "*.bak", "COMMIT_EDITMSG", "MERGE_MSG" },
+	pattern = { "*.tmp", "*.bak", "COMMIT_EDITMSG", "MERGE_MSG" }, -- /tmp/* is left to secure_tmp below, which covers every tmp path
 	callback = function(event)
 		vim.opt_local.undofile = false
 
@@ -174,8 +175,8 @@ api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
 	group = augroup("no_diag_node_modules"),
 	desc = "999rpm: no diagnostics inside node_modules",
 	pattern = "*/node_modules/*",
-	callback = function()
-		vim.diagnostic.enable(false, { bufnr = 0 })
+	callback = function(ev)
+		vim.diagnostic.enable(false, { bufnr = ev.buf }) -- ev.buf, not 0: BufRead can fire for a buffer that is not the current one
 	end,
 })
 
@@ -208,21 +209,24 @@ api.nvim_create_autocmd("BufWritePost", {
 })
 
 local yank_group = augroup("highlight_yank")
-local pre_yank_pos -- plain upvalue, not vim.g: this is written on every CursorMoved, and a vim.g write crosses the Lua/Vimscript boundary and copies the table each time
+local pre_yank_view -- plain upvalue, not vim.g: a vim.g write crosses the Lua/Vimscript boundary and copies the table each time
 api.nvim_create_autocmd("CursorMoved", {
 	group = yank_group,
 	desc = "999rpm: track the pre-yank cursor position",
 	callback = function()
-		pre_yank_pos = fn.getcurpos()
+		local mode = api.nvim_get_mode().mode
+		if mode == "n" or mode:find("^[vV\22]") then -- only normal and visual can begin a yank; skip the rest to keep CursorMoved cheap
+			pre_yank_view = fn.winsaveview()
+		end
 	end,
 })
 api.nvim_create_autocmd("TextYankPost", {
 	group = yank_group,
 	desc = "999rpm: flash yanked text, then restore the cursor",
 	callback = function()
-		vim.hl.on_yank({ higroup = "IncSearch", timeout = 150 }) -- vim.hl, not vim.highlight: the latter is a deferred-deprecated alias (vim/_core/editor.lua), removal targeted at 2.0.0
-		if vim.v.event.operator == "y" and pre_yank_pos then
-			fn.setpos(".", pre_yank_pos)
+		vim.hl.on_yank({ higroup = "IncSearch", timeout = 150 }) -- vim.hl, not vim.highlight: the latter is a deferred-deprecated alias, removal targeted at 2.0.0
+		if vim.v.event.operator == "y" and pre_yank_view then
+			fn.winrestview(pre_yank_view) -- winrestview, not setpos: also restores the scroll offset, so a yank near the window edge doesn't jump the screen
 		end
 	end,
 })
@@ -285,14 +289,14 @@ api.nvim_create_autocmd("ColorScheme", {
 	desc = "999rpm: re-apply cursor/matchparen/LSP-reference highlights after a theme switch",
 	pattern = "*",
 	callback = function()
-		vim.api.nvim_set_hl(0, "Cursor", { fg = "black", bg = "#00c918", bold = true })
-		vim.api.nvim_set_hl(0, "Cursor2", { fg = "red", bg = "red" })
+		api.nvim_set_hl(0, "Cursor", { fg = "black", bg = "#00c918", bold = true })
+		api.nvim_set_hl(0, "Cursor2", { fg = "red", bg = "red" })
 
-		vim.api.nvim_set_hl(0, "MatchParen", { bold = true, underline = true })
+		api.nvim_set_hl(0, "MatchParen", { bold = true, underline = true })
 
-		vim.api.nvim_set_hl(0, "LspReferenceText", { underline = true, reverse = true })
-		vim.api.nvim_set_hl(0, "LspReferenceRead", { underline = true, reverse = true })
-		vim.api.nvim_set_hl(0, "LspReferenceWrite", { underline = true, reverse = true })
+		api.nvim_set_hl(0, "LspReferenceText", { underline = true, reverse = true })
+		api.nvim_set_hl(0, "LspReferenceRead", { underline = true, reverse = true })
+		api.nvim_set_hl(0, "LspReferenceWrite", { underline = true, reverse = true })
 	end,
 })
 
@@ -300,13 +304,16 @@ api.nvim_create_autocmd("BufEnter", {
 	group = augroup("auto_close_win"),
 	desc = "999rpm: quit if only utility windows remain",
 	callback = function()
+		if fn.getcmdwintype() ~= "" then
+			return -- the command-line window cannot be left with :qall
+		end
 		local utility_fts = { "qf", "neo-tree" }
-		local tabwins = api.nvim_tabpage_list_wins(0)
-		for _, win in pairs(tabwins) do
-			local buf = api.nvim_win_get_buf(win)
-			local ft = vim.api.nvim_get_option_value("filetype", { buf = buf })
-			if not vim.tbl_contains(utility_fts, ft) then
-				return -- at least one real window exists, don't quit
+		for _, win in ipairs(api.nvim_tabpage_list_wins(0)) do
+			if api.nvim_win_get_config(win).relative == "" then -- floats (pickers, previews, notifications) are not what keeps a tab alive
+				local ft = vim.bo[api.nvim_win_get_buf(win)].filetype
+				if not vim.tbl_contains(utility_fts, ft) then
+					return -- at least one real window exists, don't quit
+				end
 			end
 		end
 		vim.cmd("qall")
@@ -338,9 +345,9 @@ api.nvim_create_autocmd("MenuPopup", {
 	pattern = "*",
 	callback = function()
 		local cword = fn.expand("<cword>")
+		pcall(api.nvim_del_augroup_by_name, "nvim.popupmenu") -- drops Nvim's own default-menu builder; pcall since the group is gone after the first right-click
 		vim.cmd([[
 			aunmenu PopUp
-			autocmd! nvim.popupmenu
 
 			anoremenu PopUp.Inspect                   <cmd>Inspect<CR>
 			anoremenu PopUp.Definition                 <cmd>lua vim.lsp.buf.definition()<CR>
@@ -389,8 +396,6 @@ api.nvim_create_autocmd("MenuPopup", {
 			vim.cmd([[amenu disable PopUp.Find\ Symbol]])
 			vim.cmd([[amenu disable PopUp.Grep\ Word]])
 			vim.cmd([[amenu disable PopUp.Find\ Todos]])
-		end
-		if not _G.Snacks then
 			vim.cmd([[amenu disable PopUp.LazyGit]])
 			vim.cmd([[amenu disable PopUp.Open\ Git\ in\ Browser]])
 		end

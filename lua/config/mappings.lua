@@ -1,16 +1,17 @@
 -- Editor-wide keymaps. Plugin keys live in their plugin file; which-key.lua labels the prefixes.
--- Replaced built-ins: ; (repeat f/F/t/T), q (macro record), x/X (delete no longer yanks), <C-a> (increment, now > in dial.lua),
--- <C-q> (blockwise visual, still on <C-v>), H/L (window top/bottom, now buffer switching in barbar.lua), f/F (flash.lua), s (surround.lua).
+-- Replaced built-ins, and where the lost behaviour went: ; repeat f/F/t/T (gone, ; is :), q macro record (gone, @ replay still works),
+-- x/X delete-and-yank (now black-hole), <C-q> blockwise visual (still on <C-v>), H/L window top/bottom (now buffers; M and zt/zb cover it),
+-- f/F char search (flash.lua jump), s substitute (cl does the same), R visual replace mode (flash.lua treesitter search).
 -- Built-ins worth remembering: gi last insert spot, gv reselect, g; g, change list, '' jump back, <C-o>/<C-i> jump list,
--- zz/zt/zb scroll, gx open link, & repeat :s, @: repeat command, ga character info, gq format, . repeat.
+-- zz/zt/zb scroll, M window middle, gx open link, & repeat :s, @: repeat command, ga character info, gq format, . repeat,
+-- <C-a>/<C-x> increment/decrement (extended by dial.lua), >/< indent operator, <C-e>/<C-y> insert the char below/above.
 local map = vim.keymap.set
 
-map({ "n", "v" }, "<space>", "<nop>", { desc = "disable space bar" })
+map({ "n", "x" }, "<space>", "<nop>", { desc = "Leader prefix only; bare Space does nothing" })
 map("n", "q", "<nop>", { desc = "Macro recording disabled (q is a no-op; @ replay is unaffected)" })
 map({ "n", "x" }, ";", ":", { desc = "Enter command mode (native repeat-f/F/t/T on ;/, is gone)" })
 map("n", "<C-s>", "<cmd>w<CR>", { noremap = true, desc = "Save file" })
 map("n", "<C-q>", "<cmd>q<CR>", { desc = "Quit" })
-map("i", "<C-e>", "<Esc><cmd>wq<CR>", { desc = "Save and Quit" })
 
 map("n", "k", "v:count == 0 ? 'gk' : 'k'", { expr = true, desc = "Move up (visual line)" })
 map("n", "j", "v:count == 0 ? 'gj' : 'j'", { expr = true, desc = "Move down (visual line)" })
@@ -24,13 +25,13 @@ map("n", "<Esc>", "<cmd>nohlsearch<CR>", { desc = "Clear search highlight" })
 map("n", "n", "nzzzv", { desc = "Next search match (centered)" })
 map("n", "N", "Nzzzv", { desc = "Prev search match (centered)" })
 
-map("n", "<C-a>", "gg<S-v>G", { desc = "Select all (native increment moved to '>' below)" })
-map({ "n", "v" }, "x", '"_x', { noremap = true, desc = "Delete char (no yank)" })
-map({ "n", "v" }, "X", '"_X', { noremap = true, desc = "Delete prev char (no yank)" })
+map("n", "<leader>na", "gg<S-v>G", { desc = "Select whole buffer" }) -- not <C-a>: that stays Nvim's increment, extended by dial.lua
+map({ "n", "x" }, "x", '"_x', { noremap = true, desc = "Delete char (no yank)" })
+map({ "n", "x" }, "X", '"_X', { noremap = true, desc = "Delete prev char (no yank)" })
 map("x", "<S-Tab>", "<gv", { noremap = true, desc = "Indent left" })
 map("x", "<Tab>", ">gv", { noremap = true, desc = "Indent right" })
 
-map("v", "p", '"_dP', { noremap = true, desc = "Paste over selection (no yank)" })
+map("x", "p", '"_dP', { noremap = true, desc = "Paste over selection (no yank)" })
 
 map("n", "J", "mzJ`z", { desc = "Join line (cursor stays put)" })
 
@@ -41,12 +42,12 @@ map("x", "<M-j>", ":move '>+1<CR>gv=gv", { noremap = true, desc = "Move selectio
 
 map("n", "<leader>np", '"0p', { desc = "Paste from yank register (after)" })
 map("n", "<leader>nP", '"0P', { desc = "Paste from yank register (before)" })
-map("v", "<leader>np", '"0p', { desc = "Paste from yank register" })
+map("x", "<leader>np", '"0p', { desc = "Paste from yank register" })
 
-map({ "n", "v" }, "<leader>nc", '"_c', { desc = "Change (no yank)" })
-map({ "n", "v" }, "<leader>nC", '"_C', { desc = "Change to EOL (no yank)" })
-map({ "n", "v" }, "<leader>nd", '"_d', { desc = "Delete (no yank)" })
-map({ "n", "v" }, "<leader>nD", '"_D', { desc = "Delete to EOL (no yank)" })
+map({ "n", "x" }, "<leader>nc", '"_c', { desc = "Change (no yank)" })
+map({ "n", "x" }, "<leader>nC", '"_C', { desc = "Change to EOL (no yank)" })
+map({ "n", "x" }, "<leader>nd", '"_d', { desc = "Delete (no yank)" })
+map({ "n", "x" }, "<leader>nD", '"_D', { desc = "Delete to EOL (no yank)" })
 
 map("n", "<leader>ny", function()
 	local path = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ":~:.") or ""
@@ -59,9 +60,6 @@ map("n", "<leader>nY", function()
 	vim.fn.setreg("+", path)
 	vim.notify(path, vim.log.levels.INFO, { title = "Yanked absolute path" })
 end, { silent = true, desc = "Yank absolute path" })
-
-map("n", "<leader>no", "o<Esc>^Da", { noremap = true, desc = "New line below (no comment)" })
-map("n", "<leader>nO", "O<Esc>^Da", { noremap = true, desc = "New line above (no comment)" })
 
 map("n", "gco", "o<Esc>Vgcc", { remap = true, desc = "Comment line below" })
 map("n", "gcO", "O<Esc>Vgcc", { remap = true, desc = "Comment line above" })

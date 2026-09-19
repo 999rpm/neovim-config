@@ -32,6 +32,7 @@ return {
 				"html",
 				"cssls",
 				"tailwindcss",
+				"emmet_language_server",
 				"rust_analyzer", -- binary only: plugins/lsp/rustaceanvim.lua, not lspconfig.lua's `servers` table, starts this client; Mason's job here is unaffected either way
 				"basedpyright",
 				"ruff",

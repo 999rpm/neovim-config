@@ -30,6 +30,7 @@ present. `:Lazy` manages plugins, `:Mason` manages tools, `:checkhealth` reports
 | lazygit | `<leader>gl` |
 | yazi | `<leader>ey` |
 | gh (authenticated) | Octo |
+| xxd | `<leader>oX` hex view |
 | btop | `<leader>tm` |
 | cargo | avante's build step |
 | A Nerd Font | icons in the tabline, statusline, pickers and trees |
@@ -38,6 +39,7 @@ present. `:Lazy` manages plugins, `:Mason` manages tools, `:checkhealth` reports
 
 ```
 init.lua                    entry point: options, autocmds, mappings, lazy
+.stylua.toml                formatter settings: tabs, 140 columns
 lazy-lock.json              pinned plugin commits
 lua/utils.lua               helpers shared by config and plugin files
 lua/config/
@@ -50,7 +52,7 @@ lua/plugins/
   core/                     snacks, mini, which-key, themes (load first, used by everything else)
   lsp/                      lspconfig, mason, lazydev, inc-rename, symbol-usage, rustaceanvim
   completion/               blink.cmp, copilot, autopairs
-  treesitter/               treesitter, context, rainbow-delimiters, hlargs
+  treesitter/               treesitter, textobjects, context, rainbow-delimiters, hlargs, treesj, autotag
   editor/                   motions, text objects, search and replace, snippets, todo comments
   ui/                       barbar, lualine, noice, trouble, folds, scrollbar, breadcrumbs
   git/                      gitsigns, codediff, gitlinker, octo
@@ -66,7 +68,8 @@ lua/plugins/
 ## Keymaps
 
 Leader is `Space`, local leader is `\`. Press the leader and wait for which-key to list what follows,
-or `<leader>sk` to search every mapping.
+or `<leader>sk` to search every mapping. Lowercase and uppercase prefixes pair up: the lowercase one
+is the common action, the uppercase twin is its wider or rarer form.
 
 ### Leader groups
 
@@ -74,7 +77,7 @@ or `<leader>sk` to search every mapping.
 | --- | --- |
 | `<leader>b` | Buffers: pick, pin, move, close left/right/others, reopen |
 | `<leader>c` | Code: format, annotate, split/join, snippets (`cs`), paste image, Tailwind values |
-| `<leader>d` | Trouble lists |
+| `<leader>d` | Diagnostic lists through Trouble |
 | `<leader>D` | Debug: breakpoints, stepping, REPL, UI |
 | `<leader>e` | Explorers: neo-tree, oil, yazi, window picker, files in the buffer's directory |
 | `<leader>f` | Find files: files, git files, buffers, recent, config, plugins, projects |
@@ -85,16 +88,17 @@ or `<leader>sk` to search every mapping.
 | `<leader>i` | AI: avante, opencode |
 | `<leader>l` | LSP pickers: definitions, references, symbols, calls |
 | `<leader>m` | Multicursor |
-| `<leader>n` | No-yank edits, path yanks, register pastes |
+| `<leader>n` | No-yank edits, path yanks, register pastes, `na` select whole buffer |
 | `<leader>o` | Options and toggles: numbers, wrap, spell, theme, format on save, inlay hints |
 | `<leader>q` | Sessions |
 | `<leader>r` | Search and replace (grug-far) |
-| `<leader>s` | Search: grep, help, keymaps, commands, diagnostics, marks, undo, todos, resume |
+| `<leader>s` | Search contents: grep, help, keymaps, commands, diagnostics, marks, undo, todos, resume |
 | `<leader>t` | Terminals: float, vertical, horizontal, btop |
 | `<leader>T` | Tests |
 | `<leader>u` | UI: scratch, zen, zoom, breadcrumb pick, markdown render, dismiss notifications |
 | `<leader>w` | LSP workspace folders |
-| `<leader>x` | Diagnostics under the cursor |
+| `<leader>x` | Diagnostics: line float, buffer and workspace quickfix |
+| `<leader>a` / `<leader>A` | Swap the parameter under the cursor with the next / previous one |
 | `<leader><Tab>` | Tabs |
 | `<localleader>` | Review-buffer actions (codediff) |
 
@@ -104,22 +108,41 @@ or `<leader>sk` to search every mapping.
 | --- | --- |
 | `;` | Command line (native repeat of `f`/`t` is given up) |
 | `H` / `L` | Previous / next buffer |
+| `f` / `F` | Flash jump / flash treesitter select |
 | `<M-w>` `<M-a>` `<M-s>` `<M-d>` | Move between windows, terminal mode included |
 | `<M-y>` / `<M-x>` / `<M-e>` / `<M-q>` | Split vertical / horizontal / equalize / close |
 | Arrow keys | Resize the current window |
 | `<M-j>` / `<M-k>` | Move the line or selection |
 | `<C-s>` / `<C-q>` | Write / quit |
-| `<C-a>` | Select the whole buffer |
 | `<C-,>` | Toggle the floating terminal, from normal and terminal mode |
-| `>` / `<` | Increment / decrement numbers, dates, booleans (dial.nvim) |
-| `s` / `S` | Flash jump / treesitter select |
+| `<C-a>` / `<C-x>` | Increment / decrement, widened to dates, booleans and semver by dial.nvim |
 | `gA` + letter | Case conversion, `gA.` picks from a list |
+| `ys` `ds` `cs` | Add, delete, change a surrounding pair; `S` in visual mode |
 | `]c` `[c` | Git hunks |
 | `]d` `[d` | Diagnostics |
 | `]f` `[f` `]k` `[k` `],` `[,` `]j` `[j` | Function, class, parameter, JSX element |
 | `]n` `[n` | Todo comments |
 | `K`, `grn`, `gra`, `grr`, `gri`, `grt`, `gO` | Neovim's own LSP keys |
 | `zR` / `zM` / `zr` | Folds through nvim-ufo |
+
+### Built-ins this config replaces
+
+Every one of these is a deliberate trade, listed with what covers the lost behaviour:
+
+| Taken | Was | Covered instead by |
+| --- | --- | --- |
+| `;` | Repeat `f`/`F`/`t`/`T` | Nothing; `f` is a flash jump, so a repeat has little to repeat |
+| `q` | Record a macro | `@` still replays; recording is off on purpose |
+| `x` / `X` | Delete into the unnamed register | Same delete, black-hole register; `d` still yanks |
+| `<C-q>` | Blockwise visual | `<C-v>` |
+| `H` / `L` | Top / bottom of the window | `M`, `zt`, `zb` |
+| `f` / `F` | Char search forward / back | flash jump, which lands anywhere visible |
+| `s` | Substitute char | `cl` |
+| `R` (visual) | Replace-mode change | flash treesitter search |
+
+Kept deliberately after earlier passes moved things off them: `<C-a>`/`<C-x>` increment, `>`/`<`
+indent, `<C-e>`/`<C-y>` insert the character below/above, `ga` character info, `]m`/`[m` method
+motions, `]]`/`[[` sections, `as`/`is` sentences, `]a`/`[a` argument list, `]p`/`[p` indented paste.
 
 ### Menus
 
@@ -153,8 +176,14 @@ Neovim start rather than the next login. Nushell gets the shell flags from nushe
 integration; POSIX shells get Vim's. Changing `'shell'` inside a session re-applies the matching
 flags.
 
+`<C-s>` writes the buffer. Under a POSIX shell that still has legacy flow control on, the terminal
+swallows `<C-s>` as XOFF before Neovim sees it; `stty -ixon` in `.zshrc` or `.bashrc` frees it.
+Nushell does not take `<C-s>`.
+
 Kitty keeps its own setting: `shell .` in `kitty.conf` makes kitty follow the login shell too,
-instead of pinning one shell.
+instead of pinning one shell. Nothing here binds `ctrl+shift+*`, which is where kitty's own defaults
+live, so the two sets do not overlap. `<C-,>` needs kitty's keyboard protocol, which is on by
+default.
 
 ## Themes
 
@@ -168,5 +197,7 @@ The choice is saved in `stdpath("data")/theme_state.json` and restored at startu
   in `lua/plugins/deps/shared.lua` and are referenced by name.
 - Comments: one header per file saying what the plugin does and which keys it owns, then end-of-line
   comments only where the code does not speak for itself.
-- Autocommand groups are `999rpm-<name>`, so `:autocmd 999rpm-*` lists everything this config adds.
+- Autocommand groups are `999rpm-<n>`, so `:autocmd 999rpm-*` lists everything this config adds.
 - Helpers in `lua/utils.lua` carry an end-of-line note naming the files that call them.
+- `.stylua.toml` pins tabs and 140 columns. conform runs stylua on save, so the file has to be
+  present or the whole tree reflows to stylua's own defaults on the first write.

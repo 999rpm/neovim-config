@@ -50,8 +50,7 @@ return {
 
 		vim.lsp.config("*", {
 			capabilities = utils.get_lsp_capabilities(),
-			flags = { debounce_text_changes = 500 },
-		})
+		}) -- no debounce_text_changes override: anything above the default delays every server's view of an edit, rustaceanvim included
 
 		local hl_group = utils.augroup("lsp-highlight") -- one entry per buffer, so LspDetach can clear it even when no client asked for highlights
 
@@ -129,7 +128,10 @@ return {
 
 				map("<leader>xf", vim.diagnostic.open_float, "Line Diagnostics") -- ergonomic alias for built-in <C-w>d
 
-				if client:supports_method("textDocument/documentHighlight", event.buf) and not vim.b[event.buf].user_lsp_highlight then
+				if
+					client:supports_method("textDocument/documentHighlight", event.buf)
+					and not vim.b[event.buf].user_lsp_highlight
+				then
 					vim.b[event.buf].user_lsp_highlight = true
 					vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
 						desc = "999rpm: highlight other occurrences of the symbol under the cursor",
@@ -276,6 +278,7 @@ return {
 				},
 			},
 			tailwindcss = {}, -- see ts_ls's note above; inherits nvim-lspconfig's own current root_dir default
+			emmet_language_server = {},
 			taplo = {},
 			neocmake = {},
 			bashls = {},

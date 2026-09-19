@@ -17,8 +17,7 @@ return {
 				local function map(lhs, rhs, desc)
 					vim.keymap.set("n", lhs, rhs, { buf = cx.bufnr, desc = desc })
 				end
-				map("<Tab>", "j", "Next entry")
-				map("<S-Tab>", "k", "Previous entry")
+				require("utils").menu_nav(cx.bufnr) -- Tab/S-Tab, shared with the picker, quickfix and dropbar; see utils.lua
 				map("<C-v>", function()
 					harpoon.ui:select_menu_item({ vsplit = true })
 				end, "Open in vsplit")

@@ -81,8 +81,7 @@ opt.ruler = false -- Hide the cursor position ruler (redundant with a statusline
 opt.showcmd = false -- Do not show partial commands in the last line of the screen
 opt.cmdheight = 0 -- Collapse the command line when not in use (maximises editing space)
 opt.showcmdloc = "statusline" -- Display partial commands in the statusline instead of the command line
-opt.shortmess:append("sI") -- Suppress the startup/intro messages
-opt.shortmess:append("c") -- Suppress insert-completion-menu messages (e.g. "match 1 of 2")
+opt.shortmess:append("sIc") -- Suppress search wrap, the intro screen, and insert-completion messages ("match 1 of 2")
 
 opt.errorbells = false -- Disable the error bell sound
 opt.visualbell = false -- Disable the visual flash bell
@@ -176,7 +175,7 @@ opt.completeopt = "menu,menuone" -- Menu even for a single match, no auto-select
 opt.complete:append("kspell") -- Include spelling suggestions in insert-mode completion
 opt.complete:remove({ "w", "b", "u", "t" }) -- Remove other-window buffers, unlisted buffers, and tags (reduce noise)
 
-opt.wildmenu = true -- Enable the enhanced command-line completion menu
+opt.wildmenu = true -- Command-line completion shows a match list instead of cycling silently
 opt.wildmode = "list:longest,list:full" -- First complete to the longest common string, then cycle through all matches
 opt.wildignorecase = true -- Ignore case when completing file names and paths
 opt.wildignore:append(".,..") -- Ignore current and parent directory entries
@@ -215,7 +214,7 @@ opt.sessionoptions:remove({ "blank", "buffers", "terminal" }) -- Exclude empty w
 
 opt.foldlevel = 99 -- Open all folds when first entering a buffer
 opt.foldlevelstart = 99 -- Start every new buffer with all folds fully open
-opt.foldcolumn = "1"
+opt.foldcolumn = "1" -- One column: statuscol's foldfunc draws one glyph per fold-start line whatever the depth, so wider caps nothing
 opt.foldtext = "" -- Draw closed folds via the extmark path instead of the old foldtext() string; required for nvim-ufo's virtual-text summaries and snacks.indent's guides to render correctly across a closed fold's line
 
 opt.list = true -- Show invisible characters defined in 'listchars'
@@ -230,24 +229,13 @@ opt.listchars = { -- Visual representation of invisible characters
 opt.conceallevel = 2 -- Conceal marked text (e.g. hide URL syntax in Markdown links)
 opt.concealcursor = "" -- Never conceal text on the cursor line (any mode)
 
-vim.cmd([[let &t_Cs = "\e[4:3m"]])
-vim.cmd([[let &t_Ce = "\e[4:0m"]])
-
 opt.diffopt:append({
-	"internal", -- Use Neovim's built-in diff library
-	"indent-heuristic", -- Use heuristics to reduce indentation-only diff noise
 	"algorithm:histogram", -- Histogram algorithm produces cleaner, more readable diffs
 	"context:3", -- Show 3 lines of context around each change
 	"vertical", -- Always show diffs side-by-side in vertical splits
-	"filler", -- Insert filler lines to keep both sides aligned on deleted lines
-	"closeoff", -- Automatically turn off diff mode when one of the diff windows is closed
-})
-
-if vim.fn.has("nvim-0.12") == 1 then
-	opt.diffopt:append("inline:char") -- Highlight individual changed characters within a line
-else
-	opt.diffopt:append("linematch:60") -- Match lines within a 60-line window for cleaner diffs
-end
+	"inline:char", -- Highlight the individual changed characters inside a changed line
+	"linematch:60", -- Align similar lines in hunks up to 60 lines; independent of inline:, not an alternative to it
+}) -- internal, filler, closeoff and indent-heuristic are already in 0.12's own default and are not repeated here
 
 vim.filetype.add({
 	extension = {

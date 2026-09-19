@@ -2,6 +2,7 @@
 -- Keys (insert): <C-l> accept, <M-l> accept word, <M-S-l> accept line, <M-]>/<M-[> next/previous, <M-e> dismiss.
 return {
 	"zbirenbaum/copilot.lua",
+	event = "InsertEnter", -- every key it binds is insert-mode, so nothing is needed before the first insert
 	config = function()
 		if require("utils").executable("node") then
 			local ok, version_str = pcall(function()

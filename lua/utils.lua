@@ -60,7 +60,7 @@ end
 ---@param name string executable looked up on $PATH
 ---@param label string
 ---@param hint string
-function M.warn_if_missing_exec(name, label, hint) -- This util is used by octo.lua, yazi.lua, treesitter.lua and mcphub.lua
+function M.warn_if_missing_exec(name, label, hint) -- This util is used by octo.lua, yazi.lua, treesitter.lua and hex.lua
 	if not M.executable(name) then
 		warn(("'%s' not found on $PATH. %s"):format(name, hint), label)
 	end
@@ -70,8 +70,15 @@ end
 ---@param name string
 ---@param clear? boolean defaults to true
 ---@return integer
-function M.augroup(name, clear) -- This util is used by autocmds.lua, lspconfig.lua, treesitter.lua, lint.lua, dap.lua, lualine.lua, barbar.lua and nvim-bqf.lua
+function M.augroup(name, clear) -- This util is used by autocmds.lua, lspconfig.lua, treesitter.lua, lint.lua, dap.lua, lualine.lua and nvim-bqf.lua
 	return api.nvim_create_augroup("999rpm-" .. name:gsub("_", "-"), { clear = clear ~= false })
+end
+
+---Binds the shared list-menu navigation (Tab/S-Tab) in one buffer, matching the picker, Trouble and dropbar.
+---@param buf integer
+function M.menu_nav(buf) -- This util is used by nvim-bqf.lua and harpoon.lua
+	vim.keymap.set("n", "<Tab>", "j", { buf = buf, desc = "Next entry" })
+	vim.keymap.set("n", "<S-Tab>", "k", { buf = buf, desc = "Previous entry" })
 end
 
 -- Shell
@@ -130,6 +137,25 @@ function M.term_wincmd(dir, key) -- This util is used by mappings.lua
 		end
 		return "<Cmd>wincmd " .. dir .. "<CR>"
 	end
+end
+
+---Per-buffer memo keyed on b:changetick, so a statusline component scans a buffer once per edit, not once per redraw.
+---@generic T
+---@param key string
+---@param compute fun(): T
+---@return T
+function M.buf_cached(key, compute) -- This util is used by lualine.lua
+	local buf = api.nvim_get_current_buf()
+	local tick = api.nvim_buf_get_changedtick(buf)
+	local store = vim.b[buf]._999rpm_cache or {}
+	local hit = store[key]
+	if hit and hit.tick == tick then
+		return hit.value
+	end
+	local value = compute()
+	store[key] = { tick = tick, value = value }
+	vim.b[buf]._999rpm_cache = store -- reassigned whole: vim.b returns a copy, so mutating `store` alone does not persist
+	return value
 end
 
 -- Git
@@ -261,7 +287,7 @@ end
 
 ---RainbowDelimiter groups, in rainbow-delimiters' own order. Colors follow the active theme.
 ---@type string[]
-M.rainbow_delimiter_groups = { -- This util is used by rainbow-delimiters.lua, snacks.lua and satellite.lua
+M.rainbow_delimiter_groups = { -- This util is used by rainbow-delimiters.lua and snacks.lua
 	"RainbowDelimiterRed",
 	"RainbowDelimiterYellow",
 	"RainbowDelimiterBlue",
