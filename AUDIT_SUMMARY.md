@@ -3,153 +3,115 @@
 What changed, and the reason it changed. Newest first. Older passes are condensed to their
 conclusions once a later pass has confirmed them.
 
-## 2026-09-19 (sixth pass) — claims re-checked against upstream source, shadowed built-ins returned
+## 2026-09-19 (seventh pass) — checked against a running 0.12.5, built-in keys bound and labelled
 
-This pass verified the fifth pass's conclusions rather than trusting them, then fixed what the
-check turned up. Every finding below was confirmed against upstream source, not inferred from a
-README or from the shape of the code.
+Earlier passes read upstream source. This one also ran it: Neovim 0.12.5 was fetched and the whole tree
+loaded under it, so every claim below is an observed result rather than a reading of a spec.
 
-### Four claims that were checked and turned out correct
+### The reported symptom: which-key never shows `gD`
 
-Worth recording so a later pass does not "fix" them back:
+`gd` and `gD` are built-in editor commands, not keymaps. `maparg("gD", "n")` is empty on a stock 0.12.5,
+so there is nothing in any keymap table for which-key to read, and its `g` preset
+(`lua/which-key/plugins/presets.lua`) lists only `g% g, g; gN gT gf gi gn gt gv gx` — no `gd`, no `gD`.
+The popup showed `gd` solely because `lspconfig.lua` binds it on `LspAttach`; `gD` was bound nowhere, even
+though the right-click menu had offered Declaration all along.
 
-- `{ buf = ... }` in `vim.keymap.set` is right, not a typo for `buffer`. Neovim added `buf` in
-  0.12 (`runtime/lua/vim/keymap.lua`, release-0.12 branch) and the in-tree TODO soft-deprecates
-  `buffer` in 0.13. `nvim_create_autocmd` and `nvim_clear_autocmds` carry the same pair, with
-  `buffer` marked deprecated in `api/keysets_defs.h`. Seven files use it; all seven are current.
-- `rustaceanvim` `version = "^9"` resolves (v9.2.1), `barbar` `^1.0.0` resolves (v1.9.1),
-  multicursor's `1.0` branch exists.
-- hardtime's dict-shaped `disabled_filetypes`, better-escape's `default_mappings = false` and
-  lualine's list-shaped `disabled_filetypes` are all accepted by the current plugins.
-- `messagesopt`'s `progress:c` is a real value in 0.12's option schema.
+Two fixes, because the gap had two halves:
 
-### Claims that did not survive the check
+- `gD` now maps to `vim.lsp.buf.declaration()` on attach, gated on `textDocument/declaration`. Where no
+  server answers it — lua_ls, for one — the key stays Nvim's own file-global declaration search.
+- `which-key.lua` gained label-only entries for the built-ins nothing can discover: `gd`, `gD`, `ga`, `gJ`,
+  `gq`, `gp`, `gP`, `g&`, `gF`, `g?`. Checked in which-key's own source and then live: `M.parse` calls
+  `M.create` only `if m.rhs`, so an entry carrying just a `desc` never reaches `vim.keymap.set` and cannot
+  take a key away from Nvim. Measured effect: the `g` popup went from 24 entries to 32, and
+  `maparg("gD")` still returns the LSP mapping afterwards.
 
-**`&t_Cs` / `&t_Ce` never did anything.** `option.c` routes tty options through `is_tty_option()`
-and returns silently ("Fail silently; many old vimrcs set t_xx options"). The two lines setting
-undercurl escape sequences were inherited from a Vim config and have been no-ops here since day
-one. Undercurl comes from terminfo. Removed.
+The same treatment covers `grn gra grx grr gri grt gO`, whose built-in descriptions are raw function names
+(`vim.lsp.buf.rename()`); the `gr` popup now reads as six plain labels.
 
-**The `diffopt` version branch was dead, and had the wrong model of the option.** 0.12's default is
-`internal,filler,closeoff,indent-heuristic,inline:char,linematch:40`. `inline:` highlights changed
-characters inside a line; `linematch:` aligns similar lines across a hunk. They are complementary,
-not alternatives, so the `has("nvim-0.12")` branch appended a value that was already the default
-and never reached the `linematch:60` in its else arm. init.lua requires 0.12 anyway, so the else
-arm was unreachable. Both values are now set, and the four defaults that were being re-appended are
-gone.
+### Defects found by running it
 
-**nvim-surround's opt-out was set too late to fire.** Upstream's doc is explicit: the
-`g:nvim_surround_no_*_mappings` flags "must be set before the plugin is loaded", and
-`plugin/nvim-surround.lua` reads them at source time. It was set inside `config`, which lazy.nvim
-runs after sourcing `plugin/`, so `ys`/`yss`/`yS`/`ySS`/`ds`/`cs`/`cS` were mapped the whole time
-while a comment two lines up said "only Visual S/gS remain". The file header described the real
-behaviour and the inline comment described the intent. The dead line is gone and the default
-keymaps are kept, since `ys`, `ds` and `cs` shadow nothing.
+**`diffopt` held two `linematch:` values.** The live string was
+`internal,filler,closeoff,indent-heuristic,inline:char,linematch:40,algorithm:histogram,context:3,vertical,linematch:60`.
+`:append` deduplicates identical flags, so the appended `inline:char` collapsed into the default, but
+`linematch:40` and `linematch:60` are different strings and both survived. 60 wins on parse, so behaviour was
+right and the option string was self-contradictory. The sixth pass set out to fix exactly this and appended
+instead of assigning. Now assigned outright, all nine values listed.
 
-**`debounce_text_changes = 500` was still in `lspconfig.lua`.** The fifth pass recorded removing
-it. It had not been removed. Gone now; the default is what every server, rustaceanvim included,
-should see.
+**`grx` is a real 0.12 default**, `vim.lsp.codelens.run()`. The `lspconfig.lua` header read `grx? no,` — an
+unresolved question left in a comment, and wrong. Header rewritten from `_core/defaults.lua`, and it now also
+names `]D`/`[D` and `<C-w>d`, which were missing.
 
-**`dap.configurations.c = dap.configurations.cpp` shares one table by reference.** This is the
-exact bug the third pass found and fixed for `rust` via `deepcopy`, left in place for `c`. Anything
-that appends a discovered runnable to one language's list puts it in the other's picker. Now a
-deepcopy, like rust.
+**`an` and `in` became built-ins.** 0.12 maps both in visual and operator-pending to select the parent and
+child treesitter node, falling back to `vim.lsp.buf.selection_range` where no parser is loaded. mini.ai's
+next-object mappings sat on top of them. Moved to `aN`/`iN`; `al`/`il` stay, since nothing claims those.
 
-**Three "This util is used by" lists named files that never called the helper.** `augroup` listed
-`barbar.lua`, which has no augroup and, contrary to the fifth pass's notes, no `ColorScheme` hook
-either; `rainbow_delimiter_groups` listed `satellite.lua`; `warn_if_missing_exec` listed
-`mcphub.lua`, which warns inline instead, and omitted `hex.lua`, which does call it. Corrected
-against a grep of actual call sites.
+**nvim-lspconfig registers no commands at all on 0.12.** Its `plugin/lspconfig.lua` returns at
+`if vim.fn.exists(':lsp') == 2` before defining anything. So `:LspInfo` and `:LspLog` here are the only
+source of those commands, not duplicates as their shape suggests — worth recording, since a later pass
+reading only the plugin's README would delete them. `:LspRestart` is a thin alias over the built-in
+`:lsp restart` and now forwards its arguments (`"lsp restart <args>"`, `nargs = "*"`), so a client name can
+be passed rather than restarting everything. `:LspFormat` removed: conform owns formatting here, and a
+second path that skips it contradicts that.
 
-**No `.stylua.toml` existed.** conform runs stylua on every Lua save and the log claims the tree is
-formatted at tabs / 140 columns. Without the file, stylua uses its own defaults (spaces, 120
-columns), so the first save of any file would have reflowed it and every later diff would have
-fought the one before. Added.
+**Two headers described keys that do not exist.** `flash.lua` advertised `s`/`S` while binding `f`/`F`, and
+said in the same breath that `f`/`F` keep working. `treesj.lua` advertised `<leader>ct` and `<leader>cs`; the
+plugin binds only `<leader>cj`, and `<leader>cs` is the snippets group.
 
-### Built-ins returned to Neovim
+**`messagesopt` was set to 0.12's own default string**, character for character. Kept anyway, with the
+comment corrected to say so, because `lspconfig.lua`'s `LspProgress` echo depends on `progress:c` and a
+pinned value documents that dependency.
 
-One earlier decision had cascaded. `<C-a>` was taken for select-all, which left dial.nvim without
-the increment key, so dial took `>` and `<` — the indent operators, which have no replacement and
-no plugin offering an equivalent. Two built-ins were spent to gain one convenience.
+### Confirmed correct, so a later pass does not undo them
 
-`<C-a>`/`<C-x>` go back to increment, with dial widening what they understand rather than replacing
-them; `>`/`<` are the indent operators again; select-all is `<leader>na`. dial also moved from an
-eager `config` to declarative `keys`, so it no longer loads at startup.
+- `buf` rather than `buffer` in `vim.keymap.set` and `nvim_create_autocmd`: `release-0.12` carries
+  `@field buf?` and `Buffer buffer;  // deprecated - use buf`. Seven files use it; all seven are right.
+- `client:supports_method(method, bufnr)` matches the signature in `lsp/client.lua`.
+- `vim.diagnostic.handlers.virtual_lines_rounded` still shows and hides without error on 0.12.5, including
+  the `user_data.virt_lines_ns` lookup it reaches into.
+- The `titlestring` `v:lua.require('utils')` expression evaluates; `nvim_eval_statusline` returns a string.
+- Every snacks LSP picker source the config calls exists in `picker/config/sources.lua`.
+- `oil` is already in hardtime's default `disabled_filetypes`, so `-` is not blocked in an oil buffer.
+- 205 declarative lazy `keys` collide nowhere. The only imperative overlap across 139 `vim.keymap.set` calls
+  is `q`, global no-op against the buffer-local close in `close_with_q`, which is the intent.
 
-Insert-mode `<C-e>` was `<Esc><cmd>wq<CR>`. It shadowed "copy the character below the cursor" on
-every keystroke, and hung write-and-quit off a single unmodified chord next to `<C-w>` and `<C-u>`.
-Removed. `blink.lua`'s header had been advertising `<C-e>` as hide-completion without the keymap
-table binding it; it is bound now, with `fallback`, so the built-in works whenever no menu is open.
+### Documentation
 
-`vim.g.no_plugin_maps = true` in `textobjects.lua` silences the mappings in every runtime ftplugin,
-far wider than the two opt-outs options.lua sets on purpose (`no_gitrebase_maps`, `no_man_maps`),
-and nothing in nvim-treesitter-textobjects reads it. Removed.
-
-`H`/`L`, `;`, `q`, `x`/`X`, `f`/`F`, `s` and visual `R` stay taken. Each is deliberate, each has a
-covering alternative, and README now tabulates the trade rather than leaving it in a comment.
-
-### Buffer scoping and event correctness
-
-- `non_utf8_file` read `vim.bo` (the current buffer) on a `BufRead` that can fire for another
-  buffer, and treated an empty `'fileencoding'` — a new or empty file — as non-UTF-8. Reads
-  `vim.bo[ev.buf]` and skips `""`.
-- The node_modules handler passed `bufnr = 0` for the same reason. Passes `ev.buf`.
-- `undo_disable` and `secure_tmp` both matched `/tmp/*` and both suspended and restored the global
-  `'backup'` flag around the same write. `secure_tmp` already covers every tmp path, so
-  `undo_disable` keeps only the patterns it alone matches.
-- `auto_close_win` counted floating windows toward "only utility windows remain", so a picker or
-  notification float over a lone neo-tree could reach `qall`, and it ran while the command-line
-  window was open, which cannot be left that way. Floats are skipped and the cmdwin returns early.
-- The right-click menu ran `autocmd! nvim.popupmenu` on every single click, which raises E367 once
-  the group is gone. Done once, guarded by `pcall`. The two identical `if not _G.Snacks` branches
-  next to it are one branch.
-
-### Cost per redraw
-
-`lualine`'s `trailing_space` and `mixed_indent` ran up to five whole-buffer regex searches on every
-statusline redraw, which with `globalstatus` means every cursor move. New `utils.buf_cached()`
-memoises on `b:changetick`, so each scans once per edit. The yank-position tracker allocated a
-table on every `CursorMoved` in every mode; it now records only in normal and visual mode, and
-stores `winsaveview()` rather than `getcurpos()`, so a yank near the window edge no longer scrolls
-the screen back.
-
-`copilot.lua` had no lazy trigger at all and loaded at startup despite binding insert-mode keys
-only. Now `event = "InsertEnter"`.
-
-### Comments, structure and grouping
-
-The `<Tab>`/`<S-Tab>` menu binding was copied into `nvim-bqf.lua` and `harpoon.lua`; both call the
-new `utils.menu_nav()`. `autocmds.lua` mixed `vim.api.*` with the local `api` alias it defines;
-normalised. `<leader>no`/`<leader>nO` reimplemented what `formatoptions` minus `c,r,o,t` plus the
-`format_options` FileType hook already do, and are gone. Four `{ "n", "v" }` maps were narrowed to
-`{ "n", "x" }`, since `x`, `X` and `<space>` must stay literal in select mode.
-
-which-key's spec is regrouped around a stated rule — lowercase is the common action, the uppercase
-twin is its wider or rarer form (`d`/`D` lists vs debug, `g`/`G` hunks vs review, `t`/`T` terminal
-vs test) — with section comments, entries for `<leader>a`/`<leader>A`, which had none, and
-labels for the `ys` and `<C-w>` prefixes so the native keys show up in the popup too.
-
-### Verification
-
-All 81 Lua files parse. Upstream sources were cloned or fetched for nvim-surround, hardtime,
-better-escape, lualine, nvim-lint and Neovim itself (`keymap.lua` on both master and release-0.12,
-`keysets_defs.h`, `option.c`, `options.lua`, `news.txt`); plugin tags were resolved with
-`git ls-remote`. The lockfile's 89 entries all correspond to a live spec and no spec is missing
-from it. Keymaps were extracted across the tree and cross-checked for same-mode collisions.
-
-Not done here: the reference configs were not re-read line by line. Earlier passes' notes on them
-stand, including the two marked as yielding nothing.
+`mappings.lua`'s header now lists 0.12's own additions, since none of them are re-bound and all of them are
+worth knowing: `]d`/`[d`, `]D`/`[D`, `<C-w>d`, `]q`/`[q`, `]l`/`[l`, `]b`/`[b`, `]a`/`[a`, `]t`/`[t`,
+`]<Space>`/`[<Space>`, `an`/`in`, visual `]n`/`[n`, `grx`. README gained a table for them, a line for the
+`g]` trade mini.ai takes, and the rule that a `desc`-only which-key entry is a label rather than a mapping.
+`.stylua.toml` is in the tree, at the tabs / 140 columns the log has claimed since the sixth pass.
 
 ### Open for next pass
 
-- barbar's rendering across every theme in the switcher is still only observed on tokyonight and
-  monokai-pro. The fifth pass's note about a `ColorScheme` repaint hook in `barbar.lua` refers to
-  code that is not in the file; whether it was dropped or never landed is unresolved.
-- `lint.lua` calls `lint._resolve_linter_by_ft`, a private function. It is what nvim-lint's own
-  `try_lint` uses internally, so it is unlikely to move, but it is not public API.
-- text-case.nvim (2024-08) and neotest's FixCursorHold recommendation remain the unmaintained
-  surface, with no drop-in replacement.
+- barbar across every theme in the switcher is still observed only on tokyonight and monokai-pro.
+- `lint.lua` still calls `lint._resolve_linter_by_ft`, a private function.
+- text-case.nvim and neotest's FixCursorHold recommendation remain the unmaintained surface.
 - avante's build needs cargo and was not exercised.
+- Plugins were not installed. Everything above was checked against a bare 0.12.5 plus upstream sources, so
+  defects that need a loaded plugin to surface are still out of reach.
+
+## 2026-09-19 (sixth pass) — claims re-checked against upstream source, shadowed built-ins returned (condensed)
+
+Verified the fifth pass rather than trusting it. `&t_Cs`/`&t_Ce` had never done anything (`option.c` drops
+tty options silently) and were removed. nvim-surround's `g:nvim_surround_no_*_mappings` opt-out was set
+inside `config`, which lazy.nvim runs after `plugin/` is sourced, so it had never fired; the default keymaps
+are kept, since `ys`, `ds` and `cs` shadow nothing. `debounce_text_changes = 500` was still present despite
+the fifth pass recording its removal. `dap.configurations.c` shared one table by reference with `cpp`, the
+bug already fixed for `rust`; now a deepcopy. Three "This util is used by" lists named files that never
+called the helper, corrected against a grep of call sites.
+
+Built-ins returned: `<C-a>`/`<C-x>` to increment with dial widening them rather than replacing them, `>`/`<`
+to the indent operators, select-all moved to `<leader>na`, insert-mode `<C-e>` given back to copy-char-below,
+and `vim.g.no_plugin_maps` dropped as far wider than the two opt-outs options.lua sets deliberately.
+
+Buffer scoping: `non_utf8_file` read the current buffer on a `BufRead` that can fire for another and treated
+an empty `'fileencoding'` as non-UTF-8; the node_modules handler passed `bufnr = 0`; `auto_close_win` counted
+floats toward "only utility windows remain" and ran inside the command-line window; the right-click menu ran
+`autocmd! nvim.popupmenu` on every click. Cost per redraw: `trailing_space` and `mixed_indent` ran up to five
+whole-buffer searches per statusline redraw, now memoised on `b:changetick` through `utils.buf_cached()`;
+copilot.lua had no lazy trigger despite binding insert-mode keys only.
 
 ## 2026-09-18 (fifth pass) — ten reported problems fixed, pickers and tabline consolidated (condensed)
 

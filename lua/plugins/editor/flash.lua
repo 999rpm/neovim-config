@@ -1,5 +1,6 @@
--- folke/flash.nvim: jump to any visible position by label. f/F/t/T and / keep working as usual.
--- Keys: s jump, S treesitter select, r remote (operator), R treesitter search, <C-s> toggle in search.
+-- folke/flash.nvim: jump to any visible position by label.
+-- Keys: f jump, F treesitter select, r remote (operator), R treesitter search, <C-s> toggle inside a search.
+-- f/F replace the native char search; t/T, ; and , keep it, so , still repeats the last t/T backwards.
 return {
 	"folke/flash.nvim",
 	event = "VeryLazy",

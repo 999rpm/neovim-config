@@ -5,6 +5,10 @@
 -- Built-ins worth remembering: gi last insert spot, gv reselect, g; g, change list, '' jump back, <C-o>/<C-i> jump list,
 -- zz/zt/zb scroll, M window middle, gx open link, & repeat :s, @: repeat command, ga character info, gq format, . repeat,
 -- <C-a>/<C-x> increment/decrement (extended by dial.lua), >/< indent operator, <C-e>/<C-y> insert the char below/above.
+-- Nvim 0.12 ships more of these than earlier versions did, and none are re-mapped here: ]d/[d and ]D/[D diagnostics,
+-- <C-w>d diagnostic float, ]q/[q quickfix, ]l/[l location list, ]b/[b buffers, ]a/[a arguments, ]t/[t tags,
+-- ]<Space>/[<Space> blank line below/above, an/in select the parent/child treesitter node (visual and operator-pending),
+-- ]n/[n grow the visual selection by node, grx run code lens. which-key.lua labels the g-prefixed ones.
 local map = vim.keymap.set
 
 map({ "n", "x" }, "<space>", "<nop>", { desc = "Leader prefix only; bare Space does nothing" })

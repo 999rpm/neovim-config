@@ -25,7 +25,7 @@ return {
 		}
 
 		local function hide_in_width()
-			return vim.fn.winwidth(0) > 100
+			return fn.winwidth(0) > 100 -- `fn` is the local alias declared above; vim.fn.* elsewhere in this file went with it
 		end
 
 		local git_status_cache = { fetch_success = false, behind_count = 0, ahead_count = 0 }

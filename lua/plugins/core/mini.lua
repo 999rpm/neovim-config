@@ -1,5 +1,6 @@
 -- nvim-mini/mini.nvim: mini.icons (icon provider, also stands in for nvim-web-devicons) and mini.ai (text objects).
--- mini.ai: a/i + b brackets, q quotes, t tag, a argument, ? prompt; an/in and al/il target the next/last match; g[ g] jump to object edges.
+-- mini.ai: a/i + b brackets, q quotes, t tag, a argument, ? prompt; aN/iN and al/il target the next/last match;
+-- g[ g] jump to object edges. g] was Nvim's :tselect, which <C-]> and ]t/[t still cover.
 return {
 	"nvim-mini/mini.nvim",
 	version = "*",
@@ -12,6 +13,10 @@ return {
 			n_lines = 500,
 			custom_textobjects = {
 				f = false, -- af/if come from textobjects.lua (function definition)
+			},
+			mappings = {
+				around_next = "aN", -- off an/in: 0.12 maps those in x and o to select the parent and child treesitter node
+				inside_next = "iN", -- (falling back to vim.lsp.buf.selection_range where no parser is loaded)
 			},
 		})
 	end,

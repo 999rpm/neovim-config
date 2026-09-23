@@ -13,12 +13,12 @@ return {
 		keymap = {
 			preset = "none",
 
-			["<Tab>"] = { "select_next", "snippet_forward", "fallback" },
+			["<Tab>"] = { "select_next", "snippet_forward", "fallback" }, -- shadows 0.12's own insert-mode <Tab> snippet jump; blink drives vim.snippet itself
 			["<S-Tab>"] = { "select_prev", "snippet_backward", "fallback" },
 			["<CR>"] = { "accept", "fallback" },
 			["<C-Space>"] = { "show", "hide", "fallback" },
 			["<C-e>"] = { "hide", "fallback" }, -- falls through to the native insert-mode "copy the char below" when no menu is open
-			["<C-k>"] = { "show_documentation", "hide_documentation", "fallback" },
+			["<C-k>"] = { "show_documentation", "hide_documentation", "fallback" }, -- falls through to the native digraph insert when no menu is open
 			["<C-b>"] = { "scroll_documentation_up", "fallback" },
 			["<C-f>"] = { "scroll_documentation_down", "fallback" },
 		},

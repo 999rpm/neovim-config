@@ -54,7 +54,7 @@ lua/plugins/
   completion/               blink.cmp, copilot, autopairs
   treesitter/               treesitter, textobjects, context, rainbow-delimiters, hlargs, treesj, autotag
   editor/                   motions, text objects, search and replace, snippets, todo comments
-  ui/                       barbar, lualine, noice, trouble, folds, scrollbar, breadcrumbs
+  ui/                       barbar, lualine, noice, trouble, folds, scrollbar, breadcrumbs, window picker
   git/                      gitsigns, codediff, gitlinker, octo
   explorer/                 neo-tree, oil, yazi
   debug/                    nvim-dap and its UI, python and virtual text
@@ -121,9 +121,28 @@ is the common action, the uppercase twin is its wider or rarer form.
 | `]c` `[c` | Git hunks |
 | `]d` `[d` | Diagnostics |
 | `]f` `[f` `]k` `[k` `],` `[,` `]j` `[j` | Function, class, parameter, JSX element |
-| `]n` `[n` | Todo comments |
-| `K`, `grn`, `gra`, `grr`, `gri`, `grt`, `gO` | Neovim's own LSP keys |
+| `]n` `[n` | Todo comments (normal mode; the visual-mode pair is Neovim's node selection) |
+| `gd` / `gD` | Definition / declaration, where a server answers them |
+| `K`, `grn`, `gra`, `grx`, `grr`, `gri`, `grt`, `gO` | Neovim's own LSP keys |
 | `zR` / `zM` / `zr` | Folds through nvim-ufo |
+
+### Neovim 0.12 keys this config leaves alone
+
+0.12 maps far more by default than earlier versions did. None of these are re-bound here, and `which-key.lua`
+labels the `g`-prefixed ones because built-in *commands* — as opposed to keymaps — appear in no keymap table
+and so cannot be discovered by anything:
+
+| Key | Action |
+| --- | --- |
+| `]d` `[d` / `]D` `[D` | Next, previous / last, first diagnostic |
+| `<C-w>d` | Diagnostic float for the line |
+| `]q` `[q` / `]l` `[l` | Quickfix / location list |
+| `]b` `[b` / `]a` `[a` / `]t` `[t` | Buffers / argument list / tags |
+| `]<Space>` `[<Space>` | Blank line below / above |
+| `an` / `in` | Select the parent / child treesitter node (visual and operator-pending) |
+| `]n` `[n` (visual) | Grow the selection by node |
+| `grx` | Run the code lens under the cursor |
+| `gd` `gD` | Local / file-global declaration search, where no server answers |
 
 ### Built-ins this config replaces
 
@@ -139,10 +158,13 @@ Every one of these is a deliberate trade, listed with what covers the lost behav
 | `f` / `F` | Char search forward / back | flash jump, which lands anywhere visible |
 | `s` | Substitute char | `cl` |
 | `R` (visual) | Replace-mode change | flash treesitter search |
+| `g]` | `:tselect` on the tag under the cursor | `<C-]>`, `g<C-]>` and `]t`/`[t` still jump through tags |
 
 Kept deliberately after earlier passes moved things off them: `<C-a>`/`<C-x>` increment, `>`/`<`
 indent, `<C-e>`/`<C-y>` insert the character below/above, `ga` character info, `]m`/`[m` method
-motions, `]]`/`[[` sections, `as`/`is` sentences, `]a`/`[a` argument list, `]p`/`[p` indented paste.
+motions, `]]`/`[[` sections, `as`/`is` sentences, `]a`/`[a` argument list, `]p`/`[p` indented paste,
+and `an`/`in`, which mini.ai gave back once 0.12 claimed them for node selection — its next-object
+pair is `aN`/`iN`, its last-object pair `al`/`il`.
 
 ### Menus
 
@@ -198,6 +220,9 @@ The choice is saved in `stdpath("data")/theme_state.json` and restored at startu
 - Comments: one header per file saying what the plugin does and which keys it owns, then end-of-line
   comments only where the code does not speak for itself.
 - Autocommand groups are `999rpm-<n>`, so `:autocmd 999rpm-*` lists everything this config adds.
+- which-key entries carrying only a `desc` are labels, not mappings: which-key calls `vim.keymap.set`
+  only for entries that also carry an `rhs`. That is how built-in commands get named in the popup
+  without being taken away from Neovim.
 - Helpers in `lua/utils.lua` carry an end-of-line note naming the files that call them.
 - `.stylua.toml` pins tabs and 140 columns. conform runs stylua on save, so the file has to be
   present or the whole tree reflows to stylua's own defaults on the first write.

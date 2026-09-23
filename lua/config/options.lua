@@ -93,7 +93,7 @@ opt.emoji = false -- Prevent Neovim from assuming emoji are double-width (fixes 
 opt.smoothscroll = true -- Enable smooth scrolling with <C-d>/<C-u>
 opt.mousemodel = "popup" -- Right-click opens a popup menu instead of extending visual selection; see autocmds.lua's MenuPopup entry for what's in it
 opt.mousescroll = { "ver:3", "hor:3" } -- Mouse wheel scrolls 3 lines vertically, 3 columns horizontally
-opt.messagesopt = "hit-enter,history:500,progress:c" -- Hit-enter prompt for long messages, 500 in history, progress in the cmdline
+opt.messagesopt = "hit-enter,history:500,progress:c" -- Identical to 0.12's default, pinned because lspconfig.lua's LspProgress echo needs progress:c
 
 opt.fillchars = {
 	stl = " ", -- Fill character for the active statusline
@@ -166,7 +166,7 @@ opt.path:append("**") -- Make :find search recursively through all subdirectorie
 opt.gdefault = true -- Make :s/foo/bar/ behave like :s/foo/bar/g by default; avoids typing /g every time.
 
 if utils.executable("rg") then
-	opt.grepprg = "rg --vimgrep --no-heading --smart-case"
+	opt.grepprg = "rg --vimgrep --no-heading --smart-case" -- overrides 0.12's own rg default, which passes -uu and so searches ignored and hidden files too
 	opt.grepformat = "%f:%l:%c:%m"
 end
 
@@ -229,13 +229,17 @@ opt.listchars = { -- Visual representation of invisible characters
 opt.conceallevel = 2 -- Conceal marked text (e.g. hide URL syntax in Markdown links)
 opt.concealcursor = "" -- Never conceal text on the cursor line (any mode)
 
-opt.diffopt:append({
+opt.diffopt = { -- assigned, not appended: 0.12's default already carries linematch:40, and appending linematch:60 left both in the string
+	"internal", -- Use the built-in diff library rather than an external diff binary
+	"filler", -- Show filler lines where the other side has inserted text
+	"closeoff", -- Leave diff mode when the last other diff window closes
+	"indent-heuristic", -- Shift hunks to line up on indentation, which reads better
 	"algorithm:histogram", -- Histogram algorithm produces cleaner, more readable diffs
 	"context:3", -- Show 3 lines of context around each change
 	"vertical", -- Always show diffs side-by-side in vertical splits
 	"inline:char", -- Highlight the individual changed characters inside a changed line
 	"linematch:60", -- Align similar lines in hunks up to 60 lines; independent of inline:, not an alternative to it
-}) -- internal, filler, closeoff and indent-heuristic are already in 0.12's own default and are not repeated here
+}
 
 vim.filetype.add({
 	extension = {

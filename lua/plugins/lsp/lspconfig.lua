@@ -1,6 +1,8 @@
 -- Language servers through vim.lsp.config/vim.lsp.enable. Mason installs the binaries (mason.lua); rust is rustaceanvim's.
--- LSP defaults kept from Neovim: grn rename, gra code action, grr references, gri implementation, grt type definition, grx? no,
--- gO document symbols, <C-S> signature help (insert), K hover, [d/]d diagnostics, <C-w>d diagnostic float.
+-- Nvim 0.12's own LSP keys, kept as they are: grn rename, gra code action, grx run code lens, grr references,
+-- gri implementation, grt type definition, gO document symbols, <C-s> signature help (insert and select).
+-- Nvim's own diagnostic keys, also kept: ]d/[d next/previous, ]D/[D last/first, <C-w>d float.
+-- Added here because Nvim has no default for them: gd definition, gD declaration, K hover with a border.
 return {
 	"neovim/nvim-lspconfig",
 	dependencies = { "b0o/schemastore.nvim" }, -- pure data (JSON/YAML schema catalog), no setup() of its own; see jsonls/yamlls below
@@ -92,6 +94,10 @@ return {
 					})
 				end, "Go to Definition")
 
+				if client:supports_method("textDocument/declaration", event.buf) then
+					map("gD", vim.lsp.buf.declaration, "Go to Declaration") -- only where a server answers it; elsewhere gD stays Nvim's own file-global declaration search
+				end
+
 				map("K", function()
 					vim.lsp.buf.hover({
 						border = border_style,
@@ -111,9 +117,9 @@ return {
 					vim.lsp.buf.signature_help({ border = border_style })
 				end, "Signature Help")
 
-				vim.keymap.set("i", "<C-s>", function()
+				vim.keymap.set({ "i", "s" }, "<C-s>", function()
 					vim.lsp.buf.signature_help({ border = border_style })
-				end, { buf = event.buf, desc = "LSP: Signature Help (insert)", silent = true })
+				end, { buf = event.buf, desc = "LSP: Signature Help (insert)", silent = true }) -- same two modes as Nvim's own <C-s>, re-bound per buffer only to add the border
 
 				map("<leader>wa", vim.lsp.buf.add_workspace_folder, "Workspace Add Folder") -- add dir to workspace
 				map("<leader>wr", vim.lsp.buf.remove_workspace_folder, "Workspace Remove Folder") -- remove dir from workspace
@@ -190,14 +196,17 @@ return {
 			end,
 		})
 
+		-- nvim-lspconfig's plugin/ file returns early on 0.12 (`if vim.fn.exists(':lsp') == 2`), so it registers no
+		-- commands at all here. These three are the only source of them; :lsp enable/disable/restart/stop is built in.
 		vim.api.nvim_create_user_command("LspInfo", "checkhealth vim.lsp", { desc = "Show LSP info" })
 		vim.api.nvim_create_user_command("LspLog", function()
 			vim.cmd(string.format("edit %s", vim.lsp.log.get_filename()))
 		end, { desc = "Open LSP log file" })
-		vim.api.nvim_create_user_command("LspRestart", "lsp restart", { desc = "Restart LSP" })
-		vim.api.nvim_create_user_command("LspFormat", function()
-			vim.lsp.buf.format({ async = true })
-		end, { desc = "Format buffer via LSP" })
+		vim.api.nvim_create_user_command(
+			"LspRestart",
+			"lsp restart <args>", -- forwards client names through to the built-in rather than always restarting everything
+			{ nargs = "*", desc = "Alias for :lsp restart" }
+		)
 
 		local servers = {
 			lua_ls = {

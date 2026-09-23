@@ -1,4 +1,5 @@
--- Wansmer/treesj: split or join a node across lines. <leader>ct toggles, <leader>cs splits, <leader>cj joins.
+-- Wansmer/treesj: split or join a node across lines. <leader>cj toggles between the two, which is the only key it owns
+-- (<leader>cs is the snippets group). :TSJSplit and :TSJJoin force one direction.
 return {
 	"Wansmer/treesj",
 	dependencies = { "nvim-treesitter/nvim-treesitter" },
