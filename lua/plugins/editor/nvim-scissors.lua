@@ -1,4 +1,6 @@
 -- chrisgrieser/nvim-scissors: add and edit VS Code style snippets in stdpath("config")/snippets, which blink.lua reads.
+-- Keys: <leader>csa add, <leader>cse edit. In the editor popup: <CR> or :w save, q cancel, <BS> back to the list,
+-- <C-BS> delete, <C-d> duplicate, <C-o> open the snippet file, <C-p> insert the next placeholder, ? help.
 return {
 	"chrisgrieser/nvim-scissors",
 	opts = {

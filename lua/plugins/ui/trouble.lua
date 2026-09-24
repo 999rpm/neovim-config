@@ -1,5 +1,6 @@
--- folke/trouble.nvim: diagnostics, symbols and LSP locations in a list under <leader>d.
--- List keys: <Tab>/<S-Tab> next/previous, <CR> jump, o jump and close, p preview, P auto preview, q close.
+-- folke/trouble.nvim: diagnostics, symbols and LSP locations in a list.
+-- Keys: <leader>dd all diagnostics, dD this buffer, ds symbols, dl LSP locations, dq quickfix.
+-- In the list: <Tab>/<S-Tab> next/previous, <CR> jump, o jump and close, p preview, P auto preview, q close.
 return {
 	"folke/trouble.nvim",
 	cmd = "Trouble",
@@ -37,11 +38,11 @@ return {
 				top = "│ ",
 				middle = "├╴",
 				last = "╰╴",
-				fold_open = " ",
-				fold_closed = " ",
+				fold_open = "󰅀 ",
+				fold_closed = "󰅂 ",
 			},
-			folder_closed = " ",
-			folder_open = " ",
+			folder_closed = "󰉋 ",
+			folder_open = "󰝰 ",
 		},
 	},
 }

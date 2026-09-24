@@ -2,10 +2,12 @@
 -- Nvim 0.12's own LSP keys, kept as they are: grn rename, gra code action, grx run code lens, grr references,
 -- gri implementation, grt type definition, gO document symbols, <C-s> signature help (insert and select).
 -- Nvim's own diagnostic keys, also kept: ]d/[d next/previous, ]D/[D last/first, <C-w>d float.
--- Added here because Nvim has no default for them: gd definition, gD declaration, K hover with a border.
+-- Added here: gd definition, gD declaration, K hover with a border, <C-k> signature help, <leader>xf line diagnostics,
+-- <leader>xb/<leader>xw diagnostics to quickfix (buffer/workspace), <leader>wa/wr/wf workspace folders,
+-- <leader>ox toggle diagnostics, <leader>oh toggle inlay hints.
 return {
 	"neovim/nvim-lspconfig",
-	dependencies = { "b0o/schemastore.nvim" }, -- pure data (JSON/YAML schema catalog), no setup() of its own; see jsonls/yamlls below
+	dependencies = { "b0o/schemastore.nvim" }, -- JSON/YAML schema catalog for jsonls and yamlls
 	config = function()
 		local utils = require("utils")
 
@@ -134,10 +136,7 @@ return {
 
 				map("<leader>xf", vim.diagnostic.open_float, "Line Diagnostics") -- ergonomic alias for built-in <C-w>d
 
-				if
-					client:supports_method("textDocument/documentHighlight", event.buf)
-					and not vim.b[event.buf].user_lsp_highlight
-				then
+				if client:supports_method("textDocument/documentHighlight", event.buf) and not vim.b[event.buf].user_lsp_highlight then
 					vim.b[event.buf].user_lsp_highlight = true
 					vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
 						desc = "999rpm: highlight other occurrences of the symbol under the cursor",
@@ -196,9 +195,7 @@ return {
 			end,
 		})
 
-		-- nvim-lspconfig's plugin/ file returns early on 0.12 (`if vim.fn.exists(':lsp') == 2`), so it registers no
-		-- commands at all here. These three are the only source of them; :lsp enable/disable/restart/stop is built in.
-		vim.api.nvim_create_user_command("LspInfo", "checkhealth vim.lsp", { desc = "Show LSP info" })
+		vim.api.nvim_create_user_command("LspInfo", "checkhealth vim.lsp", { desc = "Show LSP info" }) -- nvim-lspconfig defines no commands on 0.12; :lsp covers the rest
 		vim.api.nvim_create_user_command("LspLog", function()
 			vim.cmd(string.format("edit %s", vim.lsp.log.get_filename()))
 		end, { desc = "Open LSP log file" })
@@ -214,7 +211,7 @@ return {
 				settings = {
 					Lua = {
 						runtime = { version = "LuaJIT" },
-						workspace = { checkThirdParty = false }, -- vim.* API awareness comes from lazydev.lua (ft-gated to Neovim config/plugin dirs), not a static workspace.library entry here; see that file's header
+						workspace = { checkThirdParty = false }, -- the vim.* library comes from lazydev.lua
 						completion = { workspaceWord = true, callSnippet = "Both" },
 						hint = {
 							enable = true,
@@ -286,7 +283,7 @@ return {
 					},
 				},
 			},
-			tailwindcss = {}, -- see ts_ls's note above; inherits nvim-lspconfig's own current root_dir default
+			tailwindcss = {},
 			emmet_language_server = {},
 			taplo = {},
 			neocmake = {},
@@ -325,7 +322,7 @@ return {
 			ruff = {
 				init_options = {
 					settings = {
-						organizeImports = true, -- ruff's own default already; explicit for the pairing above
+						organizeImports = true, -- pairs with basedpyright's disableOrganizeImports above
 					},
 				},
 			},
@@ -338,7 +335,7 @@ return {
 		local external_servers = {
 			gopls = {
 				_exec = "gopls",
-				_optional = false, -- listed at all implies Go is in use, so a missing binary is worth the startup nag
+				_optional = true, -- starts once gopls is on $PATH; no warning on machines without Go
 				settings = {
 					gopls = {
 						usePlaceholders = true,
@@ -352,11 +349,11 @@ return {
 					},
 				},
 			},
-			golangci_lint_ls = { _exec = "golangci-lint-langserver", _optional = true }, -- second source of the same golangci-lint diagnostics lint.lua already provides via direct CLI invocation, active only once golangci-lint-langserver is installed; off by default, no conflict since only one path runs
+			golangci_lint_ls = { _exec = "golangci-lint-langserver", _optional = true },
 			clangd = { _exec = "clangd", _optional = true },
 			hls = {
 				_exec = "haskell-language-server-wrapper",
-				_optional = true, -- install with `ghcup install hls`; see header note on why this isn't Mason-managed
+				_optional = true, -- ghcup manages hls against the installed GHC, so Mason does not install it
 				settings = {
 					haskell = {
 						formattingProvider = "ormolu",

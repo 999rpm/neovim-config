@@ -17,13 +17,13 @@ return {
 			delay = 500,
 			virt_text_pos = "eol",
 		},
-		current_line_blame_formatter = " <author>, <author_time:%R> • <summary>",
+		current_line_blame_formatter = "󰜘 <author>, <author_time:%R> • <summary>",
 		on_attach = function(bufnr)
 			local gs = require("gitsigns")
 
 			local function map(mode, lhs, rhs, opts)
 				opts = opts or {}
-				opts.buf = bufnr -- `buf`, not `buffer`: 0.12's canonical field name for both vim.keymap.set and nvim_create_autocmd
+				opts.buf = bufnr
 				vim.keymap.set(mode, lhs, rhs, opts)
 			end
 

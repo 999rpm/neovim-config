@@ -2,29 +2,29 @@
 -- In a panel: <CR> expand or edit, o step into value, d remove, e edit, r send to REPL.
 return {
 	"rcarriga/nvim-dap-ui",
-	event = "VeryLazy", -- matches plugins/debug/dap.lua's own trigger; same effective load timing as when this rode along as its dependency
-	dependencies = { "nvim-neotest/nvim-nio", "mfussenegger/nvim-dap" }, -- nvim-nio is shared; see plugins/deps/shared.lua for its other consumer
+	event = "VeryLazy", -- same trigger as dap.lua
+	dependencies = { "nvim-neotest/nvim-nio", "mfussenegger/nvim-dap" },
 	config = function()
 		local dap = require("dap")
 		local dapui = require("dapui")
 
 		dapui.setup({
 			icons = {
-				expanded = "",
-				collapsed = "",
-				current_frame = "",
+				expanded = "󰅀",
+				collapsed = "󰅂",
+				current_frame = "󰜴",
 			},
 			controls = {
 				icons = {
-					pause = "",
-					play = "",
-					step_out = "",
-					step_back = "",
-					step_into = "",
-					step_over = "",
-					run_last = "",
-					terminate = "",
-					disconnect = "",
+					pause = "󰏤",
+					play = "󰐊",
+					step_out = "󰆸",
+					step_back = "󰓕",
+					step_into = "󰆹",
+					step_over = "󰆷",
+					run_last = "󰜉",
+					terminate = "󰓛",
+					disconnect = "󰌙",
 				},
 			},
 		})

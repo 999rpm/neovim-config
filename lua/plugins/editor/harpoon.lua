@@ -1,5 +1,6 @@
 -- ThePrimeagen/harpoon (harpoon2): pin a few files and jump between them.
--- Menu keys: <Tab>/<S-Tab> down/up, <CR> open, <C-v>/<C-s> vsplit/split, q or <Esc> close; editing lines reorders or removes entries.
+-- Keys: <leader>ha add, hd remove, hh menu, h1..h4 jump to a pinned file, hn/hp next/previous pinned file.
+-- Menu: <Tab>/<S-Tab> down/up, <CR> open, <C-v>/<C-s> vsplit/split, q or <Esc> close; editing lines reorders or removes entries.
 return {
 	"ThePrimeagen/harpoon",
 	branch = "harpoon2",

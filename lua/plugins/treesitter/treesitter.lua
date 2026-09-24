@@ -33,8 +33,9 @@ return {
 				"cpp",
 				"rust",
 				"haskell",
-				"regex", -- noice.lua's cmdline highlighting and snacks.picker both ask for this by name in their own healthchecks
-				"latex", -- snacks.image's inline math and render-markdown's LaTeX blocks; the feature was advertised without the parser that backs it
+				"regex", -- noice.lua's cmdline highlighting and snacks.picker
+				"latex", -- snacks.image's inline math and render-markdown's LaTeX blocks
+				"mermaid", -- highlights mermaid sources; snacks.image renders the diagrams
 			}
 
 			local ts = require("nvim-treesitter")
@@ -42,7 +43,7 @@ return {
 			if utils.executable("tree-sitter") then
 				ts.install(ensure_installed)
 			else
-				utils.warn_if_missing_exec( -- shared warn-once helper; see utils.lua
+				utils.warn_if_missing_exec(
 					"tree-sitter",
 					"nvim-treesitter",
 					"Parsers cannot auto-install until Mason finishes installing tree-sitter-cli, or "
@@ -52,7 +53,7 @@ return {
 				)
 			end
 
-			vim.treesitter.language.register("markdown", "mdx") -- mdx has no parser of its own in `main`; this line is what gives .mdx files highlighting, not an ensure_installed entry
+			vim.treesitter.language.register("markdown", "mdx") -- mdx has no parser of its own
 
 			local function start(buf, ft)
 				local lang = vim.treesitter.language.get_lang(ft) or ft

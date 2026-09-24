@@ -1,4 +1,7 @@
--- jake-stewart/multicursor.nvim: multiple cursors under <leader>m, plus <C-Up>/<C-Down> and <C-LeftMouse>.
+-- jake-stewart/multicursor.nvim: multiple cursors.
+-- Keys: <C-Up>/<C-Down> add above/below, <C-LeftMouse> add or remove; <leader>m n/N add at next/previous match,
+-- s/S skip a match, a add at every match, j/k skip a line, A align, q toggle, x delete, v restore, D duplicate,
+-- i/I number sequence up/down, m add over a motion. With cursors active: <Left>/<Right> cycle, <Esc> clear.
 -- Native <C-LeftMouse> (jump to tag) is still on g<LeftMouse>.
 return {
 	"jake-stewart/multicursor.nvim",

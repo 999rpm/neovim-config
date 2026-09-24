@@ -3,6 +3,8 @@
 -- <C-a> mark all, <CR> open, i or / type a query, <C-s>/<C-v>/<C-t> split/vsplit/tab, <C-q> to quickfix,
 -- <A-h>/<A-i> hidden/ignored files, <A-p> preview, ? help, q or <Esc> close.
 -- Terminal: <Esc><Esc> normal mode, q (normal mode) hide, gf open file under cursor.
+-- Images: kitty draws them inline, including ```mermaid blocks in markdown (needs mmdc). <leader>ui opens the one under
+-- the cursor in a float; <leader>uM renders a standalone .mmd file beside it.
 local function term(layout)
 	local win = {
 		float = { position = "float" },
@@ -33,7 +35,10 @@ return {
 		statuscolumn = { enabled = false }, -- statuscol.lua
 		quickfile = { enabled = true },
 		scroll = { enabled = true },
-		image = { enabled = true },
+		image = {
+			enabled = true, -- markdown images, math and mermaid fences render inline through kitty's graphics protocol
+			convert = { notify = true }, -- surface a missing mmdc or a diagram syntax error instead of a silent blank
+		},
 		notifier = { enabled = true, timeout = 3000 },
 		indent = {
 			enabled = true,
@@ -66,7 +71,6 @@ return {
 		},
 	},
 	keys = {
-		-- Find
 		{
 			"<leader>ff",
 			function()
@@ -123,7 +127,6 @@ return {
 			end,
 			desc = "Files in buffer directory",
 		},
-		-- Search
 		{
 			"<leader>/",
 			function()
@@ -308,7 +311,6 @@ return {
 			end,
 			desc = "All pickers",
 		},
-		-- LSP
 		{
 			"<leader>ld",
 			function()
@@ -373,7 +375,6 @@ return {
 			end,
 			desc = "Outgoing calls",
 		},
-		-- Git
 		{
 			"<leader>gl",
 			function()
@@ -424,7 +425,6 @@ return {
 			end,
 			desc = "Changed hunks",
 		},
-		-- Terminal
 		{ "<C-,>", term("float"), mode = { "n", "t" }, desc = "Terminal (float)" },
 		{ "<leader>tf", term("float"), desc = "Float" },
 		{ "<leader>tv", term("vertical"), desc = "Vertical split" },
@@ -436,7 +436,6 @@ return {
 			end,
 			desc = "btop",
 		},
-		-- UI
 		{
 			"<leader>us",
 			function()
@@ -471,6 +470,21 @@ return {
 				Snacks.notifier.hide()
 			end,
 			desc = "Dismiss notifications",
+		},
+		{
+			"<leader>ui",
+			function()
+				Snacks.image.hover()
+			end,
+			desc = "Image or diagram in a float",
+		},
+		{
+			"<leader>uM",
+			function()
+				require("utils").mermaid_render()
+			end,
+			ft = "mermaid",
+			desc = "Render mermaid file",
 		},
 	},
 	config = function(_, opts)

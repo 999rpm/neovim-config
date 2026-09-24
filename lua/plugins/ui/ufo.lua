@@ -27,7 +27,8 @@ return {
 					return require("promise").reject(err)
 				end
 
-				return ufo.getFolds(bufnr, "lsp")
+				return ufo
+					.getFolds(bufnr, "lsp")
 					:catch(function(err)
 						return handle_fallback(err, "treesitter")
 					end)

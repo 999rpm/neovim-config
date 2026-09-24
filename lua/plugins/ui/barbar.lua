@@ -1,7 +1,7 @@
 -- romgrk/barbar.nvim: buffer tabline. Mouse: click to open, click the button to close, drag to reorder.
+-- Keys: H/L previous/next buffer, <leader>b* pick, pin, move, close and reopen.
 return {
 	"romgrk/barbar.nvim",
-	version = "^1.0.0",
 	lazy = false,
 	dependencies = { "nvim-mini/mini.nvim", "lewis6991/gitsigns.nvim" },
 	init = function()
@@ -34,7 +34,7 @@ return {
 			["neo-tree"] = { event = "BufWipeout", text = "󰙅 Explorer", align = "center" },
 		},
 		icons = {
-			preset = "slanted",
+			preset = "slanted", -- supplies the separator glyphs, so none are written in this file
 			separator_at_end = false,
 			button = "󰅖",
 			modified = { button = "●" },
@@ -43,9 +43,6 @@ return {
 				[vim.diagnostic.severity.ERROR] = { enabled = true, icon = "󰃤 " },
 				[vim.diagnostic.severity.WARN] = { enabled = true, icon = "󰀦 " },
 			},
-			separator = { left = "", right = "" },
-			active = { separator = { left = "", right = "" } },
-			inactive = { separator = { left = "", right = "" } },
 		},
 	},
 }

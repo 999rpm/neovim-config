@@ -1,4 +1,5 @@
 -- MagicDuck/grug-far.nvim: project-wide search and replace in a buffer. Needs ripgrep.
+-- Keys: <leader>rr open (visual: prefilled with the selection), rw word under the cursor, rf limited to this file type.
 -- In the buffer: <localleader>r replace all, <localleader>s sync lines, <localleader>c abort, q close.
 return {
 	"MagicDuck/grug-far.nvim",

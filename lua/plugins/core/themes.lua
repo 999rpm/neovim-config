@@ -58,13 +58,13 @@ local adapters = {
 			return s == "pro" and "monokai-pro" or "monokai-pro-" .. s -- colors/monokai-pro.lua pins the "pro" filter; the per-filter files do not
 		end,
 		is_light = function(s)
-			return s == "light" -- the only one of the 7 filters that isn't a dark palette
+			return s == "light"
 		end,
 		setup = function(s, transparent)
 			require("monokai-pro").setup({
 				filter = s,
 				transparent_background = transparent,
-				devicons = true, -- explicit rather than upstream's own default (false); every other colorscheme/icon integration in this config assumes devicons are themed, not left plain
+				devicons = true, -- themes the icon highlights, as the other three themes do by default
 			})
 		end,
 	},
@@ -209,7 +209,7 @@ return {
 	{ "loctvl842/monokai-pro.nvim", lazy = true },
 	{
 		dir = fn.stdpath("config"),
-		name = "999rpm-themer", -- matches this config's "999rpm-" naming convention (utils.lua); purely a display/identity name for this local, repo-less spec, nothing else references the literal string
+		name = "999rpm-themer", -- local spec with no repository, so lazy.nvim needs a name for it
 		lazy = false,
 		priority = 1000,
 		config = init,

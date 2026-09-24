@@ -1,4 +1,6 @@
 -- pwntester/octo.nvim: GitHub issues and pull requests. Needs an authenticated `gh` (gh auth login).
+-- Keys: <leader>goi issues, gop pull requests, goc create a pull request, gos search. Octo's own buffer keys sit on
+-- <localleader> (\); <C-b> opens the item in the browser, <C-y> copies its URL.
 return {
 	"pwntester/octo.nvim",
 	cmd = "Octo",

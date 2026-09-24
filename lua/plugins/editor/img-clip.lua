@@ -1,4 +1,4 @@
--- HakonHarnes/img-clip.nvim: pastes an image from the clipboard into the buffer's assets folder and links it.
+-- HakonHarnes/img-clip.nvim: pastes an image from the clipboard into the buffer's assets folder and links it (<leader>cp).
 return {
 	"HakonHarnes/img-clip.nvim",
 	cmd = { "PasteImage", "ImgClipConfig", "ImgClipDebug" },

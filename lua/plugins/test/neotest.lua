@@ -1,12 +1,12 @@
--- nvim-neotest/neotest: run tests from the editor under <leader>T. The jest adapter is configured here.
+-- nvim-neotest/neotest: run tests from the editor. The jest adapter is configured here.
+-- Keys: <leader>Tr nearest test, Tf this file, Ts summary, To output.
 -- Summary window: r run, o output, m mark, i expand, d debug, w watch.
 return {
 	"nvim-neotest/neotest",
 	dependencies = {
-		"nvim-neotest/nvim-nio", -- shared; see plugins/deps/shared.lua
-		"nvim-lua/plenary.nvim", -- shared; same file
+		"nvim-neotest/nvim-nio",
+		"nvim-lua/plenary.nvim",
 		"nvim-treesitter/nvim-treesitter",
-		"antoinemadec/FixCursorHold.nvim",
 		"nvim-neotest/neotest-jest",
 	},
 	keys = {

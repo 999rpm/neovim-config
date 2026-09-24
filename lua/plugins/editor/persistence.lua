@@ -1,4 +1,5 @@
--- folke/persistence.nvim: per-directory, per-branch session files under <leader>q.
+-- folke/persistence.nvim: per-directory, per-branch session files.
+-- Keys: <leader>qs restore this directory, qS pick a session, ql restore the last one, qd stop saving this session.
 return {
 	"folke/persistence.nvim",
 	event = "BufReadPre", -- only start tracking once a real file's open, not on a bare `nvim` with no args

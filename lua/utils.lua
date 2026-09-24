@@ -13,7 +13,7 @@ end
 
 ---@param name string
 ---@return boolean
-function M.executable(name) -- This util is used by options.lua, lspconfig.lua, treesitter.lua, lint.lua, copilot.lua, yazi.lua and mcphub.lua
+function M.executable(name) -- This util is used by options.lua, lspconfig.lua, treesitter.lua, lint.lua and yazi.lua
 	return fn.executable(name) > 0
 end
 
@@ -81,12 +81,10 @@ function M.menu_nav(buf) -- This util is used by nvim-bqf.lua and harpoon.lua
 	vim.keymap.set("n", "<S-Tab>", "k", { buf = buf, desc = "Previous entry" })
 end
 
--- Shell
-
-local nu_shell_options = { -- values from nushell/integrations (nvim/init.lua)
+local nu_shell_options = { -- nushell/integrations values, except shellpipe
 	shellcmdflag = "--login --stdin --no-newline -c",
 	shellredir = "out+err> %s",
-	shellpipe = "| complete | update stderr { ansi strip } | tee { get stderr | save --force --raw %s } | into record",
+	shellpipe = "| complete | update stderr { ansi strip } | tee { [$in.stdout $in.stderr] | str join | ansi strip | save --force --raw %s } | into record", -- saves stdout too, like 2>&1| tee; upstream's stderr-only save left :grep with an empty quickfix list
 	shellquote = "",
 	shellxquote = "",
 	shellxescape = "",
@@ -158,8 +156,6 @@ function M.buf_cached(key, compute) -- This util is used by lualine.lua
 	return value
 end
 
--- Git
-
 ---@param cmd string[]
 ---@return string?
 local function run_git(cmd)
@@ -188,8 +184,6 @@ function M.get_current_branch_name() -- This util is used by options.lua
 	end
 	return cached
 end
-
--- LSP
 
 ---Client capabilities with folding ranges (nvim-ufo) and blink.cmp completion.
 ---@return lsp.ClientCapabilities
@@ -283,8 +277,6 @@ function M.setup_rounded_virtual_lines() -- This util is used by lspconfig.lua
 	}
 end
 
--- Theming
-
 ---RainbowDelimiter groups, in rainbow-delimiters' own order. Colors follow the active theme.
 ---@type string[]
 M.rainbow_delimiter_groups = { -- This util is used by rainbow-delimiters.lua and snacks.lua
@@ -296,6 +288,40 @@ M.rainbow_delimiter_groups = { -- This util is used by rainbow-delimiters.lua an
 	"RainbowDelimiterViolet",
 	"RainbowDelimiterCyan",
 }
+
+---Renders the current mermaid file to PNG with mmdc and shows it in a split; snacks.image draws the image buffer.
+function M.mermaid_render() -- This util is used by snacks.lua
+	if not M.executable("mmdc") then
+		warn("'mmdc' not found on $PATH. Install it with: npm install -g @mermaid-js/mermaid-cli", "Mermaid")
+		return
+	end
+	local src = api.nvim_buf_get_name(0)
+	if src == "" then
+		return
+	end
+	if vim.bo.modified then
+		vim.cmd.write()
+	end
+	local out = ("%s/mermaid/%s.png"):format(fn.stdpath("cache"), fn.fnamemodify(src, ":t:r"))
+	M.may_create_dir(fn.fnamemodify(out, ":h"))
+	local theme = vim.o.background == "light" and "neutral" or "dark" -- same pick snacks.image makes for inline diagrams
+	vim.system({ "mmdc", "-i", src, "-o", out, "-t", theme, "-b", "transparent" }, { text = true }, function(res)
+		vim.schedule(function()
+			if res.code ~= 0 then
+				vim.notify(vim.trim(res.stderr ~= "" and res.stderr or res.stdout), vim.log.levels.ERROR, { title = "Mermaid" })
+				return
+			end
+			local win = fn.bufwinid(out)
+			if win ~= -1 then
+				api.nvim_win_call(win, function()
+					vim.cmd("edit!") -- reload the image after a re-render
+				end)
+			else
+				vim.cmd("vsplit " .. fn.fnameescape(out))
+			end
+		end)
+	end)
+end
 
 ---Active Python virtual environment (venv before conda), or "".
 ---@return string

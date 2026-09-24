@@ -6,14 +6,15 @@ settings under `lua/config/`, shared helpers in `lua/utils.lua`.
 ## Install
 
 ```sh
-# back up anything already there
 mv ~/.config/nvim ~/.config/nvim.bak
 mv ~/.local/share/nvim ~/.local/share/nvim.bak
-
-# extract this archive so the folder lands at ~/.config/nvim
-unzip nvim-config.zip -d ~/.config
+unzip nvim-config.zip -d ~/.config   # writes ~/.config/nvim and ~/.config/kitty/kitty.conf
 nvim
 ```
+
+The archive also carries `kitty/kitty.conf`: the same file as before, with new-tab moved from
+`ctrl+t` to kitty's own `ctrl+shift+t` (see Kitty below). `unzip nvim-config.zip 'nvim/*' -d ~/.config`
+leaves kitty alone.
 
 First launch clones the plugins, then Mason installs the language servers, formatters, linters and
 debug adapters listed in `lua/plugins/lsp/mason.lua`. Parsers install once the tree-sitter CLI is
@@ -25,14 +26,19 @@ present. `:Lazy` manages plugins, `:Mason` manages tools, `:checkhealth` reports
 | --- | --- |
 | git, a C compiler, `make` | plugin installs, treesitter parsers, telescope-fzf-native |
 | ripgrep, fd | grep pickers, file pickers, grug-far |
-| Node.js 22+ | Copilot, mcp-hub, the JS/TS servers and js-debug-adapter |
+| Node.js 22+ | Copilot, mcp-hub, the JS/TS servers, js-debug-adapter, mermaid-cli |
 | python3 | debugpy, ruff, basedpyright |
+| mermaid-cli (`npm install -g @mermaid-js/mermaid-cli`) | mermaid diagrams (`mmdc`) |
+| ImageMagick (`magick`) | image conversion for snacks.image |
+| kitty, or another terminal with the kitty graphics protocol | inline images and diagrams |
 | lazygit | `<leader>gl` |
 | yazi | `<leader>ey` |
 | gh (authenticated) | Octo |
 | xxd | `<leader>oX` hex view |
 | btop | `<leader>tm` |
-| cargo | avante's build step |
+| cargo | avante's build step compiles its tokenizer |
+| Go toolchain (optional) | gopls, and Mason's gofumpt build |
+| ghcup's hls (optional) | Haskell language server |
 | A Nerd Font | icons in the tabline, statusline, pickers and trees |
 
 ## Layout
@@ -53,8 +59,8 @@ lua/plugins/
   lsp/                      lspconfig, mason, lazydev, inc-rename, symbol-usage, rustaceanvim
   completion/               blink.cmp, copilot, autopairs
   treesitter/               treesitter, textobjects, context, rainbow-delimiters, hlargs, treesj, autotag
-  editor/                   motions, text objects, search and replace, snippets, todo comments
-  ui/                       barbar, lualine, noice, trouble, folds, scrollbar, breadcrumbs, window picker
+  editor/                   motions, surround, case, multicursor, search and replace, snippets, sessions
+  ui/                       barbar, lualine, noice, trouble, folds, scrollbar, breadcrumbs, markdown
   git/                      gitsigns, codediff, gitlinker, octo
   explorer/                 neo-tree, oil, yazi
   debug/                    nvim-dap and its UI, python and virtual text
@@ -67,9 +73,9 @@ lua/plugins/
 
 ## Keymaps
 
-Leader is `Space`, local leader is `\`. Press the leader and wait for which-key to list what follows,
-or `<leader>sk` to search every mapping. Lowercase and uppercase prefixes pair up: the lowercase one
-is the common action, the uppercase twin is its wider or rarer form.
+Leader is `Space`, local leader is `\`. Press the leader and wait for which-key to list what
+follows, or `<leader>sk` to search every mapping. Lowercase and uppercase prefixes pair up: the
+lowercase one is the common action, the uppercase twin is its wider or rarer form.
 
 ### Leader groups
 
@@ -95,7 +101,7 @@ is the common action, the uppercase twin is its wider or rarer form.
 | `<leader>s` | Search contents: grep, help, keymaps, commands, diagnostics, marks, undo, todos, resume |
 | `<leader>t` | Terminals: float, vertical, horizontal, btop |
 | `<leader>T` | Tests |
-| `<leader>u` | UI: scratch, zen, zoom, breadcrumb pick, markdown render, dismiss notifications |
+| `<leader>u` | UI: scratch, zen, zoom, breadcrumbs, markdown render, image float, dismiss notifications |
 | `<leader>w` | LSP workspace folders |
 | `<leader>x` | Diagnostics: line float, buffer and workspace quickfix |
 | `<leader>a` / `<leader>A` | Swap the parameter under the cursor with the next / previous one |
@@ -116,7 +122,7 @@ is the common action, the uppercase twin is its wider or rarer form.
 | `<C-s>` / `<C-q>` | Write / quit |
 | `<C-,>` | Toggle the floating terminal, from normal and terminal mode |
 | `<C-a>` / `<C-x>` | Increment / decrement, widened to dates, booleans and semver by dial.nvim |
-| `gA` + letter | Case conversion, `gA.` picks from a list |
+| `gA` + case key | Change the case of the word, or of the selection in visual mode |
 | `ys` `ds` `cs` | Add, delete, change a surrounding pair; `S` in visual mode |
 | `]c` `[c` | Git hunks |
 | `]d` `[d` | Diagnostics |
@@ -126,11 +132,14 @@ is the common action, the uppercase twin is its wider or rarer form.
 | `K`, `grn`, `gra`, `grx`, `grr`, `gri`, `grt`, `gO` | Neovim's own LSP keys |
 | `zR` / `zM` / `zr` | Folds through nvim-ufo |
 
+Case keys after `gA`: `c` camelCase, `p` PascalCase, `s` snake_case, `u` UPPER_CASE, `k`
+kebab-case, `d` dot.case, `/` path/case, `n` numeronym, `Space` space case.
+
 ### Neovim 0.12 keys this config leaves alone
 
-0.12 maps far more by default than earlier versions did. None of these are re-bound here, and `which-key.lua`
-labels the `g`-prefixed ones because built-in *commands* — as opposed to keymaps — appear in no keymap table
-and so cannot be discovered by anything:
+0.12 maps far more by default than earlier versions did. None of these are re-bound here, and
+`which-key.lua` labels the `g`-prefixed ones because built-in *commands*, unlike keymaps, appear in
+no keymap table and so cannot be discovered by anything:
 
 | Key | Action |
 | --- | --- |
@@ -150,7 +159,7 @@ Every one of these is a deliberate trade, listed with what covers the lost behav
 
 | Taken | Was | Covered instead by |
 | --- | --- | --- |
-| `;` | Repeat `f`/`F`/`t`/`T` | Nothing; `f` is a flash jump, so a repeat has little to repeat |
+| `;` | Repeat `f`/`F`/`t`/`T` | `,` still repeats backwards; `f` is a flash jump, so there is little to repeat |
 | `q` | Record a macro | `@` still replays; recording is off on purpose |
 | `x` / `X` | Delete into the unnamed register | Same delete, black-hole register; `d` still yanks |
 | `<C-q>` | Blockwise visual | `<C-v>` |
@@ -163,8 +172,8 @@ Every one of these is a deliberate trade, listed with what covers the lost behav
 Kept deliberately after earlier passes moved things off them: `<C-a>`/`<C-x>` increment, `>`/`<`
 indent, `<C-e>`/`<C-y>` insert the character below/above, `ga` character info, `]m`/`[m` method
 motions, `]]`/`[[` sections, `as`/`is` sentences, `]a`/`[a` argument list, `]p`/`[p` indented paste,
-and `an`/`in`, which mini.ai gave back once 0.12 claimed them for node selection — its next-object
-pair is `aN`/`iN`, its last-object pair `al`/`il`.
+`<C-t>` tag stack and insert-mode indent, and `an`/`in`, which mini.ai gave back once 0.12 claimed
+them for node selection. Its next-object pair is `aN`/`iN`, its last-object pair `al`/`il`.
 
 ### Menus
 
@@ -184,6 +193,16 @@ Pickers, the quickfix window, Trouble, the harpoon menu and dropbar menus share 
 Live sources (grep, git grep, workspace symbols) open with the prompt focused, since they need a
 query before there is anything to list.
 
+## Markdown and mermaid
+
+render-markdown draws headings, lists, callouts and code blocks in place (`<leader>um` toggles it).
+snacks.image draws images, LaTeX math and ` ```mermaid ` fences inline, straight into the kitty
+window; `mmdc` turns each diagram into a PNG that follows the light or dark background of the
+current theme. `<leader>ui` opens the image or diagram under the cursor in a float. In a standalone
+`.mmd` or `.mermaid` file, `<leader>uM` renders the whole file beside the source and re-renders into
+the same split on the next press. A missing `mmdc` or a diagram syntax error shows up as a
+notification rather than a blank space. `:checkhealth snacks` lists what the image module can use.
+
 ## Terminals
 
 `<leader>tf`, `<leader>tv` and `<leader>th` open a floating, vertical and horizontal terminal. Each
@@ -195,17 +214,26 @@ mode included. `<Esc><Esc>` switches a terminal to normal mode, `q` hides it.
 
 `'shell'` follows the login shell recorded in the passwd database, so `chsh` applies to the next
 Neovim start rather than the next login. Nushell gets the shell flags from nushell's own Neovim
-integration; POSIX shells get Vim's. Changing `'shell'` inside a session re-applies the matching
-flags.
+integration; zsh, bash and other POSIX shells get Vim's. Changing `'shell'` inside a session
+re-applies the matching flags. Non-interactive zsh reads only `.zshenv`, so `:!cmd`, `:make` and
+the formatters see the PATH set there, including `~/.local/bin` where `npm install -g` puts `mmdc`.
+Under nushell, `:make` and `:grep` save a command's stdout and stderr to the quickfix list, the way
+`2>&1| tee` does for zsh. nushell's own integration saves stderr only, which leaves `:grep` empty.
+A `:%!` filter under nushell takes a nushell pipeline (`lines | sort | str join (char nl)`), or
+`^sort` for the external command.
 
-`<C-s>` writes the buffer. Under a POSIX shell that still has legacy flow control on, the terminal
-swallows `<C-s>` as XOFF before Neovim sees it; `stty -ixon` in `.zshrc` or `.bashrc` frees it.
-Nushell does not take `<C-s>`.
+`<C-s>` and `<C-q>` always reach Neovim: its terminal UI switches the tty to raw mode, which turns
+off XON/XOFF flow control. At the zsh prompt the same keys still freeze and resume output unless
+`.zshrc` has `unsetopt FLOW_CONTROL`. Nushell does not take them.
 
-Kitty keeps its own setting: `shell .` in `kitty.conf` makes kitty follow the login shell too,
-instead of pinning one shell. Nothing here binds `ctrl+shift+*`, which is where kitty's own defaults
-live, so the two sets do not overlap. `<C-,>` needs kitty's keyboard protocol, which is on by
-default.
+## Kitty
+
+`shell .` in `kitty.conf` makes kitty follow the login shell too. Nothing here binds `ctrl+shift+*`
+or `alt+1`..`alt+9`, the keys kitty keeps for itself. The one clash was `map ctrl+t
+new_tab_with_cwd`: kitty takes a key before any program sees it, so it swallowed Neovim's `<C-t>`
+(tag stack back, insert-mode indent, open a picker result in a tab) and fzf's Ctrl-T widget, which
+`.zshrc` loads. New tab now sits on `ctrl+shift+t`, kitty's own default, still opening in the
+current directory. `<C-,>` needs kitty's keyboard protocol, which is on by default.
 
 ## Themes
 
@@ -217,12 +245,16 @@ The choice is saved in `stdpath("data")/theme_state.json` and restored at startu
 
 - One plugin per file, named after the plugin. Dependencies with no configuration of their own live
   in `lua/plugins/deps/shared.lua` and are referenced by name.
-- Comments: one header per file saying what the plugin does and which keys it owns, then end-of-line
-  comments only where the code does not speak for itself.
-- Autocommand groups are `999rpm-<n>`, so `:autocmd 999rpm-*` lists everything this config adds.
+- Comments: one header per file saying what the plugin does, the keys this config binds for it and
+  the keys the plugin brings inside its own windows, then end-of-line comments only where the code
+  does not speak for itself. No comment stands on a line of its own below the header.
+- Autocommand groups are `999rpm-<name>`, so `:autocmd 999rpm-*` lists everything this config adds.
 - which-key entries carrying only a `desc` are labels, not mappings: which-key calls `vim.keymap.set`
   only for entries that also carry an `rhs`. That is how built-in commands get named in the popup
   without being taken away from Neovim.
 - Helpers in `lua/utils.lua` carry an end-of-line note naming the files that call them.
+- Icons come from the Nerd Font nf-md range (U+F0001 and up). Older private-use glyphs
+  (U+E000 to U+F8FF) get dropped by some copy and paste paths, so the few that have no nf-md
+  equivalent, the slanted statusline separators, are written as `\u{...}` escapes.
 - `.stylua.toml` pins tabs and 140 columns. conform runs stylua on save, so the file has to be
   present or the whole tree reflows to stylua's own defaults on the first write.

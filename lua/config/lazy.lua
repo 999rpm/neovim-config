@@ -1,4 +1,5 @@
--- lazy.nvim bootstrap and runtime settings. :Lazy opens the manager, <leader>ol is its key.
+-- lazy.nvim bootstrap and runtime settings. :Lazy opens the manager, <leader>ol is its key (<leader>om opens Mason).
+-- In the Lazy window: H home, I install, U update, S sync, X clean, C check, L log, R restore, P profile, D debug, ? help.
 local fn = vim.fn
 local api = vim.api
 local uv = vim.uv

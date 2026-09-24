@@ -1,5 +1,6 @@
 -- Mason plus the installer bridges: servers for lspconfig, tools for conform/nvim-lint, adapters for nvim-dap.
--- :Mason opens the UI (<leader>om); :MasonUpdate refreshes the registry.
+-- :Mason opens the UI (<leader>om), :MasonUpdate refreshes the registry. In the UI: i install, u update, U update all,
+-- X uninstall, c/C check versions, <CR> expand, <C-f> language filter, g? help.
 return {
 	{
 		"mason-org/mason.nvim",
@@ -33,7 +34,7 @@ return {
 				"cssls",
 				"tailwindcss",
 				"emmet_language_server",
-				"rust_analyzer", -- binary only: plugins/lsp/rustaceanvim.lua, not lspconfig.lua's `servers` table, starts this client; Mason's job here is unaffected either way
+				"rust_analyzer", -- binary only; rustaceanvim.lua starts the client
 				"basedpyright",
 				"ruff",
 				"dockerls",
@@ -46,8 +47,8 @@ return {
 	{
 		"WhoIsSethDaniel/mason-tool-installer.nvim",
 		dependencies = { "mason-org/mason.nvim" },
-		opts = {
-			ensure_installed = {
+		opts = function()
+			local tools = {
 				"stylua",
 				"prettier",
 				"shfmt",
@@ -63,10 +64,13 @@ return {
 				"golangci-lint",
 				"yamllint",
 				"typos",
-				"gofumpt", -- plugins/lang-tools/conform.lua's `go = {"gofumpt"}` formatter; wasn't actually guaranteed installed anywhere before this
-				"tree-sitter-cli", -- plugins/treesitter/treesitter.lua's `main`-branch parser installs need this on $PATH; see that file's own note
-			},
-		},
+				"tree-sitter-cli", -- nvim-treesitter's main branch builds parsers with it
+			}
+			if vim.fn.executable("go") == 1 then
+				table.insert(tools, "gofumpt") -- Mason builds it with `go install`, which fails without a Go toolchain
+			end
+			return { ensure_installed = tools }
+		end,
 	},
 	{
 		"jay-babu/mason-nvim-dap.nvim",

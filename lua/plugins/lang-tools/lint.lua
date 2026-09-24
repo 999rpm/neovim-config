@@ -1,4 +1,4 @@
--- mfussenegger/nvim-lint: linters that have no language server, run on write and on leaving insert mode.
+-- mfussenegger/nvim-lint: linters without a language server, run on write and on leaving insert mode. Missing binaries are skipped.
 return {
 	"mfussenegger/nvim-lint",
 	event = { "BufReadPre", "BufNewFile" },
@@ -17,35 +17,22 @@ return {
 			["yaml.github"] = { "actionlint" },
 		}
 
-		local always = { "typos" } -- filetype-independent linters; see header note on why these can't live above
+		local always = { "typos" } -- every filetype; linters_by_ft has no wildcard key
 
-		local function runnable(names)
-			local found = {}
-			for _, name in ipairs(names or {}) do
-				local linter = lint.linters[name]
-				if type(linter) == "function" then
-					linter = linter()
-				end
-				local cmd = type(linter) == "table" and linter.cmd or nil
-				if type(cmd) == "function" then
-					cmd = cmd()
-				end
-				if cmd and utils.executable(cmd) then
-					table.insert(found, name)
-				end
+		local function installed(linter) -- nvim-lint raises on a missing binary, so only linters on $PATH run
+			local cmd = linter.cmd
+			if type(cmd) == "function" then
+				cmd = cmd()
 			end
-			return found
+			return type(cmd) == "string" and utils.executable(cmd)
 		end
 
 		vim.api.nvim_create_autocmd({ "BufWritePost", "InsertLeave" }, {
 			group = utils.augroup("lint"),
 			desc = "999rpm: run nvim-lint on write and on leaving insert mode",
 			callback = function()
-				local names = runnable(lint._resolve_linter_by_ft(vim.bo.filetype)) -- nvim-lint's own resolver, so compound filetypes ("yaml.github") keep splitting correctly
-				vim.list_extend(names, runnable(always))
-				if #names > 0 then
-					lint.try_lint(names)
-				end
+				lint.try_lint(nil, { filter = installed }) -- nil: nvim-lint resolves the filetype itself, compound ones like yaml.github included
+				lint.try_lint(always, { filter = installed })
 			end,
 		})
 	end,

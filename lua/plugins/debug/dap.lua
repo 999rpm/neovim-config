@@ -1,12 +1,14 @@
 -- mfussenegger/nvim-dap: debugger client, adapters and launch configurations under <leader>D.
 -- Adapters come from Mason: codelldb (C, C++, Rust), js-debug-adapter (JS, TS), haskell-debug-adapter; python is dap-python.lua.
+-- Keys: <leader>D b breakpoint, B conditional, L log point, x clear all, p list, c continue, C run to cursor, l run last,
+-- i/o/O step into/over/out, P pause, t terminate, r REPL, h hover value, s scopes, e evaluate, u UI; F5/F10/F11/F12 as in most IDEs.
 return {
 	"mfussenegger/nvim-dap",
 	event = "VeryLazy",
 
 	dependencies = {
-		"rcarriga/nvim-dap-ui", -- full config in plugins/debug/dap-ui.lua; listed here for install/load ordering only
-		"mfussenegger/nvim-dap-python", -- full config in plugins/debug/dap-python.lua; same reasoning
+		"rcarriga/nvim-dap-ui", -- configured in dap-ui.lua
+		"mfussenegger/nvim-dap-python", -- configured in dap-python.lua
 	},
 
 	keys = {
@@ -172,15 +174,15 @@ return {
 		local utils = require("utils")
 
 		local signs = {
-			DapBreakpoint = { text = "", texthl = "DapBreakpoint" },
-			DapBreakpointCondition = { text = "", texthl = "DapBreakpointCondition" },
-			DapLogPoint = { text = "", texthl = "DapLogPoint" },
+			DapBreakpoint = { text = "󰝥", texthl = "DapBreakpoint" },
+			DapBreakpointCondition = { text = "󱎖", texthl = "DapBreakpointCondition" },
+			DapLogPoint = { text = "󰍩", texthl = "DapLogPoint" },
 			DapStopped = {
-				text = " ",
+				text = "󰜴",
 				texthl = "DapStopped",
 				linehl = "DapStoppedLine",
 			},
-			DapBreakpointRejected = { text = "", texthl = "DapBreakpointRejected" },
+			DapBreakpointRejected = { text = "󰅙", texthl = "DapBreakpointRejected" },
 		}
 
 		for name, sign in pairs(signs) do
@@ -198,7 +200,7 @@ return {
 		set_dap_highlights()
 		vim.api.nvim_create_autocmd("ColorScheme", {
 			desc = "999rpm: re-link Dap* sign highlights after a theme switch",
-			group = require("utils").augroup("dap-highlights"),
+			group = utils.augroup("dap-highlights"),
 			callback = set_dap_highlights,
 		})
 

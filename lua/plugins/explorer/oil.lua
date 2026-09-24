@@ -1,4 +1,5 @@
 -- stevearc/oil.nvim: edit a directory like a buffer; writing the buffer applies the renames, creates and deletes.
+-- Keys: <leader>eP open the buffer's directory, <leader>ef the same in a float.
 -- In an oil buffer: <CR> open, - parent directory, _ cwd, g? help, gs sort, g. hidden files, <C-p> preview.
 return {
 	"stevearc/oil.nvim",

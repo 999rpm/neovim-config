@@ -1,4 +1,7 @@
--- avante-corp/avante.nvim: Claude sidebar with diff-based edits. Needs ANTHROPIC_API_KEY.
+-- avante-corp/avante.nvim: Claude sidebar with diff-based edits. Needs ANTHROPIC_API_KEY, and cargo for the build step.
+-- Keys: <leader>ia toggle, ie edit selection, iA ask, in new chat, is stop, ir refresh, if focus, im model, ih history,
+-- ib add open buffers, iF add current file, iz zen mode, iR repo map.
+-- In the sidebar: A apply all, a apply at cursor, r retry, e edit request, @ add file, d remove file, <Tab>/<S-Tab> switch panes, q close.
 return {
 	"avante-corp/avante.nvim",
 	build = "make",

@@ -1,4 +1,5 @@
--- mrcjkb/rustaceanvim: rust-analyzer client with runnables, debuggables and hover actions (rust_analyzer is not enabled in lspconfig.lua).
+-- mrcjkb/rustaceanvim: rust-analyzer client with runnables, debuggables and hover actions (rust_analyzer stays out of lspconfig.lua).
+-- Keys in rust buffers: K hover actions, <leader>Tc cargo runnables, <leader>Dd debuggables.
 return {
 	"mrcjkb/rustaceanvim",
 	version = "^9",

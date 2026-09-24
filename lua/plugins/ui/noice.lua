@@ -1,5 +1,5 @@
 -- folke/noice.nvim: command line, messages and LSP progress as floating UI.
--- Keys: <leader>sm history, <leader>ud dismiss, <C-f>/<C-b> scroll hover and docs.
+-- No keys of its own: <leader>sm (snacks.lua) opens the message history, :Noice dismiss clears the views.
 return {
 	"folke/noice.nvim",
 	dependencies = { "MunifTanjim/nui.nvim" },
@@ -18,17 +18,17 @@ return {
 			enabled = true,
 		},
 
-		notify = { enabled = false }, -- snacks.notifier owns vim.notify; see header
+		notify = { enabled = false }, -- snacks.notifier owns vim.notify
 		messages = {
 			enabled = true,
-			view = "mini", -- Use mini view for less distraction
+			view = "mini",
 			view_error = "mini",
 			view_warn = "mini",
 		},
 
 		presets = {
-			bottom_search = true, -- Classic search position
-			command_palette = true, -- Position cmdline in center
+			bottom_search = true,
+			command_palette = true,
 			long_message_to_split = true,
 			inc_rename = true,
 			lsp_doc_border = true,

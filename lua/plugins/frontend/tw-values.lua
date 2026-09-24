@@ -6,6 +6,6 @@ return {
 		{ "<leader>cv", "<cmd>TWValues<cr>", desc = "Show Tailwind Values" },
 	},
 	opts = {
-		border = "rounded", -- matches options.lua's global winborder default
+		border = "rounded",
 	},
 }

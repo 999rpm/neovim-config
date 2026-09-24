@@ -1,4 +1,4 @@
--- Bekaboo/dropbar.nvim: clickable breadcrumbs in the winbar.
+-- Bekaboo/dropbar.nvim: clickable breadcrumbs in the winbar. <leader>ub picks a crumb by label.
 -- Menu keys: <Tab>/<S-Tab> down/up, <CR> open, i fuzzy find, q or <Esc> close.
 return {
 	"Bekaboo/dropbar.nvim",

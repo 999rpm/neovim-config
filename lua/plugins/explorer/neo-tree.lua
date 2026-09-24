@@ -1,4 +1,6 @@
 -- nvim-neo-tree/neo-tree.nvim: sidebar tree with git status and diagnostics. barbar.lua shifts the tabline beside it.
+-- Keys: <leader>ee toggle, <leader>er reveal the current file. In the tree: <Tab> expand, l/<CR> open, h collapse,
+-- P float preview, a add, d delete, r rename, y/x/p copy/cut/paste, c copy to, m move, R refresh, q close, ? help.
 return {
 	"nvim-neo-tree/neo-tree.nvim",
 	branch = "v3.x",
@@ -40,20 +42,20 @@ return {
 				last_indent_marker = "╰",
 				highlight = "NeoTreeIndentMarker",
 				with_expanders = true,
-				expander_collapsed = "",
-				expander_expanded = "",
+				expander_collapsed = "󰅂",
+				expander_expanded = "󰅀",
 			},
 			git_status = {
 				symbols = {
 					added = "✚",
-					modified = "",
+					modified = "󰏫",
 					deleted = "✖",
 					renamed = "󰁕",
-					untracked = "",
-					ignored = "",
+					untracked = "󰘥",
+					ignored = "󰈉",
 					unstaged = "󰄱",
-					staged = "",
-					conflict = "",
+					staged = "󰄬",
+					conflict = "󰀩",
 				},
 			},
 		},

@@ -1,4 +1,6 @@
 -- nvim-treesitter/nvim-treesitter-textobjects (main branch): select, swap and move by function, class, parameter and scope.
+-- Objects: af/if function, ac/ic class, a,/i, parameter, aS scope. Swap: <leader>a/<leader>A parameter with next/previous.
+-- Moves: ]f/[f function, ]F/[F function end, ]k/[k class, ]K/[K class end, ],/[, parameter, ]j/[j JSX element.
 -- Native motions kept: ]m [m ]M [M (method), ]] [[ (section), as/is (sentence), ]a [a (argument list), ]p [p (indented paste).
 return {
 	"nvim-treesitter/nvim-treesitter-textobjects",

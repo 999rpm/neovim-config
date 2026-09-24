@@ -1,4 +1,4 @@
--- nvim-lualine/lualine.nvim: statusline. Separators match the tabline (U+E0BA, U+E0BB, U+E0BC).
+-- nvim-lualine/lualine.nvim: global statusline with slanted separators, the same family as barbar's tabline.
 return {
 	"nvim-lualine/lualine.nvim",
 	event = "VeryLazy",
@@ -20,12 +20,12 @@ return {
 				TERMINAL = "󰞷 ",
 			},
 			diagnostics = { error = "󰃤 ", warn = "󰀦 ", info = "󰭷 ", hint = "󰌵 " },
-			diff = { added = "✚ ", modified = " ", removed = "✖ " },
+			diff = { added = "✚ ", modified = "󰏫 ", removed = "✖ " },
 			git = { ahead = "󰮽", behind = "󰮷" },
 		}
 
 		local function hide_in_width()
-			return fn.winwidth(0) > 100 -- `fn` is the local alias declared above; vim.fn.* elsewhere in this file went with it
+			return fn.winwidth(0) > 100
 		end
 
 		local git_status_cache = { fetch_success = false, behind_count = 0, ahead_count = 0 }
@@ -77,7 +77,7 @@ return {
 				return ""
 			end
 			local venv = utils.get_virtual_env()
-			return venv ~= "" and (" " .. venv) or ""
+			return venv ~= "" and ("󰌠 " .. venv) or ""
 		end
 
 		local function trailing_space()
@@ -196,8 +196,8 @@ return {
 			options = {
 				theme = "auto",
 				globalstatus = true,
-				component_separators = { left = "", right = "" },
-				section_separators = { left = "", right = "" },
+				component_separators = { left = "\u{e0bb}", right = "\u{e0bb}" }, -- written as escapes: private-use glyphs do not survive every copy of this file
+				section_separators = { left = "\u{e0bc}", right = "\u{e0ba}" },
 				disabled_filetypes = {
 					statusline = { "alpha", "neo-tree", "Trouble", "lazy", "mason", "snacks_picker_list", "snacks_picker_input" },
 					winbar = {},
