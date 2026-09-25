@@ -1,4 +1,4 @@
--- lazy.nvim bootstrap and runtime settings. :Lazy opens the manager, <leader>ol is its key (<leader>om opens Mason).
+-- lazy.nvim bootstrap and runtime settings. :Lazy or <leader>ol opens the manager; the statusline shows pending updates.
 -- In the Lazy window: H home, I install, U update, S sync, X clean, C check, L log, R restore, P profile, D debug, ? help.
 local fn = vim.fn
 local api = vim.api
@@ -22,16 +22,12 @@ end
 vim.opt.rtp:prepend(vim.env.LAZY or lazypath)
 
 local has_git = fn.executable("git") == 1
-local disabled_plugins = {
+local disabled_plugins = { -- names from 0.12's runtime/plugin; matchit stays on, so % also jumps between if/else/end words
 	"gzip",
-	"matchit",
-	"netrwPlugin",
+	"netrwPlugin", -- oil.lua opens directories
 	"rplugin",
 	"tarPlugin",
-	"tohtml",
 	"zipPlugin",
-	"vimballPlugin",
-	"2html_plugin",
 }
 
 local icons = {
@@ -59,7 +55,7 @@ require("lazy").setup({
 	concurrency = 10,
 	dev = { path = fn.stdpath("config") .. "/dev" },
 	install = { missing = has_git, colorscheme = {} },
-	checker = { enabled = has_git, notify = true },
+	checker = { enabled = has_git, notify = false }, -- lualine.lua shows the count; no startup notification
 	change_detection = { notify = false },
 	ui = {
 		border = "rounded",
@@ -77,7 +73,6 @@ require("lazy").setup({
 })
 
 vim.keymap.set("n", "<leader>ol", "<cmd>Lazy<cr>", { desc = "Lazy" })
-vim.keymap.set("n", "<leader>om", "<cmd>Mason<cr>", { desc = "Mason" })
 
 api.nvim_create_user_command("LazyDisable", function()
 	local config = require("lazy.core.config")

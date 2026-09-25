@@ -1,99 +1,91 @@
--- Editor-wide keymaps. Plugin keys live in their plugin file; which-key.lua labels the prefixes.
--- Replaced built-ins, and where the lost behaviour went: ; repeat f/F/t/T (gone, ; is :), q macro record (gone, @ replay still works),
--- x/X delete-and-yank (now black-hole), <C-q> blockwise visual (still on <C-v>), H/L window top/bottom (now buffers; M and zt/zb cover it),
--- f/F char search (flash.lua jump), s substitute (cl does the same), R visual replace mode (flash.lua treesitter search).
--- Built-ins worth remembering: gi last insert spot, gv reselect, g; g, change list, '' jump back, <C-o>/<C-i> jump list,
--- zz/zt/zb scroll, M window middle, gx open link, & repeat :s, @: repeat command, ga character info, gq format, . repeat,
--- <C-a>/<C-x> increment/decrement (extended by dial.lua), >/< indent operator, <C-e>/<C-y> insert the char below/above.
--- Nvim 0.12 ships more of these than earlier versions did, and none are re-mapped here: ]d/[d and ]D/[D diagnostics,
--- <C-w>d diagnostic float, ]q/[q quickfix, ]l/[l location list, ]b/[b buffers, ]a/[a arguments, ]t/[t tags,
--- ]<Space>/[<Space> blank line below/above, an/in select the parent/child treesitter node (visual and operator-pending),
--- ]n/[n grow the visual selection by node, grx run code lens. which-key.lua labels the g-prefixed ones.
+-- Editor-wide keymaps. Plugin keys live in their plugin file; which-key.lua names the prefixes.
+-- No key here takes a built-in away. Built-ins worth knowing: ; and , repeat f/t, q records a macro and @ replays it,
+-- x deletes a char, P pastes over a selection without yanking it, H/M/L jump to the window top/middle/bottom, s changes a char,
+-- ~ toggles case, gi resumes the last insert, gv reselects, g; and g, walk the change list, <C-o>/<C-i> walk the jump list,
+-- zz/zt/zb scroll, gx opens a link, & repeats :s, @: repeats a command, ga shows character info, gq formats, . repeats,
+-- <C-w>+ <C-w>- <C-w>< <C-w>> <C-w>= size windows, <C-v> starts blockwise visual, ZZ writes and quits, ZQ quits unsaved.
+-- 0.12 defaults left alone: ]d [d ]D [D diagnostics, <C-w>d diagnostic float, ]q [q ]l [l lists, ]b [b buffers, ]a [a args,
+-- ]t [t tags, ]<Space> [<Space> blank lines, an/in parent/child node, K hover, <C-s> signature help (insert), gr* LSP keys.
+-- hardtime.lua owns h j k l J and the arrow keys (it wraps them to count repeats), so nothing here maps them.
 local map = vim.keymap.set
 
-map({ "n", "x" }, "<space>", "<nop>", { desc = "Leader prefix only; bare Space does nothing" })
-map("n", "q", "<nop>", { desc = "Macro recording disabled (q is a no-op; @ replay is unaffected)" })
-map({ "n", "x" }, ";", ":", { desc = "Enter command mode (native repeat-f/F/t/T on ;/, is gone)" })
-map("n", "<C-s>", "<cmd>w<CR>", { noremap = true, desc = "Save file" })
-map("n", "<C-q>", "<cmd>q<CR>", { desc = "Quit" })
+map({ "n", "x" }, "<Space>", "<Nop>", { desc = "Leader prefix" }) -- bare Space would move right
+map("n", "<Esc>", "<Cmd>nohlsearch<CR>", { desc = "Clear search highlight" })
+map("n", "n", "nzzzv", { desc = "Next match (centred)" })
+map("n", "N", "Nzzzv", { desc = "Previous match (centred)" })
+map("n", "<C-s>", "<Cmd>write<CR>", { desc = "Write file" }) -- normal-mode <C-s> has no built-in job
 
-map("n", "k", "v:count == 0 ? 'gk' : 'k'", { expr = true, desc = "Move up (visual line)" })
-map("n", "j", "v:count == 0 ? 'gj' : 'j'", { expr = true, desc = "Move down (visual line)" })
+map("n", "<leader>qq", "<Cmd>quit<CR>", { desc = "Quit window" })
+map("n", "<leader>qa", "<Cmd>quitall<CR>", { desc = "Quit all" })
 
-map("n", "<leader><leader>", "V", { desc = "Visual Mode" })
-map("x", "<leader><leader>", "<Esc>", { desc = "Normal Mode" })
-map("i", "<M-m>", "<Esc>", { desc = "Normal Mode" })
+map("n", "<leader><leader>", "V", { desc = "Visual line" })
+map("x", "<leader><leader>", "<Esc>", { desc = "Leave visual" })
+map("i", "<M-m>", "<Esc>", { desc = "Leave insert" })
 
-map("n", "<Esc>", "<cmd>nohlsearch<CR>", { desc = "Clear search highlight" })
+map("x", "<Tab>", ">gv", { desc = "Indent, keep selection" })
+map("x", "<S-Tab>", "<gv", { desc = "Dedent, keep selection" })
+map("n", "<M-j>", "<Cmd>move+<CR>==", { desc = "Move line down" })
+map("n", "<M-k>", "<Cmd>move-2<CR>==", { desc = "Move line up" })
+map("x", "<M-j>", ":move '>+1<CR>gv=gv", { silent = true, desc = "Move selection down" }) -- ":" rather than <Cmd>, so the '< '> marks update first
+map("x", "<M-k>", ":move '<-2<CR>gv=gv", { silent = true, desc = "Move selection up" })
 
-map("n", "n", "nzzzv", { desc = "Next search match (centered)" })
-map("n", "N", "Nzzzv", { desc = "Prev search match (centered)" })
+local function yank_path(modifier, title)
+	return function()
+		local path = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), modifier)
+		vim.fn.setreg("+", path)
+		vim.notify(path, vim.log.levels.INFO, { title = title })
+	end
+end
 
-map("n", "<leader>na", "gg<S-v>G", { desc = "Select whole buffer" }) -- not <C-a>: that stays Nvim's increment, extended by dial.lua
-map({ "n", "x" }, "x", '"_x', { noremap = true, desc = "Delete char (no yank)" })
-map({ "n", "x" }, "X", '"_X', { noremap = true, desc = "Delete prev char (no yank)" })
-map("x", "<S-Tab>", "<gv", { noremap = true, desc = "Indent left" })
-map("x", "<Tab>", ">gv", { noremap = true, desc = "Indent right" })
+map("n", "<leader>na", "ggVG", { desc = "Select whole buffer" })
+map({ "n", "x" }, "<leader>np", '"0p', { desc = "Paste last yank (after)" })
+map("n", "<leader>nP", '"0P', { desc = "Paste last yank (before)" })
+map({ "n", "x" }, "<leader>nc", '"_c', { desc = "Change, no yank" })
+map({ "n", "x" }, "<leader>nC", '"_C', { desc = "Change to line end, no yank" })
+map({ "n", "x" }, "<leader>nd", '"_d', { desc = "Delete, no yank" })
+map({ "n", "x" }, "<leader>nD", '"_D', { desc = "Delete to line end, no yank" })
+map("n", "<leader>ny", yank_path(":~:.", "Yanked relative path"), { desc = "Yank relative path" })
+map("n", "<leader>nY", yank_path(":p", "Yanked absolute path"), { desc = "Yank absolute path" })
 
-map("x", "p", '"_dP', { noremap = true, desc = "Paste over selection (no yank)" })
+map("n", "gco", "o<Esc>Vcx<Esc><Cmd>normal gcc<CR>fxa<BS>", { desc = "Comment line below" }) -- placeholder x keeps gcc from skipping a blank line
+map("n", "gcO", "O<Esc>Vcx<Esc><Cmd>normal gcc<CR>fxa<BS>", { desc = "Comment line above" })
+map("n", "gcA", function()
+	local left, right = vim.bo.commentstring:match("^(.-)%%s(.-)$")
+	if not left then
+		return
+	end
+	local head = ("%s %s "):format((vim.api.nvim_get_current_line():gsub("%s+$", "")), vim.trim(left))
+	local tail = vim.trim(right) ~= "" and (" " .. vim.trim(right)) or ""
+	vim.api.nvim_set_current_line(head .. tail)
+	if tail == "" then
+		vim.cmd("startinsert!")
+	else
+		vim.api.nvim_win_set_cursor(0, { vim.api.nvim_win_get_cursor(0)[1], #head })
+		vim.cmd("startinsert")
+	end
+end, { desc = "Comment at line end" })
 
-map("n", "J", "mzJ`z", { desc = "Join line (cursor stays put)" })
-
-map("n", "<M-k>", "<cmd>move-2<CR>==", { desc = "Move line up" })
-map("n", "<M-j>", "<cmd>move+<CR>==", { desc = "Move line down" })
-map("x", "<M-k>", ":move '<-2<CR>gv=gv", { noremap = true, desc = "Move selection up" })
-map("x", "<M-j>", ":move '>+1<CR>gv=gv", { noremap = true, desc = "Move selection down" })
-
-map("n", "<leader>np", '"0p', { desc = "Paste from yank register (after)" })
-map("n", "<leader>nP", '"0P', { desc = "Paste from yank register (before)" })
-map("x", "<leader>np", '"0p', { desc = "Paste from yank register" })
-
-map({ "n", "x" }, "<leader>nc", '"_c', { desc = "Change (no yank)" })
-map({ "n", "x" }, "<leader>nC", '"_C', { desc = "Change to EOL (no yank)" })
-map({ "n", "x" }, "<leader>nd", '"_d', { desc = "Delete (no yank)" })
-map({ "n", "x" }, "<leader>nD", '"_D', { desc = "Delete to EOL (no yank)" })
-
-map("n", "<leader>ny", function()
-	local path = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ":~:.") or ""
-	vim.fn.setreg("+", path)
-	vim.notify(path, vim.log.levels.INFO, { title = "Yanked relative path" })
-end, { silent = true, desc = "Yank relative path" })
-
-map("n", "<leader>nY", function()
-	local path = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ":p") or ""
-	vim.fn.setreg("+", path)
-	vim.notify(path, vim.log.levels.INFO, { title = "Yanked absolute path" })
-end, { silent = true, desc = "Yank absolute path" })
-
-map("n", "gco", "o<Esc>Vgcc", { remap = true, desc = "Comment line below" })
-map("n", "gcO", "O<Esc>Vgcc", { remap = true, desc = "Comment line above" })
-map("n", "gcA", "ox<Esc>Vgcc$x<Esc>gi<Space>", { remap = true, desc = "Append comment at end of line" })
-
-map("n", "<M-y>", "<C-w>v", { desc = "Split vertical" })
-map("n", "<M-x>", "<C-w>s", { desc = "Split horizontal" })
-
+map("n", "<M-y>", "<C-w>v", { desc = "Split vertically" })
+map("n", "<M-x>", "<C-w>s", { desc = "Split horizontally" })
 map("n", "<M-w>", "<C-w>k", { desc = "Window up" })
 map("n", "<M-s>", "<C-w>j", { desc = "Window down" })
 map("n", "<M-a>", "<C-w>h", { desc = "Window left" })
 map("n", "<M-d>", "<C-w>l", { desc = "Window right" })
+map("n", "<M-e>", "<C-w>=", { desc = "Equalize windows" })
+map("n", "<M-q>", "<Cmd>close<CR>", { desc = "Close window" })
+map("n", "<M-Up>", "<Cmd>resize +2<CR>", { desc = "Taller window" })
+map("n", "<M-Down>", "<Cmd>resize -2<CR>", { desc = "Shorter window" })
+map("n", "<M-Left>", "<Cmd>vertical resize -2<CR>", { desc = "Narrower window" })
+map("n", "<M-Right>", "<Cmd>vertical resize +2<CR>", { desc = "Wider window" })
 
-map("n", "<M-e>", "<C-w>=", { desc = "Equalize splits" })
+local term_wincmd = require("utils").term_wincmd
+map("t", "<M-w>", term_wincmd("k", "<M-w>"), { expr = true, desc = "Window up (floats get the key)" })
+map("t", "<M-s>", term_wincmd("j", "<M-s>"), { expr = true, desc = "Window down (floats get the key)" })
+map("t", "<M-a>", term_wincmd("h", "<M-a>"), { expr = true, desc = "Window left (floats get the key)" })
+map("t", "<M-d>", term_wincmd("l", "<M-d>"), { expr = true, desc = "Window right (floats get the key)" })
 
-local term_wincmd = require("utils").term_wincmd -- shared helper; see utils.lua
-map("t", "<M-w>", term_wincmd("k", "<M-w>"), { expr = true, desc = "Window up (float: passes the key through)" })
-map("t", "<M-s>", term_wincmd("j", "<M-s>"), { expr = true, desc = "Window down (float: passes the key through)" })
-map("t", "<M-a>", term_wincmd("h", "<M-a>"), { expr = true, desc = "Window left (float: passes the key through)" })
-map("t", "<M-d>", term_wincmd("l", "<M-d>"), { expr = true, desc = "Window right (float: passes the key through)" })
-
-map("n", "<M-q>", "<cmd>close<CR>", { desc = "Close split" })
-
-map("n", "<Up>", "<cmd>resize +2<cr>", { desc = "Increase Window Height" })
-map("n", "<Down>", "<cmd>resize -2<cr>", { desc = "Decrease Window Height" })
-map("n", "<Left>", "<cmd>vertical resize -2<cr>", { desc = "Decrease Window Width" })
-map("n", "<Right>", "<cmd>vertical resize +2<cr>", { desc = "Increase Window Width" })
-
-map("n", "<leader><Tab>e", "<cmd>tabedit<CR>", { desc = "New tab" })
-map("n", "<leader><Tab>n", "<cmd>tabnext<CR>", { desc = "Next tab (native: gt)" })
-map("n", "<leader><Tab>p", "<cmd>tabprevious<CR>", { desc = "Previous tab (native: gT)" })
-map("n", "<leader><Tab>o", "<cmd>tabonly<CR>", { desc = "Close other tabs" })
-map("n", "<leader><Tab>q", "<cmd>tabclose<CR>", { desc = "Close tab" })
+map("n", "<leader><Tab>e", "<Cmd>tabedit<CR>", { desc = "New tab" })
+map("n", "<leader><Tab>n", "<Cmd>tabnext<CR>", { desc = "Next tab (also gt)" })
+map("n", "<leader><Tab>p", "<Cmd>tabprevious<CR>", { desc = "Previous tab (also gT)" })
+map("n", "<leader><Tab>o", "<Cmd>tabonly<CR>", { desc = "Close other tabs" })
+map("n", "<leader><Tab>q", "<Cmd>tabclose<CR>", { desc = "Close tab" })

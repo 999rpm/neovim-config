@@ -6,7 +6,7 @@ local g = vim.g
 local opt = vim.opt
 
 g.mapleader = " " -- Set the leader key to Space
-g.maplocalleader = "\\" -- Local leader: backslash. Not ";"; mappings.lua maps ; to : in normal/visual, which would swallow every <localleader> sequence before it resolved
+g.maplocalleader = "\\" -- Local leader: backslash; review, grug-far and Octo buffers keep their keys on it
 g.have_nerd_font = true -- Tell plugins that a Nerd Font is installed (for icons)
 g.markdown_recommended_style = 0 -- Disable default markdown recommended style
 g.yaml_indent_multiline_scalar = 1 -- Fix YAML indentation for multiline strings
@@ -17,49 +17,32 @@ g.loaded_perl_provider = 0 -- Disable Perl provider
 g.loaded_ruby_provider = 0 -- Disable Ruby provider
 g.loaded_node_provider = 0 -- Disable Node.js provider
 g.loaded_python3_provider = 0 -- Disable Python 3 provider
-g.loaded_netrw = 1 -- Disable the built-in netrw file explorer
-g.loaded_netrwPlugin = 1 -- Disable the netrw plugin script
 
-if vim.fn["provider#clipboard#Executable"]() ~= "" then
-	opt.clipboard:append("unnamedplus")
-end
+vim.schedule(function() -- the clipboard provider probe runs after the first screen draws instead of delaying startup
+	if vim.fn["provider#clipboard#Executable"]() ~= "" then
+		opt.clipboard:append("unnamedplus")
+	end
+end)
 
 opt.mouse = "n" -- Enable mouse support in Normal mode only (use "a" for all modes)
-opt.hidden = true -- Allow switching buffers without saving them first
 opt.confirm = true -- Prompt to save changes before exiting a modified buffer
 
 opt.shell = utils.login_shell() -- login shell from the passwd database, so chsh applies without a new login
 utils.apply_shell_options() -- nushell needs its own shell* flags; every other shell keeps Neovim's defaults
 
-opt.shada = "!,'1000,<50,s10,h"
+opt.shada = "!,'1000,<50,s10,h" -- Globals, marks for 1000 files, 50 lines per register, 10 KiB items, no hlsearch at start
 opt.secure = true -- Prevents shell/write commands in modelines and prevents autocmds from untrusted files
 opt.modelines = 0 -- Disable modelines to prevent files from overriding editor settings
 opt.iskeyword:append("-") -- Treat dash-separated words as a single keyword (e.g. kebab-case)
 opt.runtimepath:remove("/usr/share/vim/vimfiles") -- Exclude system Vim files from the runtime path
-opt.nrformats:append("alpha") -- Cycle through letters too to increment values
 
-opt.encoding = "utf-8" -- Internal encoding used by Neovim
-opt.fileencoding = "utf-8" -- Encoding written to file on save
-opt.fileencodings = { -- Encoding detection order when reading files
-	"ucs-bom",
-	"utf-8",
-	"cp936",
-	"gb18030",
-	"big5",
-	"euc-jp",
-	"euc-kr",
-	"latin1",
-}
 opt.spelllang = { "en", "cjk" } -- Enable spell checking for English and CJK characters
 opt.spellsuggest:append("9") -- Show at most 9 spelling suggestions to keep menus concise
 opt.spelloptions:append("camel") -- Treat camelCase words as separate words for spell checking
 
-opt.autoread = true -- Automatically reload files that have been changed outside of Neovim
 opt.autowrite = true -- Automatically write changes when switching buffers or running commands
 opt.history = 500 -- Number of command and search history entries to retain
-opt.startofline = false -- Keep the cursor in the same column when jumping (e.g. gg, G, Ctrl-D)
 opt.jumpoptions = "stack,view" -- Jumplist behaves like a browser back-stack, and restores each mark's saved view (0.11+ default is "clean"; neither flag is on)
-opt.fileformats = { "unix", "dos" } -- Prefer Unix line endings; also recognise DOS (CRLF)
 opt.isfname:remove({ "=", "," }) -- Exclude '=' and ',' from characters valid in file names
 
 opt.timeoutlen = 500 -- Milliseconds to wait for a mapped key sequence to complete
@@ -68,8 +51,7 @@ opt.updatetime = 100 -- Milliseconds of inactivity before writing the swap file 
 opt.redrawtime = 1500 -- Maximum time (ms) allowed for syntax highlighting per redraw
 opt.synmaxcol = 240 -- Only highlight syntax up to column 240 (improves performance on long lines)
 
-opt.guicursor = "n-v-c:block-Cursor/lCursor,i-ci-ve:ver25-Cursor2/lCursor2,r-cr:hor20,o:hor20"
-opt.termguicolors = true -- Enable 24-bit RGB colour in the terminal UI
+opt.guicursor = "n-v-c:block-Cursor/lCursor,i-ci-ve:ver25-Cursor2/lCursor2,r-cr:hor20,o:hor20" -- Block in normal/visual, bar in insert, underline in replace and operator-pending
 opt.title = true -- Set the terminal window title to the current file
 opt.titlestring = "%{v:lua.require('utils').get_current_branch_name()} • %<%F %=%l/%L" -- Custom window title format: filepath and line/total
 
@@ -83,8 +65,6 @@ opt.cmdheight = 0 -- Collapse the command line when not in use (maximises editin
 opt.showcmdloc = "statusline" -- Display partial commands in the statusline instead of the command line
 opt.shortmess:append("sIc") -- Suppress search wrap, the intro screen, and insert-completion messages ("match 1 of 2")
 
-opt.errorbells = false -- Disable the error bell sound
-opt.visualbell = false -- Disable the visual flash bell
 opt.pumblend = 5 -- Pseudo-transparency for the popup completion menu (0 = opaque, 100 = invisible)
 opt.winblend = 0 -- Pseudo-transparency for floating windows
 opt.winborder = "rounded" -- Default border for floats that don't set their own (lazy.nvim, neo-tree, LSP floats)
@@ -93,7 +73,6 @@ opt.emoji = false -- Prevent Neovim from assuming emoji are double-width (fixes 
 opt.smoothscroll = true -- Enable smooth scrolling with <C-d>/<C-u>
 opt.mousemodel = "popup" -- Right-click opens a popup menu instead of extending visual selection; see autocmds.lua's MenuPopup entry for what's in it
 opt.mousescroll = { "ver:3", "hor:3" } -- Mouse wheel scrolls 3 lines vertically, 3 columns horizontally
-opt.messagesopt = "hit-enter,history:500,progress:c" -- Identical to 0.12's default, pinned because lspconfig.lua's LspProgress echo needs progress:c
 
 opt.fillchars = {
 	stl = " ", -- Fill character for the active statusline
@@ -135,9 +114,7 @@ opt.expandtab = true -- Insert spaces when pressing Tab
 opt.shiftwidth = 2 -- Number of spaces used for each level of (auto-)indentation
 opt.tabstop = 2 -- Number of spaces a Tab character visually represents
 opt.softtabstop = 2 -- Number of spaces a Tab inserts/removes during editing
-opt.autoindent = true -- Copy indent from the current line when starting a new line
 opt.smartindent = true -- Insert extra indent level after opening braces, keywords, etc.
-opt.smarttab = true -- Use shiftwidth for Tab at the start of a line, tabstop elsewhere
 
 opt.formatoptions:remove({ "c", "r", "o", "t" }) -- Don't auto-insert comment leaders on Enter or 'o'/'O'
 opt.formatoptions:append("mM") -- Correctly break lines at multi-byte characters (useful for CJK text)
@@ -148,26 +125,21 @@ opt.whichwrap:append("<>[]hl") -- Allow these keys to move across line boundarie
 opt.breakindent = true -- Preserve indentation visually when lines are wrapped
 opt.breakindentopt = "shift:2" -- Indent wrapped continuations by 2 extra spaces
 opt.showbreak = "󱞩 " -- Prefix shown at the start of each wrapped line segment
-opt.backspace = "indent,eol,start" -- Allow Backspace over indentation, line breaks, and insert-mode start
 opt.linebreak = true -- Wrap long lines at word boundaries rather than mid-word
 opt.shiftround = true -- Round indentation to the nearest multiple of 'shiftwidth'
 opt.virtualedit = "block" -- Allow the cursor to move freely within a visual block selection
-opt.tildeop = true -- Make '~' act as an operator so 'g~w' toggles case of a word
 opt.matchpairs:append({ "<:>", "「:」", "『:』", "【:】", '":"', "':'", "《:》" }) -- Extend % to match these bracket pairs
 
 opt.ignorecase = true -- Case-insensitive search by default
 opt.smartcase = true -- Switch to case-sensitive search when the pattern contains uppercase
 opt.infercase = true -- Adjust completion case to match what has been typed so far
-opt.hlsearch = true -- Highlight all matches for the current search pattern
 opt.showmatch = true -- Briefly jump to the matching bracket when inserting one
 opt.inccommand = "split" -- Preview :substitute replacements live in a split window
-opt.incsearch = true -- Show the first match incrementally as the search pattern is typed
 opt.path:append("**") -- Make :find search recursively through all subdirectories
-opt.gdefault = true -- Make :s/foo/bar/ behave like :s/foo/bar/g by default; avoids typing /g every time.
 
 if utils.executable("rg") then
 	opt.grepprg = "rg --vimgrep --no-heading --smart-case" -- overrides 0.12's own rg default, which passes -uu and so searches ignored and hidden files too
-	opt.grepformat = "%f:%l:%c:%m"
+	opt.grepformat = "%f:%l:%c:%m" -- file:line:column:text, as rg --vimgrep prints it
 end
 
 opt.pumheight = 10 -- Maximum number of items shown in the popup completion menu
@@ -175,7 +147,6 @@ opt.completeopt = "menu,menuone" -- Menu even for a single match, no auto-select
 opt.complete:append("kspell") -- Include spelling suggestions in insert-mode completion
 opt.complete:remove({ "w", "b", "u", "t" }) -- Remove other-window buffers, unlisted buffers, and tags (reduce noise)
 
-opt.wildmenu = true -- Command-line completion shows a match list instead of cycling silently
 opt.wildmode = "list:longest,list:full" -- First complete to the longest common string, then cycle through all matches
 opt.wildignorecase = true -- Ignore case when completing file names and paths
 opt.wildignore:append(".,..") -- Ignore current and parent directory entries
@@ -202,7 +173,7 @@ opt.backup = true -- Keep a backup copy of files before overwriting
 opt.backupcopy = "yes" -- Overwrite the original backup file on each save (preserves inode)
 opt.backupdir = backup_dir -- Directory where backup files are stored
 opt.backupskip = vim.o.wildignore -- Skip backing up files that match the wildignore patterns
-opt.backupskip:append({ "/tmp/*", "/private/tmp/*" })
+opt.backupskip:append({ "/tmp/*", "/private/tmp/*" }) -- Never back up temporary files
 
 opt.undofile = true -- Persist undo history across sessions
 opt.undodir = vim.fn.stdpath("data") .. "/undo" -- Directory for persistent undo files
@@ -244,6 +215,7 @@ opt.diffopt = { -- assigned, not appended: 0.12's default already carries linema
 vim.filetype.add({
 	extension = {
 		mdx = "mdx", -- MDX (Markdown + JSX) files
+		d2 = "d2", -- d2 diagrams; 0.12 does not detect them, and tree-sitter-d2.lua loads on this filetype
 	},
 	filename = {
 		Brewfile = "ruby", -- Homebrew bundle file

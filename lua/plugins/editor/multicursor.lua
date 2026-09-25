@@ -1,8 +1,8 @@
 -- jake-stewart/multicursor.nvim: multiple cursors.
--- Keys: <C-Up>/<C-Down> add above/below, <C-LeftMouse> add or remove; <leader>m n/N add at next/previous match,
+-- Keys: <C-Up>/<C-Down> add above/below, <M-LeftMouse> add or remove; <leader>m n/N add at next/previous match,
 -- s/S skip a match, a add at every match, j/k skip a line, A align, q toggle, x delete, v restore, D duplicate,
 -- i/I number sequence up/down, m add over a motion. With cursors active: <Left>/<Right> cycle, <Esc> clear.
--- Native <C-LeftMouse> (jump to tag) is still on g<LeftMouse>.
+-- <C-LeftMouse> stays the built-in jump to tag.
 return {
 	"jake-stewart/multicursor.nvim",
 	branch = "1.0",
@@ -48,9 +48,9 @@ return {
 		set({ "n", "x" }, "<leader>mi", mc.sequenceIncrement, { desc = "Sequence Increment" })
 		set({ "n", "x" }, "<leader>mI", mc.sequenceDecrement, { desc = "Sequence Decrement" })
 
-		set("n", "<C-LeftMouse>", mc.handleMouse, { desc = "Add/Remove Cursor (Mouse)" })
-		set("n", "<C-LeftDrag>", mc.handleMouseDrag, { desc = "which_key_ignore" }) -- half of <C-LeftMouse> above, not a key to press on its own
-		set("n", "<C-LeftRelease>", mc.handleMouseRelease, { desc = "which_key_ignore" })
+		set("n", "<M-LeftMouse>", mc.handleMouse, { desc = "Add/Remove Cursor (Mouse)" })
+		set("n", "<M-LeftDrag>", mc.handleMouseDrag, { desc = "which_key_ignore" }) -- half of <M-LeftMouse> above, not a key to press on its own
+		set("n", "<M-LeftRelease>", mc.handleMouseRelease, { desc = "which_key_ignore" })
 
 		set({ "n", "x" }, "<leader>mm", mc.addCursorOperator, { desc = "Add Cursor (motion)" })
 
@@ -66,13 +66,15 @@ return {
 			end)
 		end)
 
-		local hl = vim.api.nvim_set_hl
-		hl(0, "MultiCursorCursor", { reverse = true })
-		hl(0, "MultiCursorVisual", { link = "Visual" })
-		hl(0, "MultiCursorSign", { link = "SignColumn" })
-		hl(0, "MultiCursorMatchPreview", { link = "Search" })
-		hl(0, "MultiCursorDisabledCursor", { reverse = true })
-		hl(0, "MultiCursorDisabledVisual", { link = "Visual" })
-		hl(0, "MultiCursorDisabledSign", { link = "SignColumn" })
+		require("utils").on_colorscheme("multicursor-highlights", function()
+			local hl = vim.api.nvim_set_hl
+			hl(0, "MultiCursorCursor", { reverse = true })
+			hl(0, "MultiCursorVisual", { link = "Visual" })
+			hl(0, "MultiCursorSign", { link = "SignColumn" })
+			hl(0, "MultiCursorMatchPreview", { link = "Search" })
+			hl(0, "MultiCursorDisabledCursor", { reverse = true })
+			hl(0, "MultiCursorDisabledVisual", { link = "Visual" })
+			hl(0, "MultiCursorDisabledSign", { link = "SignColumn" })
+		end)
 	end,
 }

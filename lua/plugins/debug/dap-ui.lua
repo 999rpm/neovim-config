@@ -2,7 +2,7 @@
 -- In a panel: <CR> expand or edit, o step into value, d remove, e edit, r send to REPL.
 return {
 	"rcarriga/nvim-dap-ui",
-	event = "VeryLazy", -- same trigger as dap.lua
+	lazy = true, -- loads with nvim-dap, which lists it as a dependency
 	dependencies = { "nvim-neotest/nvim-nio", "mfussenegger/nvim-dap" },
 	config = function()
 		local dap = require("dap")

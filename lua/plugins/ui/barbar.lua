@@ -1,5 +1,6 @@
 -- romgrk/barbar.nvim: buffer tabline. Mouse: click to open, click the button to close, drag to reorder.
--- Keys: H/L previous/next buffer, <leader>b* pick, pin, move, close and reopen.
+-- Keys: <M-h>/<M-l> previous/next buffer in tabline order (H and L stay the built-in window top/bottom; ]b/[b also
+-- cycle buffers), <leader>b* pick, pin, move, close and reopen.
 return {
 	"romgrk/barbar.nvim",
 	lazy = false,
@@ -8,8 +9,8 @@ return {
 		vim.g.barbar_auto_setup = false
 	end,
 	keys = {
-		{ "H", "<Cmd>BufferPrevious<CR>", desc = "Previous buffer" }, -- replaces native H (top of window)
-		{ "L", "<Cmd>BufferNext<CR>", desc = "Next buffer" }, -- replaces native L (bottom of window)
+		{ "<M-h>", "<Cmd>BufferPrevious<CR>", desc = "Previous buffer" },
+		{ "<M-l>", "<Cmd>BufferNext<CR>", desc = "Next buffer" },
 		{ "<leader>bH", "<Cmd>BufferMovePrevious<CR>", desc = "Move buffer left" },
 		{ "<leader>bL", "<Cmd>BufferMoveNext<CR>", desc = "Move buffer right" },
 		{ "<leader>bp", "<Cmd>BufferPin<CR>", desc = "Toggle pin" },

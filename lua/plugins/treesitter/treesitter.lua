@@ -35,7 +35,6 @@ return {
 				"haskell",
 				"regex", -- noice.lua's cmdline highlighting and snacks.picker
 				"latex", -- snacks.image's inline math and render-markdown's LaTeX blocks
-				"mermaid", -- highlights mermaid sources; snacks.image renders the diagrams
 			}
 
 			local ts = require("nvim-treesitter")

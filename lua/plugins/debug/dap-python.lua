@@ -1,7 +1,7 @@
 -- mfussenegger/nvim-dap-python: python launch configurations through Mason's debugpy. Started with dap.lua's keys.
 return {
 	"mfussenegger/nvim-dap-python",
-	event = "VeryLazy", -- same trigger as dap.lua
+	lazy = true, -- loads with nvim-dap, which lists it as a dependency
 	dependencies = { "mfussenegger/nvim-dap" },
 	config = function()
 		local debugpy_path = vim.fn.stdpath("data") .. "/mason/packages/debugpy/venv/bin/python"

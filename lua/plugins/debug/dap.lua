@@ -4,8 +4,6 @@
 -- i/o/O step into/over/out, P pause, t terminate, r REPL, h hover value, s scopes, e evaluate, u UI; F5/F10/F11/F12 as in most IDEs.
 return {
 	"mfussenegger/nvim-dap",
-	event = "VeryLazy",
-
 	dependencies = {
 		"rcarriga/nvim-dap-ui", -- configured in dap-ui.lua
 		"mfussenegger/nvim-dap-python", -- configured in dap-python.lua
@@ -189,20 +187,14 @@ return {
 			vim.fn.sign_define(name, sign)
 		end
 
-		local function set_dap_highlights()
+		utils.on_colorscheme("dap-highlights", function()
 			vim.api.nvim_set_hl(0, "DapBreakpoint", { link = "DiagnosticError" })
 			vim.api.nvim_set_hl(0, "DapBreakpointCondition", { link = "DiagnosticWarn" })
 			vim.api.nvim_set_hl(0, "DapLogPoint", { link = "DiagnosticInfo" })
 			vim.api.nvim_set_hl(0, "DapStopped", { link = "DiagnosticOk" })
 			vim.api.nvim_set_hl(0, "DapStoppedLine", { link = "CursorLine" })
 			vim.api.nvim_set_hl(0, "DapBreakpointRejected", { link = "DiagnosticHint" })
-		end
-		set_dap_highlights()
-		vim.api.nvim_create_autocmd("ColorScheme", {
-			desc = "999rpm: re-link Dap* sign highlights after a theme switch",
-			group = utils.augroup("dap-highlights"),
-			callback = set_dap_highlights,
-		})
+		end)
 
 		local js_debug_server = vim.fn.stdpath("data") .. "/mason/packages/js-debug-adapter/js-debug/src/dapDebugServer.js"
 		utils.warn_if_missing_mason_bin(js_debug_server, "js-debug-adapter")

@@ -1,17 +1,15 @@
 -- Language servers through vim.lsp.config/vim.lsp.enable. Mason installs the binaries (mason.lua); rust is rustaceanvim's.
--- Nvim 0.12's own LSP keys, kept as they are: grn rename, gra code action, grx run code lens, grr references,
--- gri implementation, grt type definition, gO document symbols, <C-s> signature help (insert and select).
--- Nvim's own diagnostic keys, also kept: ]d/[d next/previous, ]D/[D last/first, <C-w>d float.
--- Added here: gd definition, gD declaration, K hover with a border, <C-k> signature help, <leader>xf line diagnostics,
--- <leader>xb/<leader>xw diagnostics to quickfix (buffer/workspace), <leader>wa/wr/wf workspace folders,
--- <leader>ox toggle diagnostics, <leader>oh toggle inlay hints.
+-- Nvim 0.12's own LSP keys, kept as they are: K hover, grn rename (inc-rename preview), gra code action, grx code lens,
+-- grr references, gri implementation, grt type definition, gO document symbols, <C-s> signature help in insert mode.
+-- Nvim's own diagnostic keys, also kept: ]d/[d next/previous, ]D/[D last/first, <C-w>d float. Floats take 'winborder'.
+-- Added here: gd definition, gD declaration, <C-k> signature help (normal), <leader>xf line diagnostics,
+-- <leader>xb/<leader>xw diagnostics to quickfix (buffer/workspace), <leader>wa/wr/wf workspace folders.
+-- Toggles for diagnostics (<leader>ox) and inlay hints (<leader>oh) live in snacks.lua.
 return {
 	"neovim/nvim-lspconfig",
 	dependencies = { "b0o/schemastore.nvim" }, -- JSON/YAML schema catalog for jsonls and yamlls
 	config = function()
 		local utils = require("utils")
-
-		local border_style = "rounded"
 
 		utils.setup_rounded_virtual_lines() -- registers the virtual_lines_rounded handler used below
 
@@ -19,10 +17,9 @@ return {
 			update_in_insert = false,
 			severity_sort = true,
 			float = {
-				border = border_style,
 				source = "if_many", -- show source only when multiple servers report on the same line
-				max_height = 20, -- same cap as K/hover and <C-k>/signature-help below, so no float
-				max_width = 120, -- can take over the screen on an unusually long diagnostic message
+				max_height = 20, -- a long diagnostic message cannot take over the screen
+				max_width = 120,
 			},
 			underline = {
 				severity = vim.diagnostic.severity.ERROR, -- underline errors only, not warnings/hints
@@ -100,39 +97,19 @@ return {
 					map("gD", vim.lsp.buf.declaration, "Go to Declaration") -- only where a server answers it; elsewhere gD stays Nvim's own file-global declaration search
 				end
 
-				map("K", function()
-					vim.lsp.buf.hover({
-						border = border_style,
-						max_height = 20,
-						max_width = 120,
-						close_events = { "CursorMoved", "BufLeave", "WinLeave", "LspDetach" },
-					})
-				end, "Hover Documentation")
-
 				if client:supports_method("textDocument/rename", event.buf) then
 					vim.keymap.set("n", "grn", function()
 						return ":IncRename " .. vim.fn.expand("<cword>")
 					end, { buf = event.buf, expr = true, silent = true, desc = "LSP: Rename" })
 				end
 
-				map("<C-k>", function()
-					vim.lsp.buf.signature_help({ border = border_style })
-				end, "Signature Help")
-
-				vim.keymap.set({ "i", "s" }, "<C-s>", function()
-					vim.lsp.buf.signature_help({ border = border_style })
-				end, { buf = event.buf, desc = "LSP: Signature Help (insert)", silent = true }) -- same two modes as Nvim's own <C-s>, re-bound per buffer only to add the border
+				map("<C-k>", vim.lsp.buf.signature_help, "Signature Help")
 
 				map("<leader>wa", vim.lsp.buf.add_workspace_folder, "Workspace Add Folder") -- add dir to workspace
 				map("<leader>wr", vim.lsp.buf.remove_workspace_folder, "Workspace Remove Folder") -- remove dir from workspace
 				map("<leader>wf", function()
 					vim.print(vim.lsp.buf.list_workspace_folders())
 				end, "Workspace List Folders") -- print workspace folder list to command line
-
-				map("<leader>ox", function()
-					local enabled = vim.diagnostic.is_enabled({ bufnr = event.buf })
-					vim.diagnostic.enable(not enabled, { bufnr = event.buf })
-				end, "Toggle Diagnostics") -- disable/re-enable all diagnostics for this buffer
 
 				map("<leader>xf", vim.diagnostic.open_float, "Line Diagnostics") -- ergonomic alias for built-in <C-w>d
 
@@ -152,13 +129,6 @@ return {
 					})
 				end
 
-				if client:supports_method("textDocument/inlayHint", event.buf) then
-					map("<leader>oh", function()
-						local enabled = vim.lsp.inlay_hint.is_enabled({ bufnr = event.buf })
-						vim.lsp.inlay_hint.enable(not enabled, { bufnr = event.buf })
-					end, "Toggle Inlay Hints") -- show/hide inline parameter names and return types
-				end
-
 				if client.name == "ruff" then
 					client.server_capabilities.hoverProvider = false -- let basedpyright handle hover for Python
 				end
@@ -175,26 +145,6 @@ return {
 			end,
 		})
 
-		vim.api.nvim_create_autocmd("LspProgress", {
-			desc = "999rpm: echo LSP progress into the cmdline (needs messagesopt's progress:c)",
-			callback = function(ev)
-				local client = vim.lsp.get_client_by_id(ev.data.client_id)
-				if client and client.name == "basedpyright" then
-					return -- suppress basedpyright's verbose indexing progress
-				end
-
-				local value = ev.data.params.value
-				vim.api.nvim_echo({ { value.message or "done" } }, false, {
-					id = "lsp." .. ev.data.client_id,
-					kind = "progress",
-					source = "vim.lsp",
-					title = value.title,
-					status = value.kind ~= "end" and "running" or "success",
-					percent = value.percentage,
-				})
-			end,
-		})
-
 		vim.api.nvim_create_user_command("LspInfo", "checkhealth vim.lsp", { desc = "Show LSP info" }) -- nvim-lspconfig defines no commands on 0.12; :lsp covers the rest
 		vim.api.nvim_create_user_command("LspLog", function()
 			vim.cmd(string.format("edit %s", vim.lsp.log.get_filename()))
@@ -207,7 +157,6 @@ return {
 
 		local servers = {
 			lua_ls = {
-				single_file_support = true,
 				settings = {
 					Lua = {
 						runtime = { version = "LuaJIT" },

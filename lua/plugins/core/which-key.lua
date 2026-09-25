@@ -24,8 +24,8 @@ return {
 			{ "<leader>e", group = "Explore", icon = "󰉋 " },
 			{ "<leader>b", group = "Buffers", icon = "󱟱 " },
 			{ "<leader>h", group = "Harpoon", icon = "󱡀 " },
-			{ "<leader>q", group = "Session", icon = "󰆓 " },
-			{ "<leader><Tab>", group = "Tabs", icon = "󰓩 " }, -- mappings.lua; a bare t prefix would shadow the native t{char} motion
+			{ "<leader>q", group = "Session / Quit", icon = "󰆓 " },
+			{ "<leader><Tab>", group = "Tabs", icon = "󰓩 " }, -- mappings.lua
 
 			{ "<leader>c", group = "Code", icon = "󰅨 " },
 			{ "<leader>cs", group = "Snippets", icon = "󰩫 " },
@@ -52,7 +52,7 @@ return {
 			{ "<leader>u", group = "UI", icon = "󰏘 " },
 			{ "<leader>o", group = "Options & Toggles", icon = "󰘮 " },
 
-			{ "<localleader>", group = "Buffer-local (CodeDiff review)", icon = "󰦒 " },
+			{ "<localleader>", group = "Buffer-local (review, grug-far, Octo)", icon = "󰦒 " },
 
 			{ "[", group = "Prev (jump backward)", icon = "󰒮 ", mode = { "n", "x", "o" } },
 			{ "]", group = "Next (jump forward)", icon = "󰒭 ", mode = { "n", "x", "o" } },

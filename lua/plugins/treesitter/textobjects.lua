@@ -1,7 +1,7 @@
 -- nvim-treesitter/nvim-treesitter-textobjects (main branch): select, swap and move by function, class, parameter and scope.
 -- Objects: af/if function, ac/ic class, a,/i, parameter, aS scope. Swap: <leader>a/<leader>A parameter with next/previous.
--- Moves: ]f/[f function, ]F/[F function end, ]k/[k class, ]K/[K class end, ],/[, parameter, ]j/[j JSX element.
--- Native motions kept: ]m [m ]M [M (method), ]] [[ (section), as/is (sentence), ]a [a (argument list), ]p [p (indented paste).
+-- Moves: ]m/[m function start and ]M/[M function end (the built-in method motions, now for every language), ]k/[k class,
+-- ]K/[K class end, ],/[, parameter, ]j/[j JSX element. Built-ins kept: ]f/[f open file, ]] [[ sections, as/is sentences.
 return {
 	"nvim-treesitter/nvim-treesitter-textobjects",
 	branch = "main",
@@ -59,16 +59,16 @@ return {
 			swap.swap_previous("@parameter.inner")
 		end, { desc = "Swap parameter with previous" })
 
-		map(nav, "]f", function()
+		map(nav, "]m", function()
 			move.goto_next_start("@function.outer", "textobjects")
 		end, { desc = "Next function start" })
-		map(nav, "[f", function()
+		map(nav, "[m", function()
 			move.goto_previous_start("@function.outer", "textobjects")
 		end, { desc = "Previous function start" })
-		map(nav, "]F", function()
+		map(nav, "]M", function()
 			move.goto_next_end("@function.outer", "textobjects")
 		end, { desc = "Next function end" })
-		map(nav, "[F", function()
+		map(nav, "[M", function()
 			move.goto_previous_end("@function.outer", "textobjects")
 		end, { desc = "Previous function end" })
 		map(nav, "]k", function()

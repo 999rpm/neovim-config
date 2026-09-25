@@ -199,7 +199,7 @@ return {
 				component_separators = { left = "\u{e0bb}", right = "\u{e0bb}" }, -- written as escapes: private-use glyphs do not survive every copy of this file
 				section_separators = { left = "\u{e0bc}", right = "\u{e0ba}" },
 				disabled_filetypes = {
-					statusline = { "alpha", "neo-tree", "Trouble", "lazy", "mason", "snacks_picker_list", "snacks_picker_input" },
+					statusline = { "snacks_dashboard", "neo-tree", "trouble", "lazy", "mason", "snacks_picker_list", "snacks_picker_input" },
 					winbar = {},
 				}, -- explicit shape: a bare list is copied into both by lualine's own normaliser, which is not what a global statusline wants
 			},

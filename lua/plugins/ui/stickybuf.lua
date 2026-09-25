@@ -6,7 +6,6 @@ return {
 		get_auto_pin = function(bufnr)
 			local extra_filetypes = {
 				oil = true,
-				Trouble = true,
 				trouble = true,
 				lazy = true,
 				mason = true,

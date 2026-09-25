@@ -1,10 +1,10 @@
 -- mrcjkb/rustaceanvim: rust-analyzer client with runnables, debuggables and hover actions (rust_analyzer stays out of lspconfig.lua).
--- Keys in rust buffers: K hover actions, <leader>Tc cargo runnables, <leader>Dd debuggables.
+-- Keys in rust buffers: K hover actions (buffer-local, so 0.12 leaves its own LSP K out), <leader>Tc cargo runnables,
+-- <leader>Dd debuggables. nvim-dap loads on the first debug action, not at startup.
 return {
 	"mrcjkb/rustaceanvim",
 	version = "^9",
 	lazy = false, -- loads itself per filetype
-	dependencies = { "mfussenegger/nvim-dap" }, -- loaded first so rust-analyzer offers debug actions
 	init = function()
 		vim.g.rustaceanvim = {
 			tools = { enable_clippy = true },

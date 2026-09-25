@@ -1,7 +1,7 @@
 -- windwp/nvim-ts-autotag: renames the matching HTML/JSX tag and closes a tag typed as "</".
 return {
 	"windwp/nvim-ts-autotag",
-	event = "BufReadPre",
+	ft = { "html", "xml", "javascriptreact", "typescriptreact", "vue", "svelte", "astro", "markdown", "mdx" }, -- tag languages only
 	config = function()
 		require("nvim-ts-autotag").setup({
 			opts = {

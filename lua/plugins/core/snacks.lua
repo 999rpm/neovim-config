@@ -3,8 +3,9 @@
 -- <C-a> mark all, <CR> open, i or / type a query, <C-s>/<C-v>/<C-t> split/vsplit/tab, <C-q> to quickfix,
 -- <A-h>/<A-i> hidden/ignored files, <A-p> preview, ? help, q or <Esc> close.
 -- Terminal: <Esc><Esc> normal mode, q (normal mode) hide, gf open file under cursor.
--- Images: kitty draws them inline, including ```mermaid blocks in markdown (needs mmdc). <leader>ui opens the one under
--- the cursor in a float; <leader>uM renders a standalone .mmd file beside it.
+-- Images: kitty draws markdown images and LaTeX math inline; <leader>ui opens the one under the cursor in a float.
+-- d2 diagrams render through tree-sitter-d2.lua. Dashboard (bare `nvim`): f find, n new, g grep, r recent, c config,
+-- s restore session, L Lazy, q quit; digits open the recent files listed below the keys. <leader>ew picks a window by letter.
 local function term(layout)
 	local win = {
 		float = { position = "float" },
@@ -28,16 +29,24 @@ return {
 	lazy = false,
 	---@type snacks.Config
 	opts = {
-		bigfile = { enabled = false }, -- autocmds.lua large_file
-		dashboard = { enabled = false }, -- alpha.lua
+		bigfile = { enabled = true, size = 512 * 1024 }, -- over 0.5 MB a file opens as ft=bigfile, without treesitter, LSP or syntax
+		dashboard = {
+			enabled = true,
+			sections = {
+				{ section = "header" },
+				{ section = "keys", gap = 1, padding = 1 },
+				{ section = "recent_files", title = "Recent files", indent = 2, padding = 1 },
+				{ section = "startup" },
+			},
+		},
 		explorer = { enabled = false }, -- neo-tree, oil, yazi
 		input = { enabled = false }, -- noice.lua
 		statuscolumn = { enabled = false }, -- statuscol.lua
 		quickfile = { enabled = true },
 		scroll = { enabled = true },
 		image = {
-			enabled = true, -- markdown images, math and mermaid fences render inline through kitty's graphics protocol
-			convert = { notify = true }, -- surface a missing mmdc or a diagram syntax error instead of a silent blank
+			enabled = true, -- markdown images and ```math blocks render inline through kitty's graphics protocol
+			convert = { notify = true }, -- a failed conversion reports instead of leaving a blank
 		},
 		notifier = { enabled = true, timeout = 3000 },
 		indent = {
@@ -126,6 +135,16 @@ return {
 				Snacks.picker.files({ cwd = vim.fn.expand("%:p:h") })
 			end,
 			desc = "Files in buffer directory",
+		},
+		{
+			"<leader>ew",
+			function()
+				local win = Snacks.picker.util.pick_win()
+				if win then
+					vim.api.nvim_set_current_win(win)
+				end
+			end,
+			desc = "Pick window",
 		},
 		{
 			"<leader>/",
@@ -478,14 +497,6 @@ return {
 			end,
 			desc = "Image or diagram in a float",
 		},
-		{
-			"<leader>uM",
-			function()
-				require("utils").mermaid_render()
-			end,
-			ft = "mermaid",
-			desc = "Render mermaid file",
-		},
 	},
 	config = function(_, opts)
 		require("snacks").setup(opts)
@@ -495,5 +506,12 @@ return {
 		Snacks.toggle.option("spell", { name = "Spelling" }):map("<leader>oS")
 		Snacks.toggle.indent():map("<leader>oi")
 		Snacks.toggle.dim():map("<leader>oD")
+		Snacks.toggle.diagnostics():map("<leader>ox")
+		Snacks.toggle.inlay_hints():map("<leader>oh")
+		vim.treesitter.query.set( -- the plugin's own query also hands ```mermaid blocks to mmdc, which needs a Chromium; math only here
+			"markdown",
+			"images",
+			[[(fenced_code_block (info_string (language) @lang) (#eq? @lang "math") (code_fence_content) @image.content (#set! injection.language "latex") (#set! image.ext "math.tex")) @image]]
+		)
 	end,
 }

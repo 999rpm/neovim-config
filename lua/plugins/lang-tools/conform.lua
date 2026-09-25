@@ -59,8 +59,8 @@ return {
 			yaml = { "prettier" },
 			markdown = { "prettier" },
 			mdx = { "prettier" },
-			dockerfile = { "prettier" },
 			bash = { "shfmt" },
+			sh = { "shfmt" },
 			zsh = { "shfmt" },
 			c = { "clang-format" }, -- hyphenated: the live formatter name in conform's registry; "clang_format" (underscored) is an explicit deprecated alias, the reverse of the usual convention
 			cpp = { "clang-format" },
@@ -68,6 +68,7 @@ return {
 			sql = { "sqlfluff" },
 			go = { "gofumpt" },
 			cmake = { "cmake_format" },
+			d2 = { "d2" }, -- d2 fmt
 			rust = { lsp_format = "fallback" }, -- an option key, not a formatter name; conform's own allowed_default_opts is { timeout_ms, lsp_format, quiet, stop_after_first }
 			toml = { lsp_format = "fallback" },
 		},

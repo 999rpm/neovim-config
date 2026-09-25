@@ -13,7 +13,7 @@ end
 
 ---@param name string
 ---@return boolean
-function M.executable(name) -- This util is used by options.lua, lspconfig.lua, treesitter.lua, lint.lua and yazi.lua
+function M.executable(name) -- This util is used by lint.lua, lspconfig.lua, options.lua, tree-sitter-d2.lua, treesitter.lua and yazi.lua
 	return fn.executable(name) > 0
 end
 
@@ -43,7 +43,7 @@ end
 
 ---@param path string absolute path of a Mason-installed file
 ---@param label string Mason package name
-function M.warn_if_missing_mason_bin(path, label) -- This util is used by dap.lua and dap-python.lua
+function M.warn_if_missing_mason_bin(path, label) -- This util is used by dap-python.lua and dap.lua
 	if not vim.uv.fs_stat(path) then
 		warn(("%s not found at %s. Check :Mason or :MasonLog, then run :MasonInstall %s."):format(label, path, label), "DAP")
 	end
@@ -60,23 +60,26 @@ end
 ---@param name string executable looked up on $PATH
 ---@param label string
 ---@param hint string
-function M.warn_if_missing_exec(name, label, hint) -- This util is used by octo.lua, yazi.lua, treesitter.lua and hex.lua
-	if not M.executable(name) then
-		warn(("'%s' not found on $PATH. %s"):format(name, hint), label)
+---@return boolean found
+function M.warn_if_missing_exec(name, label, hint) -- This util is used by hex.lua, octo.lua, treesitter.lua and yazi.lua
+	if M.executable(name) then
+		return true
 	end
+	warn(("'%s' not found on $PATH. %s"):format(name, hint), label)
+	return false
 end
 
 ---Augroup namespaced as "999rpm-<name>".
 ---@param name string
 ---@param clear? boolean defaults to true
 ---@return integer
-function M.augroup(name, clear) -- This util is used by autocmds.lua, lspconfig.lua, treesitter.lua, lint.lua, dap.lua, lualine.lua and nvim-bqf.lua
+function M.augroup(name, clear) -- This util is used by autocmds.lua, lint.lua, lspconfig.lua, lualine.lua, nvim-bqf.lua and treesitter.lua
 	return api.nvim_create_augroup("999rpm-" .. name:gsub("_", "-"), { clear = clear ~= false })
 end
 
 ---Binds the shared list-menu navigation (Tab/S-Tab) in one buffer, matching the picker, Trouble and dropbar.
 ---@param buf integer
-function M.menu_nav(buf) -- This util is used by nvim-bqf.lua and harpoon.lua
+function M.menu_nav(buf) -- This util is used by harpoon.lua and nvim-bqf.lua
 	vim.keymap.set("n", "<Tab>", "j", { buf = buf, desc = "Next entry" })
 	vim.keymap.set("n", "<S-Tab>", "k", { buf = buf, desc = "Previous entry" })
 end
@@ -116,7 +119,7 @@ function M.login_shell() -- This util is used by options.lua
 end
 
 ---Set the shell* options that match 'shell': nushell values for nu, Vim's own shell-family values otherwise.
-function M.apply_shell_options() -- This util is used by options.lua and autocmds.lua
+function M.apply_shell_options() -- This util is used by autocmds.lua and options.lua
 	local name = fn.fnamemodify(vim.o.shell, ":t")
 	local set = name == "nu" and nu_shell_options or (name:match("csh$") and csh_shell_options or posix_shell_options)
 	for option, value in pairs(set) do
@@ -137,7 +140,7 @@ function M.term_wincmd(dir, key) -- This util is used by mappings.lua
 	end
 end
 
----Per-buffer memo keyed on b:changetick, so a statusline component scans a buffer once per edit, not once per redraw.
+---Per-buffer memo keyed on b:changedtick, so a statusline component scans a buffer once per edit, not once per redraw.
 ---@generic T
 ---@param key string
 ---@param compute fun(): T
@@ -289,37 +292,115 @@ M.rainbow_delimiter_groups = { -- This util is used by rainbow-delimiters.lua an
 	"RainbowDelimiterCyan",
 }
 
----Renders the current mermaid file to PNG with mmdc and shows it in a split; snacks.image draws the image buffer.
-function M.mermaid_render() -- This util is used by snacks.lua
-	if not M.executable("mmdc") then
-		warn("'mmdc' not found on $PATH. Install it with: npm install -g @mermaid-js/mermaid-cli", "Mermaid")
+---Runs `apply` now and after every colorscheme change, so highlight overrides survive a theme switch.
+---@param name string augroup suffix
+---@param apply fun()
+function M.on_colorscheme(name, apply) -- This util is used by dap.lua, multicursor.lua and render-markdown.lua
+	apply()
+	api.nvim_create_autocmd("ColorScheme", {
+		group = M.augroup(name),
+		desc = "999rpm: re-apply " .. name .. " after a theme switch",
+		callback = apply,
+	})
+end
+
+---Diagram under the cursor: the whole buffer in a d2 file, else the fenced d2 block holding the cursor.
+---@return string? source
+---@return string name file stem for the rendered output
+local function d2_source()
+	local lines = api.nvim_buf_get_lines(0, 0, -1, false)
+	local stem = fn.expand("%:t:r")
+	stem = stem ~= "" and stem or "untitled"
+	if vim.bo.filetype == "d2" then
+		return table.concat(lines, "\n"), stem
+	end
+	local row = api.nvim_win_get_cursor(0)[1]
+	local open ---@type { row: integer, lang: string, fence: string }?
+	for i, line in ipairs(lines) do
+		if open then
+			local close = line:match("^%s*([`~]+)%s*$")
+			if close and close:sub(1, 1) == open.fence:sub(1, 1) and #close >= #open.fence then
+				if open.lang == "d2" and row >= open.row and row <= i then
+					return table.concat(lines, "\n", open.row + 1, i - 1), ("%s-%d"):format(stem, open.row)
+				end
+				open = nil
+			end
+		else
+			local fence, lang = line:match("^%s*(```+)%s*([%w_.+-]*)")
+			if not fence then
+				fence, lang = line:match("^%s*(~~~+)%s*([%w_.+-]*)")
+			end
+			if fence then
+				open = { row = i, lang = lang, fence = fence }
+			end
+		end
+	end
+	return nil, stem
+end
+
+---@param args string[]
+---@param on_done fun(stdout: string, name: string)
+local function d2_run(args, on_done)
+	if not M.executable("d2") then
+		warn("'d2' not found on $PATH. It is one static binary: https://d2lang.com/tour/install", "d2")
 		return
 	end
-	local src = api.nvim_buf_get_name(0)
-	if src == "" then
+	local src, name = d2_source()
+	if not src then
+		warn("The cursor is not in a d2 file or inside a ```d2 block.", "d2")
 		return
 	end
-	if vim.bo.modified then
-		vim.cmd.write()
+	local cmd = { "d2" }
+	for _, arg in ipairs(args) do
+		table.insert(cmd, (arg:gsub("{name}", name))) -- {name}: the output file stem
 	end
-	local out = ("%s/mermaid/%s.png"):format(fn.stdpath("cache"), fn.fnamemodify(src, ":t:r"))
-	M.may_create_dir(fn.fnamemodify(out, ":h"))
-	local theme = vim.o.background == "light" and "neutral" or "dark" -- same pick snacks.image makes for inline diagrams
-	vim.system({ "mmdc", "-i", src, "-o", out, "-t", theme, "-b", "transparent" }, { text = true }, function(res)
+	vim.system(cmd, { stdin = src, text = true }, function(res) -- argv, not a shell string, so zsh and nushell behave the same
 		vim.schedule(function()
 			if res.code ~= 0 then
-				vim.notify(vim.trim(res.stderr ~= "" and res.stderr or res.stdout), vim.log.levels.ERROR, { title = "Mermaid" })
+				vim.notify(vim.trim(res.stderr ~= "" and res.stderr or res.stdout), vim.log.levels.ERROR, { title = "d2" })
 				return
 			end
-			local win = fn.bufwinid(out)
-			if win ~= -1 then
-				api.nvim_win_call(win, function()
-					vim.cmd("edit!") -- reload the image after a re-render
-				end)
-			else
-				vim.cmd("vsplit " .. fn.fnameescape(out))
-			end
+			on_done(res.stdout, name)
 		end)
+	end)
+end
+
+---Renders the d2 diagram under the cursor to PNG and shows it in a split, where snacks.image draws it.
+function M.d2_render() -- This util is used by tree-sitter-d2.lua
+	local dir = fn.stdpath("cache") .. "/d2"
+	M.may_create_dir(dir)
+	local theme = vim.o.background == "light" and "0" or "200" -- d2's Neutral default, or Dark Mauve on a dark background
+	local out = dir .. "/{name}.png"
+	d2_run({ "--theme=" .. theme, "-", out }, function(_, name)
+		local png = ("%s/%s.png"):format(dir, name)
+		local win = fn.bufwinid(png)
+		if win ~= -1 then
+			api.nvim_win_call(win, function()
+				vim.cmd("edit!") -- reload the image after a re-render
+			end)
+		else
+			vim.cmd("vsplit " .. fn.fnameescape(png))
+		end
+	end)
+end
+
+---Renders the d2 diagram under the cursor as text in a split; no image protocol needed. q closes it.
+function M.d2_text() -- This util is used by tree-sitter-d2.lua
+	d2_run({ "--stdout-format=txt", "-", "-" }, function(stdout)
+		local buf = fn.bufnr("d2://text")
+		if buf == -1 then
+			buf = api.nvim_create_buf(false, true)
+			api.nvim_buf_set_name(buf, "d2://text")
+			vim.keymap.set("n", "q", "<Cmd>close<CR>", { buf = buf, desc = "Close" })
+		end
+		local lines = vim.split(stdout, "\n", { trimempty = true })
+		vim.bo[buf].modifiable = true
+		api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+		vim.bo[buf].modifiable = false
+		if fn.bufwinid(buf) == -1 then
+			vim.cmd(("botright %dsplit"):format(math.min(#lines + 1, 25)))
+			api.nvim_win_set_buf(0, buf)
+		end
 	end)
 end
 

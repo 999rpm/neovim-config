@@ -5,7 +5,7 @@
 return {
 	"avante-corp/avante.nvim",
 	build = "make",
-	event = "VeryLazy",
+	cmd = { "AvanteAsk", "AvanteChat", "AvanteEdit", "AvanteToggle" }, -- with the keys below; nothing loads at startup
 	version = false, -- avante's own docs: never pin this to "*", the plugin tracks Nvim API changes closely
 	dependencies = {
 		"nvim-lua/plenary.nvim",

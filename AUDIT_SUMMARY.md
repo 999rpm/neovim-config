@@ -1,141 +1,141 @@
 # Config log
 
-What changed, and the reason it changed. Newest first. Older passes are condensed to their
-conclusions once a later pass has confirmed them.
+What changed, and the reason it changed. Newest first. Older passes are condensed to their conclusions once a later
+pass has confirmed them.
 
-## 2026-09-24 (eighth pass): every plugin installed and run, lost icons restored, mermaid added
+## 2026-09-24 (ninth pass): d2 replaces mermaid, built-in keys returned, double work removed
 
-Earlier passes read upstream source, and the seventh ran a bare Neovim. This one installed all 89
-plugins for real under Neovim 0.12.5 (still the latest release), loaded every lazy spec, opened
-lua, python, typescript, sql, shell, markdown and mermaid buffers, wrote files through the lint and
-format paths, and ran which-key's health check. No errors beyond the expected "debugpy not
-installed yet" in a sandbox that has not run Mason. `lazy-lock.json` is regenerated from that
-install, so every pin is current as of this pass.
+Method: the tree was rebuilt from the project copy and run under Neovim 0.12.5, the latest release, with all 87 plugins
+installed and 29 parsers built. 58 scripted checks cover startup laziness, every spec loading, d2 rendering, restored
+built-ins, comment keys, theme switches and the d2 formatter. Every global map was compared with Neovim's own
+`runtime/doc/index.txt`. which-key's health check and `stylua --check` against `.stylua.toml` came back clean apart from
+the structural overlaps listed below. `lazy-lock.json` is regenerated from this install.
 
-### Icons kept going blank
+### d2 instead of mermaid
 
-Glyphs from Unicode's older private-use block (U+E000 to U+F8FF: powerline separators and most
-pre-nf-md Nerd Font icons) are dropped by at least one path these files travel through. Measured:
-a line holding U+E0BC, U+F188 and U+F00E4 came back holding only U+F00E4. That is the real cause of
-the "empty DAP sign" bug an earlier pass fixed; the fix used the same kind of glyph and was blanked
-again on the next round trip. Blank today, now restored: five DAP signs, twelve dap-ui icons,
-lualine's separators, diff and venv icons, barbar's six separators, neo-tree's expanders and five
-git symbols, Trouble's fold and folder icons, the six todo-comments icons, the gitsigns blame
-prefix. Rule from here on, also in README: nf-md glyphs (U+F0001 and up) only, and `\u{...}` escapes
-for the separators that have no nf-md form. barbar's overrides were removed rather than escaped:
-its `slanted` preset already supplies the same glyphs.
+mermaid-cli (`mmdc`) renders through Puppeteer and a headless Chromium. d2 0.9.0 is one static binary that writes SVG,
+PNG and text itself: a PNG render took 17 ms here and downloaded nothing. The earlier note on this change said d2's PNG
+export needs Playwright; 0.9.0 does not.
+
+- Added `tree-sitter-d2.lua` (ravsii/tree-sitter-d2 v0.7.2, parser and queries, registered with nvim-treesitter's main
+  branch), `utils.d2_render()` on `<leader>ud` (PNG in a split, drawn by snacks.image in kitty), `utils.d2_text()` on
+  `<leader>uD` (box-drawing text, any terminal), the `d2` filetype (0.12.5 does not detect `.d2`) and conform's `d2`
+  formatter.
+- Removed the `mermaid` parser, `utils.mermaid_render()`, `<leader>uM` and every mmdc mention. snacks.image's own
+  markdown query sends ` ```mermaid ` blocks to mmdc, so `snacks.lua` sets that query to ` ```math ` blocks only through
+  `vim.treesitter.query.set`.
+- Declined terrastruct/d2-vim: loading it maps `<leader>d2`, `<leader>rd2` and `<leader>yd2` globally with no opt-out,
+  and it runs `d2 fmt` on save by default, doubling conform. Its text preview is one d2 call, which `utils.d2_text()`
+  makes.
+- snacks.image has no d2 converter, so a d2 block inside markdown renders on request rather than automatically.
+
+### Built-in keys returned
+
+Instruction 7 prefers built-in keymaps. Earlier passes kept nine built-ins as documented trades, and the key scan found
+five more. All fourteen are back, each personal action on a free key: `;` `,` `q` `x` `X`, visual `p`, `<C-q>`, `H` `L`
+(buffers on `<M-h>` `<M-l>`), `f` `F` (flash on `<leader>j` `<leader>J`), `s` and visual `S` (surround on visual `gs`
+`gS`), visual `R`, `g]` (mini.ai edge jumps off), `<C-LeftMouse>` (multicursor on `<M-LeftMouse>`), `]f` `[f` (functions
+on `]m` `[m` `]M` `[M`, the built-in method motions extended by treesitter), `zr`, and the command-line `<Left>`
+`<Right>` `<End>` (trimmed from blink's preset). Kept on built-in keys because they do the same job better: dial on
+`<C-a>`/`<C-x>`, centred `n`/`N`, LSP on `gd`/`gD`/`grn`, ufo on `zR`/`zM`, mini.ai on `a`/`i`, matchit on `%`.
 
 ### Defects fixed
 
-- `dap-virtual-text.lua` set `virt_text_prefix`, which the plugin never reads.
-- `lint.lua` called the private `lint._resolve_linter_by_ft`. `try_lint(nil, { filter = installed })`
-  does the same through the public API: nil lets nvim-lint resolve the filetype itself (compound
-  ones included), the filter keeps linters whose binary is missing from raising.
-- gopls was non-optional, so every start on a machine without Go warned. Mason's `gofumpt` is built
-  with `go install`, so it failed on every start there too. Both are now conditional on Go.
-- `copilot.lua` ran its own `node --version` probe. copilot.lua does that itself
-  (`lua/copilot/lsp/nodejs.lua`, `:checkhealth copilot`), so the duplicate went.
-- `mcphub.lua` warned about npm at load; the build step already needs npm, so the warning went.
-- Headers and comments that described things that do not exist: `noice.lua` listed
-  `<leader>ud` (defined nowhere) and scroll keys it never mapped; `flash.lua` said `;` still repeats
-  `t`/`T` (it is the command line); `lspconfig.lua` pointed at a "ts_ls note" and a "header note"
-  that were never written; `lint.lua` and `yazi.lua` pointed at header notes that were missing too.
-- README said zsh swallows `<C-s>` as XOFF before Neovim sees it. Neovim's TUI puts the tty in raw
-  mode, which clears IXON, so `<C-s>`/`<C-q>` always arrive; the freeze only happens at the zsh
-  prompt (`unsetopt FLOW_CONTROL`).
-- which-key carried label-only entries for `<leader>of` and `<leader>ot`, repeating the `desc` the
-  real mappings already have.
+- hardtime maps `h` `j` `k` `l` `J`, the arrows and a few more keys itself and does not chain existing maps, so the
+  config's `j`/`k` screen-line maps, its `J` join map and the arrow-key resizing never ran. The dead maps went; resizing
+  moved to `<M-arrows>`.
+- `<leader>io` called `require("opencode").toggle()`, which opencode.nvim no longer has. The TUI now toggles through
+  snacks.terminal, as upstream's README shows, and `<leader>iS` opens opencode's action picker.
+- `lspconfig.lua` mapped `K` on every attach, replacing rustaceanvim's buffer-local hover actions in Rust buffers. `K`
+  is Neovim's own now (0.12 maps it only where no buffer map exists), and floats take `'winborder'`, which also made the
+  bordered `<C-s>` override redundant.
+- The `LspProgress` echo duplicated noice's LSP progress and sat outside the `999rpm-*` groups. It went, and so did the
+  `messagesopt` pin kept only for it; the value equals 0.12.5's default.
+- `lua_ls` set `single_file_support`, which `vim.lsp.config` ignores.
+- conform sent Dockerfiles to prettier, which has no Dockerfile parser; `sh` files were linted but never formatted.
+- nvim-surround v4 dropped `setup({ keymaps })`. Its visual keys now come from `g:nvim_surround_no_visual_mappings`
+  plus two `<Plug>` maps.
+- octo's and hex.nvim's `setup()` raised when `gh`/`xxd` were missing, right after the config's own warning. Setup now
+  runs only when the binary exists.
+- nvim-dap, dap-ui and dap-python loaded at startup: mason-nvim-dap had no load trigger and listed nvim-dap as a
+  dependency, and every debug spec carried `VeryLazy`. mason-nvim-dap is gone (mason-tool-installer installs the four
+  adapters), and nothing debug-related loads before a debug key.
+- blink loaded on `InsertEnter` only, so the command line used the built-in wildmenu until the first insert.
+- `close_with_q` listed nine filetypes of plugins that are not installed and force-deleted oil buffers, which could
+  drop unsaved renames. `auto_close_win` and neo-tree's `close_if_last_window` both tried to quit on the same event;
+  one mechanism is left.
+- Highlight overrides in `render-markdown.lua` and `multicursor.lua` were set once and lost on the first theme switch.
+  `utils.on_colorscheme()` re-applies them, as `dap.lua` already did by hand.
+- `options.lua` set fourteen options to values 0.12.5 already uses, plus `'encoding'` (fixed in Neovim), `'gdefault'`
+  (inverts `:s///g`) and `'tildeop'` (turns the built-in `~` into an operator; its comment described `g~`, which is
+  always an operator). `'fileencodings'` tried five CJK encodings before latin1, so a Latin-1 file opened as GBK; the
+  default order is back. `'nrformats'` alpha did nothing, since dial handles `<C-a>`/`<C-x>`. The clipboard provider
+  probe runs after the first redraw.
+- `lazy.lua` disabled `tohtml`, `2html_plugin` and `vimballPlugin`, none of which exist in 0.12.5, and matchit, which
+  cost the built-in `%` its if/else/end pairs. The update checker no longer notifies at startup; the statusline shows
+  the count.
+- Filetype lists still named `Trouble` (Trouble v2), `alpha`, `packer`, `notify` and `NvimTree`.
 
-### Replacements and removals
+### Replacements
 
-- text-case.nvim, last commit 2024-08, replaced by coerce.nvim (commits this month). `gA` + case key
-  in normal and visual mode; `ga` stays native. The motion variant was left unmapped, because
-  `gAo` next to a `gA` leaf is an overlap which-key's health check flags. Its library, coop.nvim,
-  is listed in `deps/shared.lua`.
-- FixCursorHold.nvim removed. Archived since 2023, and its own README says Neovim fixed the bug in
-  PR 20198. neotest's README still lists it, for CursorHold timing, which `updatetime = 100` covers.
-- barbar's `version = "^1.0.0"` pin dropped. The newest tag is v1.9.1 from 2024-07; master has
-  commits from 2026-06, so the pin held the plugin two years back.
-
-### Mermaid
-
-snacks.image already renders ` ```mermaid ` fences inline through kitty's graphics protocol when
-`mmdc` is on `$PATH`; its markdown query captures them, and `convert.mermaid` picks the `dark` or
-`neutral` theme from `background`. Added on top: `convert.notify = true` so a missing `mmdc` or a
-bad diagram reports instead of rendering nothing, `<leader>ui` for the image under the cursor in a
-float (`Snacks.image.hover()`), the `mermaid` treesitter parser for highlighting the source, and
-`utils.mermaid_render()` behind `<leader>uM` for standalone `.mmd` files (0.12 already maps
-`.mmd`, `.mmdc` and `.mermaid` to the `mermaid` filetype). Tested with a stub `mmdc`: the PNG opens in
-a split, and a second render reloads the same split instead of opening another.
-
-### Kitty and zsh
-
-`map ctrl+t new_tab_with_cwd` in kitty.conf swallowed `<C-t>` before any program saw it: Neovim's
-tag-stack and insert-mode indent, the picker's "open in tab", and fzf's Ctrl-T widget that `.zshrc`
-loads with `fzf --zsh`. Moved to `ctrl+shift+t`, kitty's own default. No Neovim mapping uses
-`alt+1`..`alt+9` or any `ctrl+shift` key. The zsh setup needs nothing from this side: PATH lives in
-`.zshenv`, which non-interactive zsh reads, so `:!`, `:make` and formatters find `~/.local/bin`.
-
-### Shells, run under zsh 5.9 and nushell 0.115.1
-
-zsh with the `.zshenv` from this setup: `system()`, `:read !`, `:make` into quickfix and `:terminal`
-all work, and `$PNPM_HOME` from `.zshenv` is visible to `:!`. Nushell turned up a real defect in
-the flags copied from nushell's own integration: its `shellpipe` saves only stderr to the error
-file, so `:grep` (ripgrep and grep both print matches to stdout) always produced an empty quickfix
-list, and so did `:make` for any tool reporting on stdout. The pipe now saves stdout and stderr, as
-`2>&1| tee` does. Measured before and after: `:make` on stderr worked both ways; `:make` on stdout
-and `:grep` went from empty to filled.
-
-### Comments and key documentation
-
-Every plugin header now lists the keys this config binds for the plugin and the plugin's own keys
-inside its windows (Lazy, Mason, yazi, avante's sidebar, the scissors editor, neo-tree, Octo,
-multicursor, harpoon and others were missing them), each read from the plugin's source defaults.
-Comments standing on their own line below a header were removed or folded into end-of-line notes:
-section labels in `snacks.lua`, `which-key.lua` and `utils.lua`, and a two-line block in
-`lspconfig.lua`.
+- alpha-nvim → snacks.dashboard, already installed: keys, recent files, startup time.
+- nvim-window-picker (last commit 2025-02) → `Snacks.picker.util.pick_win()` on `<leader>ew`.
+- The manual `large_file` autocommand → snacks.bigfile at the same 0.5 MB limit, which also keeps treesitter, LSP and
+  syntax off big files.
+- mason-nvim-dap → four entries in mason-tool-installer.
+- The `no_paste` autocommand went: `'paste'` is obsolete in Neovim, where bracketed paste is built in.
+- avante loads on its keys and commands, ts-autotag only for tag languages.
 
 ### Checked and left as is
 
-- which-key health reports only structural overlaps: native `gc` against `gcc`/`gco`/`gcO`/`gcA`,
-  and mini.ai's `a`/`i` prefixes. Both are how those features are built.
-- No global mapping replaces a stock 0.12.5 default except `Y`, which hardtime wraps and replays as
-  the stock `y$`.
-- LuaJIT in 0.12.5 decodes `"\u{e0bc}"` to the right three bytes.
+- which-key health reports only structural overlaps: `gc` against `gco`/`gcO`/`gcA`/`gcc`, and mini.ai's `a`/`i`
+  prefixes.
+- Quiet but working on 0.12.5: promise-async (2024-08, ufo's library), guess-indent (2025-03), nvim-dap-virtual-text
+  (2025-05), hex.nvim (2025-07).
+- Kitty: kitty.conf binds `ctrl+shift+*` and `alt+1`..`alt+9`. Neovim uses neither, and nothing in kitty.conf catches
+  the Alt keys, `<M-arrows>` or `<M-LeftMouse>`. kitty.conf needed no change.
+- Shells: every external call added this pass passes an argument list to `vim.system`, so zsh and nushell behave the
+  same.
+
+### Structure
+
+The category layout holds up. Two optional moves for a later pass: `frontend/` (three small files) could merge into
+`lang-tools/`, and `lang-tools/` could become `lang/` once it carries more than formatting and linting.
 
 ### Open for next pass
 
-- barbar across every theme is still only observed on tokyonight and monokai-pro.
-- Inline image placement needs a real kitty window; the sandbox has no graphics protocol, so only
-  the conversion and split paths were exercised, with a stand-in `mmdc`.
-- The 16 reference configs were not re-read this pass; this pass verified against installed sources.
-- nvim-window-picker (last commit 2025-02) and guess-indent (2025-03) are quiet but working.
+- Inline placement of images and d2 PNGs needs a real kitty window. The sandbox has no graphics protocol, so rendering,
+  file output and the split were verified, not the drawing.
+- Mason's registry was unreachable from the sandbox, so server and tool installs were not exercised.
+- The 16 reference configs were not re-read; this pass verified against installed sources.
 
-## Earlier passes (2026-09-19 and before): conclusions only
+## Earlier passes (2026-09-24 and before): conclusions only
 
-**Seventh pass.** Ran the tree under a bare 0.12.5. `gd`/`gD` are built-in commands, not keymaps,
-so which-key cannot discover them; label-only spec entries now name `gd gD ga gJ gq gp gP g& gF g?`
-and the `gr*` LSP keys without taking them from Neovim. `diffopt` is assigned whole (appending left
-two `linematch:` values). 0.12 took `an`/`in` for node selection, so mini.ai's next-object pair moved
-to `aN`/`iN`. nvim-lspconfig registers no commands on 0.12, so `:LspInfo`, `:LspLog` and
-`:LspRestart` here are the only source of them.
+**Eighth pass.** First run with every plugin installed under 0.12.5. Icons restricted to nf-md glyphs (U+F0001 and up)
+and `\u{...}` escapes, after older private-use glyphs kept vanishing in transit. `lint.lua` moved to the public
+`try_lint(nil, { filter = installed })`. gopls and gofumpt became conditional on Go. text-case.nvim → coerce.nvim;
+FixCursorHold removed; barbar's version pin dropped. kitty's new tab moved to `ctrl+shift+t`, so `<C-t>` reaches Neovim
+and fzf. Nushell's `shellpipe` saves stdout as well as stderr, so `:grep` fills the quickfix list. Its mermaid setup was
+replaced in the ninth pass.
 
-**Sixth pass.** Built-ins returned: `<C-a>`/`<C-x>` (dial widens them), `>`/`<`, insert-mode
-`<C-e>`; select-all moved to `<leader>na`. `dap.configurations.c` and `.rust` are deep copies of
-`.cpp`, since rustaceanvim appends runnables to the table in place. Statusline scans are memoised
-on `b:changedtick` through `utils.buf_cached()`.
+**Seventh pass.** Ran the tree under a bare 0.12.5. `gd`/`gD` are built-in commands, not keymaps, so which-key cannot
+discover them; label-only spec entries name `gd gD ga gJ gq gp gP g& gF g?` and the `gr*` LSP keys without taking them
+from Neovim. `diffopt` is assigned whole (appending left two `linematch:` values). 0.12 took `an`/`in` for node
+selection, so mini.ai's next-object pair moved to `aN`/`iN`. nvim-lspconfig registers no commands on 0.12, so
+`:LspInfo`, `:LspLog` and `:LspRestart` here are the only source of them.
 
-**Fifth pass.** One picker engine (snacks.picker) instead of three. barbar replaced bufferline.
-Each terminal layout is a separate snacks terminal, keyed by an env var. `'shell'` follows the
-passwd login shell, with nushell's own flags only when the shell is nu. Terminal-mode `<M-w/a/s/d>`
-move between splits and pass through in floats.
+**Sixth pass.** Built-ins returned: `<C-a>`/`<C-x>` (dial widens them), `>`/`<`, insert-mode `<C-e>`; select-all moved
+to `<leader>na`. `dap.configurations.c` and `.rust` are deep copies of `.cpp`, since rustaceanvim appends runnables to
+the table in place. Statusline scans are memoised on `b:changedtick` through `utils.buf_cached()`.
 
-**First to fourth passes.** `plugins/init.lua` renamed `plugins/loader.lua` after going missing in
-seven deliveries (it shared a basename with the root `init.lua`). Keys moved off native ones:
-Trouble off `]d`/`[d`, parameter swap to `<leader>a`/`<leader>A`, class motions to `]k`/`[k`,
-todo jumps to `]n`/`[n`, tabs to `<leader><Tab>`. Real bugs fixed: `shell = "nushell"` (the binary
-is `nu`), duplicate format-on-save, a ufo fallback chain that could not catch treesitter failures,
-nvim-lint raising on a missing `typos` inside `BufWritePost` and breaking `:w`, Noice swallowing the
-hover border. `mini.icons` stands in for nvim-web-devicons through `mock_nvim_web_devicons()`.
-Declined, reasons unchanged: sidekick.nvim, eyeliner.nvim, hydra.nvim, fidget.nvim, nvim-spider,
-nvim-navic, nvim-hlslens.
+**Fifth pass.** One picker engine (snacks.picker) instead of three. barbar replaced bufferline. Each terminal layout is
+a separate snacks terminal, keyed by an env var. `'shell'` follows the passwd login shell, with nushell's own flags only
+when the shell is nu. Terminal-mode `<M-w/a/s/d>` move between splits and pass through in floats.
+
+**First to fourth passes.** `plugins/init.lua` renamed `plugins/loader.lua` after going missing in seven deliveries (it
+shared a basename with the root `init.lua`). Trouble moved off `]d`/`[d`, parameter swap to `<leader>a`/`<leader>A`,
+class motions to `]k`/`[k`, todo jumps to `]n`/`[n`, tabs to `<leader><Tab>`. Real bugs fixed: `shell = "nushell"` (the
+binary is `nu`), duplicate format-on-save, a ufo fallback chain that could not catch treesitter failures, nvim-lint
+raising on a missing `typos` inside `BufWritePost` and breaking `:w`, Noice swallowing the hover border. `mini.icons`
+stands in for nvim-web-devicons through `mock_nvim_web_devicons()`. Declined, reasons unchanged: sidekick.nvim,
+eyeliner.nvim, hydra.nvim, fidget.nvim, nvim-spider, nvim-navic, nvim-hlslens.

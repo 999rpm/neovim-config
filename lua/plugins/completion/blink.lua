@@ -1,5 +1,6 @@
 -- saghen/blink.cmp: completion and signature help.
 -- Keys: <Tab>/<S-Tab> next/previous item, <CR> accept, <C-Space> open menu, <C-e> hide, <C-k> documentation, <C-b>/<C-f> scroll docs.
+-- Command line: <Tab>/<S-Tab> complete and cycle, <C-n>/<C-p> next/previous, <C-y> accept, <C-e> cancel; arrows stay built-in.
 return {
 	"saghen/blink.cmp",
 	version = "*",
@@ -7,7 +8,7 @@ return {
 		"rafamadriz/friendly-snippets",
 		"folke/lazydev.nvim", -- full config in plugins/lsp/lazydev.lua; listed here for install/load ordering only
 	},
-	event = "InsertEnter", -- later than VimEnter: nothing loads until insert mode actually starts
+	event = { "InsertEnter", "CmdlineEnter" }, -- the first : already completes through blink, not the built-in wildmenu
 
 	opts = {
 		keymap = {
@@ -28,6 +29,15 @@ return {
 		},
 
 		signature = { enabled = true },
+
+		cmdline = {
+			keymap = {
+				preset = "cmdline",
+				["<Left>"] = false, -- false drops a preset key, so the arrows and <End> move the cursor on the command line
+				["<Right>"] = false,
+				["<End>"] = false,
+			},
+		},
 
 		sources = {
 			default = { "lsp", "path", "snippets", "buffer", "lazydev" },

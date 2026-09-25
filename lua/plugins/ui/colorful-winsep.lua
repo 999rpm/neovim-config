@@ -4,6 +4,6 @@ return {
 	event = "WinLeave",
 	opts = {
 		border = "rounded",
-		excluded_ft = { "packer", "snacks_picker_list", "snacks_picker_input", "mason", "neo-tree", "alpha", "Trouble", "trouble", "lazy" },
+		excluded_ft = { "snacks_picker_list", "snacks_picker_input", "snacks_dashboard", "mason", "neo-tree", "trouble", "lazy" },
 	},
 }

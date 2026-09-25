@@ -1,5 +1,5 @@
 -- kevinhwang91/nvim-ufo: folds from LSP, with treesitter and indent as fallbacks.
--- Keys: zR open all, zM close all, zr open except kinds; native za/zc/zo/zj/zk still apply.
+-- Keys: zR open all and zM close all through ufo, which keeps 'foldlevel' fixed; zr/zm/za/zc/zo/zj/zk stay built-in.
 return {
 	{
 		"kevinhwang91/nvim-ufo",
@@ -11,8 +11,8 @@ return {
 				help = "",
 				lazy = "",
 				mason = "",
-				notify = "",
-				Trouble = "",
+				trouble = "",
+				snacks_dashboard = "",
 				["neo-tree"] = "",
 			}
 
@@ -27,8 +27,7 @@ return {
 					return require("promise").reject(err)
 				end
 
-				return ufo
-					.getFolds(bufnr, "lsp")
+				return ufo.getFolds(bufnr, "lsp")
 					:catch(function(err)
 						return handle_fallback(err, "treesitter")
 					end)
@@ -71,7 +70,6 @@ return {
 
 			vim.keymap.set("n", "zR", require("ufo").openAllFolds, { desc = "Open all folds" })
 			vim.keymap.set("n", "zM", require("ufo").closeAllFolds, { desc = "Close all folds" })
-			vim.keymap.set("n", "zr", require("ufo").openFoldsExceptKinds, { desc = "Open folds except kinds" })
 		end,
 	},
 }

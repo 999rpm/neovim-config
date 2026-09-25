@@ -15,7 +15,7 @@ return {
 		{ "<leader>er", "<cmd>Neotree reveal<cr>", desc = "Reveal File in Tree" },
 	},
 	opts = {
-		close_if_last_window = true,
+		close_if_last_window = false, -- autocmds.lua auto_close_win decides, for quickfix and Trouble windows too
 		popup_border_style = "rounded",
 		enable_git_status = true,
 		enable_diagnostics = true,

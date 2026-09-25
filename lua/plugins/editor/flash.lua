@@ -1,32 +1,29 @@
--- folke/flash.nvim: jump to any visible position by label.
--- Keys: f jump, F treesitter select, r remote (operator), R treesitter search, <C-s> toggle inside a search.
--- f/F replace the native char search; t/T keep it, and , still repeats the last t/T backwards (; is the command line, mappings.lua).
+-- folke/flash.nvim: jump to any visible position by typing the label shown there. f/F/t/T and their ;/, repeats stay built-in.
+-- Keys: <leader>j jump, <leader>J select a treesitter node, r remote action and R treesitter search (both after an operator,
+-- as in yr or dR), <C-s> toggle labels while typing a / or ? search.
 return {
 	"folke/flash.nvim",
-	event = "VeryLazy",
 	opts = {
 		modes = {
-			char = {
-				enabled = false, -- stop flash from hooking f/F/t/T internally
-			},
+			char = { enabled = false }, -- f/F/t/T stay the built-in character search
 		},
 	},
 	keys = {
 		{
-			"f",
+			"<leader>j",
 			mode = { "n", "x", "o" },
 			function()
 				require("flash").jump()
 			end,
-			desc = "Flash",
+			desc = "Jump (flash)",
 		},
 		{
-			"F",
+			"<leader>J",
 			mode = { "n", "x", "o" },
 			function()
 				require("flash").treesitter()
 			end,
-			desc = "Flash Treesitter",
+			desc = "Select node (flash)",
 		},
 		{
 			"r",
@@ -34,23 +31,23 @@ return {
 			function()
 				require("flash").remote()
 			end,
-			desc = "Remote Flash",
+			desc = "Remote flash",
 		},
 		{
 			"R",
-			mode = { "o", "x" },
+			mode = "o",
 			function()
 				require("flash").treesitter_search()
 			end,
-			desc = "Treesitter Search",
+			desc = "Treesitter search",
 		},
 		{
 			"<C-s>",
-			mode = { "c" },
+			mode = "c",
 			function()
 				require("flash").toggle()
 			end,
-			desc = "Toggle Flash Search",
+			desc = "Toggle flash search",
 		},
 	},
 }

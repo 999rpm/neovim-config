@@ -4,13 +4,6 @@ local fn = vim.fn
 local utils = require("utils")
 local augroup = utils.augroup
 
-api.nvim_create_autocmd("InsertLeave", {
-	group = augroup("no_paste"),
-	desc = "999rpm: leave paste mode on every insert-mode exit",
-	pattern = "*",
-	command = "set nopaste",
-})
-
 api.nvim_create_autocmd("FileType", {
 	group = augroup("format_options"),
 	desc = "999rpm: re-strip comment-continuation formatoptions after ftplugins run",
@@ -142,32 +135,6 @@ api.nvim_create_autocmd({ "BufNewFile", "BufReadPre" }, {
 				vim.o.backup = vim.b[ev.buf].user_backup_was_on and true or false
 			end,
 		})
-	end,
-})
-
-api.nvim_create_autocmd("BufReadPre", {
-	group = augroup("large_file"),
-	desc = "999rpm: drop expensive per-buffer features on files over 0.5 MB",
-	callback = function(ev)
-		local size_limit = 524288 -- 0.5 MB
-		local size = fn.getfsize(ev.file)
-		if size > size_limit or size == -2 then
-			vim.wo.relativenumber = false
-			vim.wo.number = false
-			vim.bo.swapfile = false
-			vim.bo.bufhidden = "unload"
-			vim.bo.undolevels = -1
-
-			api.nvim_create_autocmd("BufLeave", {
-				buf = ev.buf,
-				desc = "999rpm: restore line numbers after leaving a large file",
-				once = true,
-				callback = function()
-					vim.wo.number = true
-					vim.wo.relativenumber = true
-				end,
-			})
-		end
 	end,
 })
 
@@ -307,7 +274,7 @@ api.nvim_create_autocmd("BufEnter", {
 		if fn.getcmdwintype() ~= "" then
 			return -- the command-line window cannot be left with :qall
 		end
-		local utility_fts = { "qf", "neo-tree" }
+		local utility_fts = { "qf", "neo-tree", "trouble" } -- neo-tree.lua leaves close_if_last_window off, so this is the one place that decides
 		for _, win in ipairs(api.nvim_tabpage_list_wins(0)) do
 			if api.nvim_win_get_config(win).relative == "" then -- floats (pickers, previews, notifications) are not what keeps a tab alive
 				local ft = vim.bo[api.nvim_win_get_buf(win)].filetype
@@ -422,28 +389,12 @@ api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
 api.nvim_create_autocmd("FileType", {
 	group = augroup("close_with_q"),
 	desc = "999rpm: close utility buffers with q",
-	pattern = {
-		"blame",
-		"checkhealth",
-		"fugitive",
-		"fugitiveblame",
-		"help",
-		"httpResult",
-		"lazy",
-		"lspinfo",
-		"man",
-		"notify",
-		"oil",
-		"qf",
-		"spectre_panel",
-		"startuptime",
-		"Trouble",
-	},
+	pattern = { "checkhealth", "help", "man", "qf" }, -- man: options.lua sets no_man_maps, which drops man.lua's own q
 	callback = function(event)
 		vim.bo[event.buf].buflisted = false
 		vim.schedule(function()
 			vim.keymap.set("n", "q", function()
-				vim.cmd("close")
+				pcall(vim.cmd.close) -- the last window cannot close; the buffer still goes
 				pcall(api.nvim_buf_delete, event.buf, { force = true })
 			end, {
 				buf = event.buf,

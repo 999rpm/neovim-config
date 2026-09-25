@@ -16,7 +16,8 @@ return {
 		picker = "snacks",
 	},
 	config = function(_, opts)
-		require("utils").warn_if_missing_exec("gh", "Octo", "Install GitHub CLI and run 'gh auth login'.")
-		require("octo").setup(opts)
+		if require("utils").warn_if_missing_exec("gh", "Octo", "Install GitHub CLI and run 'gh auth login'.") then
+			require("octo").setup(opts) -- setup spawns gh at once and raises when it is missing
+		end
 	end,
 }

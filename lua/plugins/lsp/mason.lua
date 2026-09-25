@@ -1,11 +1,12 @@
--- Mason plus the installer bridges: servers for lspconfig, tools for conform/nvim-lint, adapters for nvim-dap.
--- :Mason opens the UI (<leader>om), :MasonUpdate refreshes the registry. In the UI: i install, u update, U update all,
+-- Mason plus two installer bridges: mason-lspconfig for servers, mason-tool-installer for formatters, linters and debug adapters.
+-- :Mason or <leader>om opens the UI, :MasonUpdate refreshes the registry. In the UI: i install, u update, U update all,
 -- X uninstall, c/C check versions, <CR> expand, <C-f> language filter, g? help.
 return {
 	{
 		"mason-org/mason.nvim",
 		lazy = false, -- setup() puts $MASON/bin on $PATH, which servers, formatters and debug adapters all look through
 		build = ":MasonUpdate",
+		keys = { { "<leader>om", "<cmd>Mason<cr>", desc = "Mason" } },
 		opts = {
 			ui = {
 				icons = {
@@ -65,23 +66,15 @@ return {
 				"yamllint",
 				"typos",
 				"tree-sitter-cli", -- nvim-treesitter's main branch builds parsers with it
+				"debugpy", -- debug adapters for dap.lua and dap-python.lua; installing them here keeps nvim-dap out of startup
+				"codelldb",
+				"js-debug-adapter",
+				"haskell-debug-adapter",
 			}
 			if vim.fn.executable("go") == 1 then
 				table.insert(tools, "gofumpt") -- Mason builds it with `go install`, which fails without a Go toolchain
 			end
 			return { ensure_installed = tools }
 		end,
-	},
-	{
-		"jay-babu/mason-nvim-dap.nvim",
-		dependencies = { "mason-org/mason.nvim", "mfussenegger/nvim-dap" },
-		opts = {
-			ensure_installed = {
-				"debugpy",
-				"codelldb",
-				"js-debug-adapter",
-				"haskell-debug-adapter",
-			},
-		},
 	},
 }

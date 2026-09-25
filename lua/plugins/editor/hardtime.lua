@@ -1,10 +1,11 @@
--- m4xshen/hardtime.nvim: blocks rapid repeats of hjkl-style keys and suggests a better motion. <leader>oH toggles it; :Hardtime report lists habits.
+-- m4xshen/hardtime.nvim: blocks rapid repeats of hjkl-style keys and suggests a better motion; the arrow keys are off.
+-- It maps h j k l J and the arrows itself, so no other file does. <leader>oH toggles it; :Hardtime report lists habits.
 return {
 	"m4xshen/hardtime.nvim",
 	lazy = false,
 	dependencies = { "MunifTanjim/nui.nvim" },
 	opts = {
-		disable_mouse = false, -- multicursor.lua uses <C-LeftMouse>
+		disable_mouse = false, -- multicursor.lua uses <M-LeftMouse>
 		restricted_keys = {
 			["-"] = { "n", "x" },
 		},
@@ -13,6 +14,7 @@ return {
 			snacks_picker_input = true,
 			snacks_terminal = true,
 			snacks_notif_history = true,
+			snacks_dashboard = true,
 			dropbar_menu = true,
 			harpoon = true,
 			["grug-far"] = true,
