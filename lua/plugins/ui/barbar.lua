@@ -44,6 +44,9 @@ return {
 				[vim.diagnostic.severity.ERROR] = { enabled = true, icon = "󰃤 " },
 				[vim.diagnostic.severity.WARN] = { enabled = true, icon = "󰀦 " },
 			},
+			separator = { left = "", right = "" },
+			active = { separator = { left = "", right = "" } },
+			inactive = { separator = { left = "", right = "" } },
 		},
 	},
 }
