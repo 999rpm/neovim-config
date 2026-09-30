@@ -17,6 +17,7 @@ map("n", "<C-s>", "<Cmd>write<CR>", { desc = "Write file" }) -- normal-mode <C-s
 
 map("n", "<leader>qq", "<Cmd>quit<CR>", { desc = "Quit window" })
 map("n", "<leader>qa", "<Cmd>quitall<CR>", { desc = "Quit all" })
+map("n", "<leader>ph", "<Cmd>checkhealth<CR>", { desc = "Checkhealth" })
 
 map("n", "<leader><leader>", "V", { desc = "Visual line" })
 map("x", "<leader><leader>", "<Esc>", { desc = "Leave visual" })
@@ -29,6 +30,10 @@ map("n", "<M-k>", "<Cmd>move-2<CR>==", { desc = "Move line up" })
 map("x", "<M-j>", ":move '>+1<CR>gv=gv", { silent = true, desc = "Move selection down" }) -- ":" rather than <Cmd>, so the '< '> marks update first
 map("x", "<M-k>", ":move '<-2<CR>gv=gv", { silent = true, desc = "Move selection up" })
 
+---Copy the current file's path to the system clipboard and echo what was copied.
+---@param modifier string fnamemodify() specifier
+---@param title string notification title
+---@return fun()
 local function yank_path(modifier, title)
 	return function()
 		local path = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), modifier)
@@ -73,12 +78,12 @@ map("n", "<M-a>", "<C-w>h", { desc = "Window left" })
 map("n", "<M-d>", "<C-w>l", { desc = "Window right" })
 map("n", "<M-e>", "<C-w>=", { desc = "Equalize windows" })
 map("n", "<M-q>", "<Cmd>close<CR>", { desc = "Close window" })
-map("n", "<M-Up>", "<Cmd>resize +2<CR>", { desc = "Taller window" })
+map("n", "<M-Up>", "<Cmd>resize +2<CR>", { desc = "Taller window" }) -- hardtime turns the bare arrows off, so resizing lives on <M-arrows>
 map("n", "<M-Down>", "<Cmd>resize -2<CR>", { desc = "Shorter window" })
 map("n", "<M-Left>", "<Cmd>vertical resize -2<CR>", { desc = "Narrower window" })
 map("n", "<M-Right>", "<Cmd>vertical resize +2<CR>", { desc = "Wider window" })
 
-local term_wincmd = require("utils").term_wincmd
+local term_wincmd = require("utils").term_wincmd -- shared helper; see utils.lua
 map("t", "<M-w>", term_wincmd("k", "<M-w>"), { expr = true, desc = "Window up (floats get the key)" })
 map("t", "<M-s>", term_wincmd("j", "<M-s>"), { expr = true, desc = "Window down (floats get the key)" })
 map("t", "<M-a>", term_wincmd("h", "<M-a>"), { expr = true, desc = "Window left (floats get the key)" })

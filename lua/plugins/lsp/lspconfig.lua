@@ -4,9 +4,11 @@
 -- Nvim's own diagnostic keys, also kept: ]d/[d next/previous, ]D/[D last/first, <C-w>d float. Floats take 'winborder'.
 -- Added here: gd definition, gD declaration, <C-k> signature help (normal), <leader>xf line diagnostics,
 -- <leader>xb/<leader>xw diagnostics to quickfix (buffer/workspace), <leader>wa/wr/wf workspace folders.
--- Toggles for diagnostics (<leader>ox) and inlay hints (<leader>oh) live in snacks.lua.
+-- Occurrence highlighting and ]r/[r come from snacks.words (snacks.lua); the toggles for diagnostics (<leader>od) and
+-- inlay hints (<leader>oh) live there too.
 return {
 	"neovim/nvim-lspconfig",
+	event = { "BufReadPre", "BufNewFile" }, -- off the startup path; the servers still attach before the first FileType
 	dependencies = { "b0o/schemastore.nvim" }, -- JSON/YAML schema catalog for jsonls and yamlls
 	config = function()
 		local utils = require("utils")
@@ -17,12 +19,12 @@ return {
 			update_in_insert = false,
 			severity_sort = true,
 			float = {
-				source = "if_many", -- show source only when multiple servers report on the same line
+				source = "if_many", -- show the source only when several servers report on one line
 				max_height = 20, -- a long diagnostic message cannot take over the screen
 				max_width = 120,
 			},
 			underline = {
-				severity = vim.diagnostic.severity.ERROR, -- underline errors only, not warnings/hints
+				severity = vim.diagnostic.severity.ERROR, -- errors only, so warnings and hints stay quiet
 			},
 			signs = {
 				text = {
@@ -37,23 +39,16 @@ return {
 			virtual_text = false, -- would double up with the lines above
 		})
 
-		vim.keymap.set(
-			"n",
-			"<leader>xw",
-			vim.diagnostic.setqflist, -- every open buffer's diagnostics; opens the qf list by default
-			{ desc = "Diagnostics to Quickfix (Workspace)" }
-		)
+		vim.keymap.set("n", "<leader>xw", vim.diagnostic.setqflist, { desc = "Workspace to quickfix" }) -- every open buffer, and opens the list
 		vim.keymap.set("n", "<leader>xb", function()
 			local items = vim.diagnostic.toqflist(vim.diagnostic.get(0)) -- current buffer only
 			vim.fn.setqflist({}, " ", { title = "Diagnostics", items = items })
 			vim.cmd.copen()
-		end, { desc = "Diagnostics to Quickfix (Buffer)" })
+		end, { desc = "Buffer to quickfix" })
 
 		vim.lsp.config("*", {
 			capabilities = utils.get_lsp_capabilities(),
 		}) -- no debounce_text_changes override: anything above the default delays every server's view of an edit, rustaceanvim included
-
-		local hl_group = utils.augroup("lsp-highlight") -- one entry per buffer, so LspDetach can clear it even when no client asked for highlights
 
 		vim.api.nvim_create_autocmd("LspAttach", {
 			group = utils.augroup("lsp-attach"),
@@ -65,18 +60,16 @@ return {
 					return
 				end
 
-				local map = function(keys, func, desc, mode)
-					mode = mode or "n"
-					vim.keymap.set(mode, keys, func, { buf = event.buf, desc = "LSP: " .. desc, silent = true })
+				local function map(keys, func, desc, mode)
+					vim.keymap.set(mode or "n", keys, func, { buf = event.buf, desc = "LSP: " .. desc, silent = true })
 				end
 
 				map("gd", function()
 					vim.lsp.buf.definition({
 						on_list = function(options)
-							local unique = {}
-							local seen = {}
+							local unique, seen = {}, {}
 							for _, loc in ipairs(options.items) do
-								local key = loc.filename .. loc.lnum -- filename+line uniquely identifies one definition
+								local key = loc.filename .. loc.lnum -- filename plus line identifies one definition
 								if not seen[key] then
 									seen[key] = true
 									table.insert(unique, loc)
@@ -87,14 +80,14 @@ return {
 							if #unique > 1 then
 								vim.cmd.lopen()
 							else
-								vim.cmd("silent! lfirst") -- silent: no error if list is empty
+								vim.cmd("silent! lfirst") -- silent: an empty list is not an error
 							end
 						end,
 					})
-				end, "Go to Definition")
+				end, "Go to definition")
 
 				if client:supports_method("textDocument/declaration", event.buf) then
-					map("gD", vim.lsp.buf.declaration, "Go to Declaration") -- only where a server answers it; elsewhere gD stays Nvim's own file-global declaration search
+					map("gD", vim.lsp.buf.declaration, "Go to declaration") -- elsewhere gD stays Nvim's file-global declaration search
 				end
 
 				if client:supports_method("textDocument/rename", event.buf) then
@@ -103,45 +96,19 @@ return {
 					end, { buf = event.buf, expr = true, silent = true, desc = "LSP: Rename" })
 				end
 
-				map("<C-k>", vim.lsp.buf.signature_help, "Signature Help")
+				map("<C-k>", vim.lsp.buf.signature_help, "Signature help")
 
-				map("<leader>wa", vim.lsp.buf.add_workspace_folder, "Workspace Add Folder") -- add dir to workspace
-				map("<leader>wr", vim.lsp.buf.remove_workspace_folder, "Workspace Remove Folder") -- remove dir from workspace
+				map("<leader>wa", vim.lsp.buf.add_workspace_folder, "Add folder")
+				map("<leader>wr", vim.lsp.buf.remove_workspace_folder, "Remove folder")
 				map("<leader>wf", function()
 					vim.print(vim.lsp.buf.list_workspace_folders())
-				end, "Workspace List Folders") -- print workspace folder list to command line
+				end, "List folders")
 
-				map("<leader>xf", vim.diagnostic.open_float, "Line Diagnostics") -- ergonomic alias for built-in <C-w>d
-
-				if client:supports_method("textDocument/documentHighlight", event.buf) and not vim.b[event.buf].user_lsp_highlight then
-					vim.b[event.buf].user_lsp_highlight = true
-					vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
-						desc = "999rpm: highlight other occurrences of the symbol under the cursor",
-						buf = event.buf,
-						group = hl_group,
-						callback = vim.lsp.buf.document_highlight, -- highlight all occurrences of symbol under cursor
-					})
-					vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
-						desc = "999rpm: clear symbol-occurrence highlights once the cursor moves",
-						buf = event.buf,
-						group = hl_group,
-						callback = vim.lsp.buf.clear_references, -- clear highlights when cursor moves away
-					})
-				end
+				map("<leader>xf", vim.diagnostic.open_float, "Line diagnostics") -- shorter reach than the built-in <C-w>d
 
 				if client.name == "ruff" then
-					client.server_capabilities.hoverProvider = false -- let basedpyright handle hover for Python
+					client.server_capabilities.hoverProvider = false -- basedpyright answers hover for Python
 				end
-			end,
-		})
-
-		vim.api.nvim_create_autocmd("LspDetach", {
-			group = utils.augroup("lsp-detach"),
-			desc = "999rpm: drop reference highlights when a client detaches",
-			callback = function(event)
-				vim.lsp.buf.clear_references()
-				vim.api.nvim_clear_autocmds({ group = hl_group, buf = event.buf })
-				vim.b[event.buf].user_lsp_highlight = nil -- let the next attach re-arm the pair above
 			end,
 		})
 
@@ -191,7 +158,7 @@ return {
 							},
 							unusedLocalExclude = { "_*" },
 						},
-						format = { enable = false },
+						format = { enable = false }, -- stylua formats Lua through conform.lua
 					},
 				},
 			},
@@ -200,7 +167,7 @@ return {
 					typescript = {
 						inlayHints = {
 							includeInlayParameterNameHints = "literal",
-							includeInlayParameterNameHintsWhenArgumentMatchesName = false, -- don't hint `foo(name: name)` when the arg already says it
+							includeInlayParameterNameHintsWhenArgumentMatchesName = false, -- no hint on foo(name: name)
 							includeInlayFunctionParameterTypeHints = true,
 							includeInlayPropertyDeclarationTypeHints = true,
 							includeInlayFunctionLikeReturnTypeHints = true,
@@ -224,19 +191,11 @@ return {
 				settings = {
 					yaml = {
 						keyOrdering = false,
-						schemaStore = {
-							enable = false,
-							url = "",
-						},
+						schemaStore = { enable = false, url = "" }, -- off, so the catalog below is the only source
 						schemas = require("schemastore").yaml.schemas(),
 					},
 				},
 			},
-			tailwindcss = {},
-			emmet_language_server = {},
-			taplo = {},
-			neocmake = {},
-			bashls = {},
 			jsonls = {
 				settings = {
 					json = {
@@ -245,9 +204,6 @@ return {
 					},
 				},
 			},
-			eslint = {},
-			html = {},
-			cssls = {},
 			basedpyright = {
 				settings = {
 					basedpyright = {
@@ -262,19 +218,23 @@ return {
 				},
 				capabilities = {
 					textDocument = {
-						publishDiagnostics = {
-							tagSupport = { valueSet = { 2 } },
-						},
+						publishDiagnostics = { tagSupport = { valueSet = { 2 } } }, -- greys out unreachable code
 					},
 				},
 			},
 			ruff = {
 				init_options = {
-					settings = {
-						organizeImports = true, -- pairs with basedpyright's disableOrganizeImports above
-					},
+					settings = { organizeImports = true }, -- pairs with basedpyright's disableOrganizeImports above
 				},
 			},
+			tailwindcss = {},
+			emmet_language_server = {},
+			taplo = {},
+			neocmake = {},
+			bashls = {},
+			eslint = {},
+			html = {},
+			cssls = {},
 			dockerls = {},
 			docker_compose_language_service = {},
 			markdown_oxide = {},
@@ -291,10 +251,7 @@ return {
 						analyses = { unusedparams = true },
 						staticcheck = true,
 						gofumpt = true,
-						hints = {
-							compositeLiteralFields = true,
-							parameterNames = true,
-						},
+						hints = { compositeLiteralFields = true, parameterNames = true },
 					},
 				},
 			},
@@ -320,20 +277,15 @@ return {
 		end
 
 		for name, opts in pairs(external_servers) do
-			local exec = opts._exec
-			local optional = opts._optional
-			opts._exec = nil
-			opts._optional = nil
+			local exec, optional = opts._exec, opts._optional
+			opts._exec, opts._optional = nil, nil
 			if utils.executable(exec) then
 				vim.lsp.config(name, opts)
 				vim.lsp.enable(name)
 			elseif not optional then
 				vim.schedule(function()
-					vim.notify(
-						string.format("Executable '%s' not found, so server '%s' will not start", exec, name),
-						vim.log.levels.WARN,
-						{ title = "LSP" }
-					)
+					local msg = string.format("Executable '%s' not found, so server '%s' will not start", exec, name)
+					vim.notify(msg, vim.log.levels.WARN, { title = "LSP" })
 				end)
 			end
 		end

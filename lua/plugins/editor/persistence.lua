@@ -12,28 +12,28 @@ return {
 			function()
 				require("persistence").load()
 			end,
-			desc = "Restore Session (cwd)",
+			desc = "Restore session for this directory",
 		},
 		{
 			"<leader>qS",
 			function()
 				require("persistence").select()
 			end,
-			desc = "Select Session",
+			desc = "Select session",
 		},
 		{
 			"<leader>ql",
 			function()
 				require("persistence").load({ last = true })
 			end,
-			desc = "Restore Last Session",
+			desc = "Restore last session",
 		},
 		{
 			"<leader>qd",
 			function()
 				require("persistence").stop()
 			end,
-			desc = "Don't Save Current Session",
+			desc = "Stop saving this session",
 		},
 	},
 }

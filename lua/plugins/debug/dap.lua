@@ -196,7 +196,7 @@ return {
 			vim.api.nvim_set_hl(0, "DapBreakpointRejected", { link = "DiagnosticHint" })
 		end)
 
-		local js_debug_server = vim.fn.stdpath("data") .. "/mason/packages/js-debug-adapter/js-debug/src/dapDebugServer.js"
+		local js_debug_server = utils.mason_path("packages/js-debug-adapter/js-debug/src/dapDebugServer.js")
 		utils.warn_if_missing_mason_bin(js_debug_server, "js-debug-adapter")
 
 		dap.adapters["pwa-node"] = {
@@ -230,7 +230,7 @@ return {
 			}
 		end
 
-		local codelldb_bin = vim.fn.stdpath("data") .. "/mason/bin/codelldb"
+		local codelldb_bin = utils.mason_path("bin/codelldb", "bin/codelldb.cmd")
 		utils.warn_if_missing_mason_bin(codelldb_bin, "codelldb")
 
 		dap.adapters.codelldb = {
@@ -256,7 +256,7 @@ return {
 		dap.configurations.c = vim.deepcopy(dap.configurations.cpp) -- deepcopy, not assignment: a shared table makes one language's discovered runnables appear in the other's picker
 		dap.configurations.rust = vim.deepcopy(dap.configurations.cpp)
 
-		local haskell_debug_bin = vim.fn.stdpath("data") .. "/mason/bin/haskell-debug-adapter"
+		local haskell_debug_bin = utils.mason_path("bin/haskell-debug-adapter", "bin/haskell-debug-adapter.cmd")
 		utils.warn_if_missing_mason_bin(haskell_debug_bin, "haskell-debug-adapter")
 
 		dap.adapters.haskell = {

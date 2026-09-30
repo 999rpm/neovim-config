@@ -1,10 +1,81 @@
 -- ThePrimeagen/harpoon (harpoon2): pin a few files and jump between them.
 -- Keys: <leader>ha add, hd remove, hh menu, h1..h4 jump to a pinned file, hn/hp next/previous pinned file.
 -- Menu: <Tab>/<S-Tab> down/up, <CR> open, <C-v>/<C-s> vsplit/split, q or <Esc> close; editing lines reorders or removes entries.
+local function list()
+	return require("harpoon"):list()
+end
+
+---Step to the next or previous pinned file, wrapping at the ends.
+---@param step integer
+local function cycle(step)
+	local harpoon = require("harpoon")
+	local items = harpoon:list()
+	local current = vim.uv.fs_realpath(vim.api.nvim_buf_get_name(0))
+	if not current or #items.items == 0 then
+		return
+	end
+	for i, item in ipairs(items.items) do
+		if item.value and vim.uv.fs_realpath(item.value) == current then
+			items:select((i - 1 + step) % #items.items + 1)
+			return
+		end
+	end
+end
+
+local keys = {
+	{
+		"<leader>ha",
+		function()
+			list():add()
+		end,
+		desc = "Add file",
+	},
+	{
+		"<leader>hd",
+		function()
+			list():remove()
+		end,
+		desc = "Remove file",
+	},
+	{
+		"<leader>hh",
+		function()
+			local harpoon = require("harpoon")
+			harpoon.ui:toggle_quick_menu(harpoon:list())
+		end,
+		desc = "Menu",
+	},
+	{
+		"<leader>hn",
+		function()
+			cycle(1)
+		end,
+		desc = "Next file",
+	},
+	{
+		"<leader>hp",
+		function()
+			cycle(-1)
+		end,
+		desc = "Previous file",
+	},
+}
+
+for i = 1, 4 do
+	table.insert(keys, {
+		"<leader>h" .. i,
+		function()
+			list():select(i)
+		end,
+		desc = "File " .. i,
+	})
+end
+
 return {
 	"ThePrimeagen/harpoon",
 	branch = "harpoon2",
 	dependencies = { "nvim-lua/plenary.nvim" },
+	keys = keys, -- lazy-loaded: the spec above is the only place the keys are declared
 	config = function()
 		local harpoon = require("harpoon")
 		harpoon:setup({
@@ -15,53 +86,14 @@ return {
 		})
 		harpoon:extend({
 			UI_CREATE = function(cx)
-				local function map(lhs, rhs, desc)
-					vim.keymap.set("n", lhs, rhs, { buf = cx.bufnr, desc = desc })
-				end
 				require("utils").menu_nav(cx.bufnr) -- Tab/S-Tab, shared with the picker, quickfix and dropbar; see utils.lua
-				map("<C-v>", function()
+				vim.keymap.set("n", "<C-v>", function()
 					harpoon.ui:select_menu_item({ vsplit = true })
-				end, "Open in vsplit")
-				map("<C-s>", function()
+				end, { buf = cx.bufnr, desc = "Open in vsplit" })
+				vim.keymap.set("n", "<C-s>", function()
 					harpoon.ui:select_menu_item({ split = true })
-				end, "Open in split")
+				end, { buf = cx.bufnr, desc = "Open in split" })
 			end,
 		})
-
-		local function cycle(step)
-			local list = harpoon:list()
-			local current = vim.uv.fs_realpath(vim.api.nvim_buf_get_name(0))
-			if not current or #list.items == 0 then
-				return
-			end
-			for i, item in ipairs(list.items) do
-				if item.value and vim.uv.fs_realpath(item.value) == current then
-					list:select((i - 1 + step) % #list.items + 1)
-					return
-				end
-			end
-		end
-
-		local map = vim.keymap.set
-		map("n", "<leader>ha", function()
-			harpoon:list():add()
-		end, { desc = "Add file" })
-		map("n", "<leader>hd", function()
-			harpoon:list():remove()
-		end, { desc = "Remove file" })
-		map("n", "<leader>hh", function()
-			harpoon.ui:toggle_quick_menu(harpoon:list())
-		end, { desc = "Menu" })
-		for i = 1, 4 do
-			map("n", "<leader>h" .. i, function()
-				harpoon:list():select(i)
-			end, { desc = "File " .. i })
-		end
-		map("n", "<leader>hn", function()
-			cycle(1)
-		end, { desc = "Next file" })
-		map("n", "<leader>hp", function()
-			cycle(-1)
-		end, { desc = "Previous file" })
 	end,
 }

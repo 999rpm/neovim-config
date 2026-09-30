@@ -4,15 +4,11 @@
 return {
 	"nvim-neo-tree/neo-tree.nvim",
 	branch = "v3.x",
-	dependencies = {
-		"nvim-lua/plenary.nvim",
-		"nvim-mini/mini.nvim",
-		"MunifTanjim/nui.nvim",
-	},
+	dependencies = { "nvim-lua/plenary.nvim", "MunifTanjim/nui.nvim" }, -- mini.icons is already loaded at priority 1000
 	cmd = "Neotree",
 	keys = {
-		{ "<leader>ee", "<cmd>Neotree toggle<cr>", desc = "Toggle Explorer (Tree)" },
-		{ "<leader>er", "<cmd>Neotree reveal<cr>", desc = "Reveal File in Tree" },
+		{ "<leader>ee", "<cmd>Neotree toggle<cr>", desc = "Toggle tree" },
+		{ "<leader>er", "<cmd>Neotree reveal<cr>", desc = "Reveal file in tree" },
 	},
 	opts = {
 		close_if_last_window = false, -- autocmds.lua auto_close_win decides, for quickfix and Trouble windows too

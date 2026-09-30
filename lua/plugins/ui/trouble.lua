@@ -5,18 +5,16 @@ return {
 	"folke/trouble.nvim",
 	cmd = "Trouble",
 
-	dependencies = { "nvim-mini/mini.nvim" },
-
 	keys = {
-		{ "<leader>dd", "<cmd>Trouble diagnostics toggle<cr>", desc = "Diagnostics (All)" },
+		{ "<leader>dd", "<cmd>Trouble diagnostics toggle<cr>", desc = "Diagnostics (all)" },
 		{
 			"<leader>dD",
 			"<cmd>Trouble diagnostics toggle filter.buf=0<cr>",
-			desc = "Diagnostics (Buffer)",
+			desc = "Diagnostics (buffer)",
 		},
 
 		{ "<leader>ds", "<cmd>Trouble symbols toggle focus=false<cr>", desc = "Symbols" },
-		{ "<leader>dl", "<cmd>Trouble lsp toggle focus=false<cr>", desc = "LSP Locations" },
+		{ "<leader>dl", "<cmd>Trouble lsp toggle focus=false<cr>", desc = "LSP locations" },
 
 		{ "<leader>dq", "<cmd>Trouble qflist toggle<cr>", desc = "Quickfix" },
 	},

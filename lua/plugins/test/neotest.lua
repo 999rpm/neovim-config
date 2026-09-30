@@ -15,28 +15,28 @@ return {
 			function()
 				require("neotest").run.run()
 			end,
-			desc = "Run Nearest Test",
+			desc = "Run nearest test",
 		},
 		{
 			"<leader>Tf",
 			function()
 				require("neotest").run.run(vim.fn.expand("%"))
 			end,
-			desc = "Run File Tests",
+			desc = "Run tests in file",
 		},
 		{
 			"<leader>Ts",
 			function()
 				require("neotest").summary.toggle()
 			end,
-			desc = "Toggle Summary",
+			desc = "Toggle summary",
 		},
 		{
 			"<leader>To",
 			function()
 				require("neotest").output.open({ enter = true })
 			end,
-			desc = "Show Test Output",
+			desc = "Show output",
 		},
 	},
 	config = function()

@@ -9,7 +9,7 @@ return {
 			function()
 				require("treesj").toggle()
 			end,
-			desc = "Toggle Split/Join",
+			desc = "Split or join node",
 		},
 	},
 	opts = {

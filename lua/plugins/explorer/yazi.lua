@@ -16,7 +16,7 @@ return {
 					utils.warn_if_missing_exec("yazi", "yazi.nvim", "Install it from the yazi-rs project first.")
 				end
 			end,
-			desc = "Open Yazi (current file)",
+			desc = "Open yazi at this file",
 		},
 	},
 	opts = {

@@ -1,10 +1,10 @@
--- RaafatTurki/hex.nvim: switches the buffer between hex and normal view (<leader>oX); writing in hex view re-assembles the file.
+-- RaafatTurki/hex.nvim: switches the buffer between hex and normal view (<leader>ox); writing in hex view re-assembles the file.
 -- Needs xxd on $PATH. `nvim -b file` opens straight into hex view.
 return {
 	"RaafatTurki/hex.nvim",
 	cmd = { "HexDump", "HexAssemble", "HexToggle" },
 	keys = {
-		{ "<leader>oX", "<cmd>HexToggle<cr>", desc = "Toggle Hex View" },
+		{ "<leader>ox", "<cmd>HexToggle<cr>", desc = "Toggle hex view" },
 	},
 	opts = {},
 	config = function(_, opts)

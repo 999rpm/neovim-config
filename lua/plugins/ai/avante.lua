@@ -7,11 +7,7 @@ return {
 	build = "make",
 	cmd = { "AvanteAsk", "AvanteChat", "AvanteEdit", "AvanteToggle" }, -- with the keys below; nothing loads at startup
 	version = false, -- avante's own docs: never pin this to "*", the plugin tracks Nvim API changes closely
-	dependencies = {
-		"nvim-lua/plenary.nvim",
-		"MunifTanjim/nui.nvim",
-		"nvim-mini/mini.nvim",
-	},
+	dependencies = { "nvim-lua/plenary.nvim", "MunifTanjim/nui.nvim" }, -- mini.icons is already loaded at priority 1000
 	opts = {
 		provider = "claude",
 		providers = {
@@ -33,7 +29,7 @@ return {
 				require("avante").toggle()
 			end,
 			mode = { "n", "x" },
-			desc = "Toggle Avante Sidebar",
+			desc = "Avante sidebar",
 		},
 		{
 			"<leader>ie",
@@ -41,7 +37,7 @@ return {
 				require("avante").edit()
 			end,
 			mode = { "n", "x" },
-			desc = "Avante Edit Selection",
+			desc = "Avante: edit selection",
 		},
 		{
 			"<leader>iA",
@@ -49,7 +45,7 @@ return {
 				require("avante.api").ask()
 			end,
 			mode = { "n", "x" },
-			desc = "Avante Ask",
+			desc = "Avante: ask",
 		},
 		{
 			"<leader>in",
@@ -57,56 +53,56 @@ return {
 				require("avante.api").ask({ new_chat = true })
 			end,
 			mode = { "n", "x" },
-			desc = "Avante New Chat",
+			desc = "Avante: new chat",
 		},
 		{
 			"<leader>is",
 			function()
 				require("avante.api").stop()
 			end,
-			desc = "Avante Stop Generation",
+			desc = "Avante: stop",
 		},
 		{
 			"<leader>ir",
 			function()
 				require("avante.api").refresh()
 			end,
-			desc = "Avante Refresh",
+			desc = "Avante: refresh",
 		},
 		{
 			"<leader>if",
 			function()
 				require("avante.api").focus()
 			end,
-			desc = "Avante Focus Window",
+			desc = "Avante: focus window",
 		},
 		{
 			"<leader>im",
 			function()
 				require("avante.api").select_model()
 			end,
-			desc = "Avante Select Model",
+			desc = "Avante: select model",
 		},
 		{
 			"<leader>ih",
 			function()
 				require("avante.api").select_history()
 			end,
-			desc = "Avante Select History",
+			desc = "Avante: history",
 		},
 		{
 			"<leader>ib",
 			function()
 				require("avante.api").add_buffer_files()
 			end,
-			desc = "Avante Add All Buffers",
+			desc = "Avante: add open buffers",
 		},
 		{
 			"<leader>iF",
 			function()
 				require("avante.api").add_selected_file(vim.api.nvim_buf_get_name(0))
 			end,
-			desc = "Avante Add Current File",
+			desc = "Avante: add this file",
 		},
 		{
 			"<leader>iz",
@@ -114,14 +110,14 @@ return {
 				require("avante.api").zen_mode()
 			end,
 			mode = { "n", "x" },
-			desc = "Avante Zen Mode",
+			desc = "Avante: zen mode",
 		},
 		{
 			"<leader>iR",
 			function()
 				require("avante.repo_map").show()
 			end,
-			desc = "Avante Show Repo Map",
+			desc = "Avante: repo map",
 		},
 	},
 	config = function(_, opts)

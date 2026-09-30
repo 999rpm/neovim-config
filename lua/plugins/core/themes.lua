@@ -1,7 +1,8 @@
--- Colorschemes and the switcher that drives them. State (theme, style, transparency) persists in stdpath("data")/theme_state.json.
--- Keys: <leader>ou pick a style, <leader>os cycle style, <leader>ot cycle theme, <leader>oT toggle transparency.
+-- Colorschemes and the switcher that drives them. State (theme, style, transparency) persists across sessions in
+-- stdpath("data")/999rpm-theme.json, so the choice survives a restart.
+-- Keys: <leader>ut next theme, <leader>uT toggle transparency, <leader>uc next style, <leader>uC pick theme and style.
 local fn, api, json = vim.fn, vim.api, vim.json
-local state_file = fn.stdpath("data") .. "/theme_state.json"
+local state_file = fn.stdpath("data") .. "/999rpm-theme.json"
 
 local adapters = {
 	tokyonight = {
@@ -172,7 +173,7 @@ local actions = {
 		end
 
 		vim.ui.select(items, {
-			prompt = "Select Theme Style",
+			prompt = "Theme and style",
 			format_item = function(item)
 				return item.label
 			end,
@@ -192,13 +193,13 @@ local function init()
 	Controller.apply()
 
 	local mappings = {
-		["<leader>ou"] = { actions.select_style, "Select Theme Style" },
-		["<leader>os"] = { actions.cycle_style, "Cycle Style" },
-		["<leader>ot"] = { actions.cycle_theme, "Switch Theme" },
-		["<leader>oT"] = { actions.toggle_transparency, "Toggle Transparency" },
+		["<leader>ut"] = { actions.cycle_theme, "Next theme" },
+		["<leader>uT"] = { actions.toggle_transparency, "Toggle transparency" },
+		["<leader>uc"] = { actions.cycle_style, "Next style" },
+		["<leader>uC"] = { actions.select_style, "Pick theme and style" },
 	}
-	for k, v in pairs(mappings) do
-		vim.keymap.set("n", k, v[1], { desc = v[2] })
+	for lhs, entry in pairs(mappings) do
+		vim.keymap.set("n", lhs, entry[1], { desc = entry[2] })
 	end
 end
 

@@ -1,4 +1,5 @@
--- folke/snacks.nvim: picker, terminals, notifier, indent guides, scratch, zen, lazygit, git browse and option toggles.
+-- folke/snacks.nvim: picker, terminals, notifier, indent guides, scratch, zen, lazygit, git browse, reference
+-- highlighting and the option toggles under <leader>o.
 -- Picker: opens in the result list (normal mode). <Tab>/<S-Tab> next/previous, <C-Space> mark for multi-select,
 -- <C-a> mark all, <CR> open, i or / type a query, <C-s>/<C-v>/<C-t> split/vsplit/tab, <C-q> to quickfix,
 -- <A-h>/<A-i> hidden/ignored files, <A-p> preview, ? help, q or <Esc> close.
@@ -6,6 +7,13 @@
 -- Images: kitty draws markdown images and LaTeX math inline; <leader>ui opens the one under the cursor in a float.
 -- d2 diagrams render through tree-sitter-d2.lua. Dashboard (bare `nvim`): f find, n new, g grep, r recent, c config,
 -- s restore session, L Lazy, q quit; digits open the recent files listed below the keys. <leader>ew picks a window by letter.
+-- snacks.words underlines every occurrence of the symbol under the cursor, and ]r/[r walk them.
+local function pick(source, opts) -- one wrapper instead of a closure per key
+	return function()
+		Snacks.picker[source](opts)
+	end
+end
+
 local function term(layout)
 	local win = {
 		float = { position = "float" },
@@ -44,6 +52,7 @@ return {
 		statuscolumn = { enabled = false }, -- statuscol.lua
 		quickfile = { enabled = true },
 		scroll = { enabled = true },
+		words = { enabled = true, debounce = 200 }, -- replaces a hand-written documentHighlight autocommand pair; no keys of its own
 		image = {
 			enabled = true, -- markdown images and ```math blocks render inline through kitty's graphics protocol
 			convert = { notify = true }, -- a failed conversion reports instead of leaving a blank
@@ -80,55 +89,20 @@ return {
 		},
 	},
 	keys = {
-		{
-			"<leader>ff",
-			function()
-				Snacks.picker.files()
-			end,
-			desc = "Files",
-		},
-		{
-			"<leader>fg",
-			function()
-				Snacks.picker.git_files()
-			end,
-			desc = "Git files",
-		},
-		{
-			"<leader>fb",
-			function()
-				Snacks.picker.buffers()
-			end,
-			desc = "Buffers",
-		},
-		{
-			"<leader>fr",
-			function()
-				Snacks.picker.recent()
-			end,
-			desc = "Recent files",
-		},
-		{
-			"<leader>fc",
-			function()
-				Snacks.picker.files({ cwd = vim.fn.stdpath("config") })
-			end,
-			desc = "Config files",
-		},
+		{ "<leader>ff", pick("files"), desc = "Files" },
+		{ "<leader>fg", pick("git_files"), desc = "Git files" },
+		{ "<leader>fb", pick("buffers"), desc = "Buffers" },
+		{ "<leader>fr", pick("recent"), desc = "Recent files" },
+		{ "<leader>fc", pick("files", { cwd = vim.fn.stdpath("config") }), desc = "Config files" },
 		{
 			"<leader>fp",
 			function()
 				Snacks.picker.files({ cwd = require("lazy.core.config").options.root })
 			end,
-			desc = "Plugin files",
+			desc = "Plugin sources",
 		},
-		{
-			"<leader>fP",
-			function()
-				Snacks.picker.projects()
-			end,
-			desc = "Projects",
-		},
+		{ "<leader>fP", pick("projects"), desc = "Projects" },
+
 		{
 			"<leader>ed",
 			function()
@@ -146,183 +120,33 @@ return {
 			end,
 			desc = "Pick window",
 		},
-		{
-			"<leader>/",
-			function()
-				Snacks.picker.grep()
-			end,
-			desc = "Grep",
-		},
-		{
-			"<leader>sg",
-			function()
-				Snacks.picker.grep()
-			end,
-			desc = "Grep",
-		},
-		{
-			"<leader>sw",
-			function()
-				Snacks.picker.grep_word()
-			end,
-			mode = { "n", "x" },
-			desc = "Word or selection",
-		},
-		{
-			"<leader>sb",
-			function()
-				Snacks.picker.lines()
-			end,
-			desc = "Buffer lines",
-		},
-		{
-			"<leader>sB",
-			function()
-				Snacks.picker.grep_buffers()
-			end,
-			desc = "Grep open buffers",
-		},
-		{
-			"<leader>sh",
-			function()
-				Snacks.picker.help()
-			end,
-			desc = "Help pages",
-		},
-		{
-			"<leader>sk",
-			function()
-				Snacks.picker.keymaps()
-			end,
-			desc = "Keymaps",
-		},
-		{
-			"<leader>sc",
-			function()
-				Snacks.picker.commands()
-			end,
-			desc = "Commands",
-		},
-		{
-			"<leader>s:",
-			function()
-				Snacks.picker.command_history()
-			end,
-			desc = "Command history",
-		},
-		{
-			"<leader>s/",
-			function()
-				Snacks.picker.search_history()
-			end,
-			desc = "Search history",
-		},
-		{
-			"<leader>sd",
-			function()
-				Snacks.picker.diagnostics()
-			end,
-			desc = "Diagnostics",
-		},
-		{
-			"<leader>sD",
-			function()
-				Snacks.picker.diagnostics_buffer()
-			end,
-			desc = "Buffer diagnostics",
-		},
-		{
-			"<leader>sH",
-			function()
-				Snacks.picker.highlights()
-			end,
-			desc = "Highlights",
-		},
-		{
-			"<leader>si",
-			function()
-				Snacks.picker.icons()
-			end,
-			desc = "Icons",
-		},
-		{
-			"<leader>sj",
-			function()
-				Snacks.picker.jumps()
-			end,
-			desc = "Jumps",
-		},
-		{
-			"<leader>s'",
-			function()
-				Snacks.picker.marks()
-			end,
-			desc = "Marks",
-		},
-		{
-			'<leader>s"',
-			function()
-				Snacks.picker.registers()
-			end,
-			desc = "Registers",
-		},
-		{
-			"<leader>sa",
-			function()
-				Snacks.picker.autocmds()
-			end,
-			desc = "Autocmds",
-		},
-		{
-			"<leader>sM",
-			function()
-				Snacks.picker.man()
-			end,
-			desc = "Man pages",
-		},
-		{
-			"<leader>sp",
-			function()
-				Snacks.picker.lazy()
-			end,
-			desc = "Plugin specs",
-		},
-		{
-			"<leader>sq",
-			function()
-				Snacks.picker.qflist()
-			end,
-			desc = "Quickfix list",
-		},
-		{
-			"<leader>sl",
-			function()
-				Snacks.picker.loclist()
-			end,
-			desc = "Location list",
-		},
-		{
-			"<leader>su",
-			function()
-				Snacks.picker.undo()
-			end,
-			desc = "Undo history",
-		},
-		{
-			"<leader>sn",
-			function()
-				Snacks.picker.notifications()
-			end,
-			desc = "Notifications",
-		},
+
+		{ "<leader>/", pick("grep"), desc = "Grep" },
+		{ "<leader>sg", pick("grep"), desc = "Grep" },
+		{ "<leader>sw", pick("grep_word"), mode = { "n", "x" }, desc = "Word or selection" },
+		{ "<leader>sb", pick("lines"), desc = "Buffer lines" },
+		{ "<leader>sB", pick("grep_buffers"), desc = "Grep open buffers" },
+		{ "<leader>sh", pick("help"), desc = "Help pages" },
+		{ "<leader>sk", pick("keymaps"), desc = "Keymaps" },
+		{ "<leader>sc", pick("commands"), desc = "Commands" },
+		{ "<leader>s:", pick("command_history"), desc = "Command history" },
+		{ "<leader>s/", pick("search_history"), desc = "Search history" },
+		{ "<leader>sd", pick("diagnostics"), desc = "Diagnostics" },
+		{ "<leader>sD", pick("diagnostics_buffer"), desc = "Buffer diagnostics" },
+		{ "<leader>sH", pick("highlights"), desc = "Highlights" },
+		{ "<leader>si", pick("icons"), desc = "Icons" },
+		{ "<leader>sj", pick("jumps"), desc = "Jumps" },
+		{ "<leader>s'", pick("marks"), desc = "Marks" },
+		{ '<leader>s"', pick("registers"), desc = "Registers" },
+		{ "<leader>sa", pick("autocmds"), desc = "Autocommands" },
+		{ "<leader>sM", pick("man"), desc = "Man pages" },
+		{ "<leader>sp", pick("lazy"), desc = "Plugin specs" },
+		{ "<leader>sq", pick("qflist"), desc = "Quickfix list" },
+		{ "<leader>sl", pick("loclist"), desc = "Location list" },
+		{ "<leader>su", pick("undo"), desc = "Undo history" },
+		{ "<leader>sn", pick("notifications"), desc = "Notifications" },
 		{ "<leader>sm", "<cmd>Noice history<cr>", desc = "Message history" },
-		{
-			"<leader>s.",
-			function()
-				Snacks.picker.resume()
-			end,
-			desc = "Resume last picker",
-		},
+		{ "<leader>s.", pick("resume"), desc = "Resume last picker" },
 		{
 			"<leader>s?",
 			function()
@@ -330,70 +154,32 @@ return {
 			end,
 			desc = "All pickers",
 		},
+
+		{ "<leader>ld", pick("lsp_definitions"), desc = "Definitions" },
+		{ "<leader>lD", pick("lsp_declarations"), desc = "Declarations" },
+		{ "<leader>lr", pick("lsp_references"), nowait = true, desc = "References" },
+		{ "<leader>li", pick("lsp_implementations"), desc = "Implementations" },
+		{ "<leader>lt", pick("lsp_type_definitions"), desc = "Type definitions" },
+		{ "<leader>ls", pick("lsp_symbols"), desc = "Document symbols" },
+		{ "<leader>lS", pick("lsp_workspace_symbols"), desc = "Workspace symbols" },
+		{ "<leader>lc", pick("lsp_incoming_calls"), desc = "Incoming calls" },
+		{ "<leader>lC", pick("lsp_outgoing_calls"), desc = "Outgoing calls" },
+
 		{
-			"<leader>ld",
+			"]r",
 			function()
-				Snacks.picker.lsp_definitions()
+				Snacks.words.jump(vim.v.count1, true)
 			end,
-			desc = "Definitions",
-		},
+			desc = "Next reference",
+		}, -- ]] and [[ stay the built-in section motions
 		{
-			"<leader>lD",
+			"[r",
 			function()
-				Snacks.picker.lsp_declarations()
+				Snacks.words.jump(-vim.v.count1, true)
 			end,
-			desc = "Declarations",
+			desc = "Previous reference",
 		},
-		{
-			"<leader>lr",
-			function()
-				Snacks.picker.lsp_references()
-			end,
-			nowait = true,
-			desc = "References",
-		},
-		{
-			"<leader>li",
-			function()
-				Snacks.picker.lsp_implementations()
-			end,
-			desc = "Implementations",
-		},
-		{
-			"<leader>lt",
-			function()
-				Snacks.picker.lsp_type_definitions()
-			end,
-			desc = "Type definitions",
-		},
-		{
-			"<leader>ls",
-			function()
-				Snacks.picker.lsp_symbols()
-			end,
-			desc = "Document symbols",
-		},
-		{
-			"<leader>lS",
-			function()
-				Snacks.picker.lsp_workspace_symbols()
-			end,
-			desc = "Workspace symbols",
-		},
-		{
-			"<leader>lc",
-			function()
-				Snacks.picker.lsp_incoming_calls()
-			end,
-			desc = "Incoming calls",
-		},
-		{
-			"<leader>lC",
-			function()
-				Snacks.picker.lsp_outgoing_calls()
-			end,
-			desc = "Outgoing calls",
-		},
+
 		{
 			"<leader>gl",
 			function()
@@ -409,41 +195,12 @@ return {
 			mode = { "n", "x" },
 			desc = "Open in browser",
 		},
-		{
-			"<leader>gc",
-			function()
-				Snacks.picker.git_log()
-			end,
-			desc = "Commits",
-		},
-		{
-			"<leader>gC",
-			function()
-				Snacks.picker.git_log_file()
-			end,
-			desc = "Commits (file)",
-		},
-		{
-			"<leader>gS",
-			function()
-				Snacks.picker.git_status()
-			end,
-			desc = "Status",
-		},
-		{
-			"<leader>gB",
-			function()
-				Snacks.picker.git_branches()
-			end,
-			desc = "Branches",
-		},
-		{
-			"<leader>gd",
-			function()
-				Snacks.picker.git_diff()
-			end,
-			desc = "Changed hunks",
-		},
+		{ "<leader>gc", pick("git_log"), desc = "Commits" },
+		{ "<leader>gC", pick("git_log_file"), desc = "Commits (file)" },
+		{ "<leader>gS", pick("git_status"), desc = "Status" },
+		{ "<leader>gB", pick("git_branches"), desc = "Branches" },
+		{ "<leader>gd", pick("git_diff"), desc = "Changed hunks" },
+
 		{ "<C-,>", term("float"), mode = { "n", "t" }, desc = "Terminal (float)" },
 		{ "<leader>tf", term("float"), desc = "Float" },
 		{ "<leader>tv", term("vertical"), desc = "Vertical split" },
@@ -455,6 +212,7 @@ return {
 			end,
 			desc = "btop",
 		},
+
 		{
 			"<leader>us",
 			function()
@@ -500,14 +258,15 @@ return {
 	},
 	config = function(_, opts)
 		require("snacks").setup(opts)
-		Snacks.toggle.option("number", { name = "Line numbers" }):map("<leader>on")
-		Snacks.toggle.option("relativenumber", { name = "Relative numbers" }):map("<leader>or")
-		Snacks.toggle.option("wrap", { name = "Wrap" }):map("<leader>ow")
-		Snacks.toggle.option("spell", { name = "Spelling" }):map("<leader>oS")
-		Snacks.toggle.indent():map("<leader>oi")
-		Snacks.toggle.dim():map("<leader>oD")
-		Snacks.toggle.diagnostics():map("<leader>ox")
-		Snacks.toggle.inlay_hints():map("<leader>oh")
+		Snacks.toggle.option("number", { name = "line numbers" }):map("<leader>on")
+		Snacks.toggle.option("relativenumber", { name = "relative numbers" }):map("<leader>oN")
+		Snacks.toggle.option("wrap", { name = "wrap" }):map("<leader>ow")
+		Snacks.toggle.option("spell", { name = "spelling" }):map("<leader>os")
+		Snacks.toggle.indent({ name = "indent guides" }):map("<leader>oi")
+		Snacks.toggle.diagnostics({ name = "diagnostics" }):map("<leader>od")
+		Snacks.toggle.dim({ name = "dimming" }):map("<leader>oD")
+		Snacks.toggle.inlay_hints({ name = "inlay hints" }):map("<leader>oh")
+		Snacks.toggle.words({ name = "reference highlights" }):map("<leader>oR")
 		vim.treesitter.query.set( -- the plugin's own query also hands ```mermaid blocks to mmdc, which needs a Chromium; math only here
 			"markdown",
 			"images",

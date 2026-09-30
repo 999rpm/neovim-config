@@ -1,4 +1,5 @@
--- Library and adapter plugins with no setup of their own. Consumers list them by name in `dependencies`.
+-- Library and adapter plugins with no setup of their own. Consumers name them in `dependencies`; nothing here is
+-- configured anywhere else, so a plugin file stays readable without following a chain of imports.
 return {
 	{ "nvim-lua/plenary.nvim", lazy = true }, -- neo-tree, harpoon, todo-comments, neotest, octo, avante, mcphub, yazi
 	{ "MunifTanjim/nui.nvim", lazy = true }, -- neo-tree, noice, hardtime, avante
@@ -13,7 +14,7 @@ return {
 		lazy = true,
 		build = "make",
 		cond = function()
-			return vim.fn.executable("make") == 1
+			return require("utils").executable("make")
 		end,
 	},
 }

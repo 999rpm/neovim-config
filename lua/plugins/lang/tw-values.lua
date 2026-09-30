@@ -3,7 +3,7 @@ return {
 	"MaximilianLloyd/tw-values.nvim",
 	ft = { "typescriptreact", "javascriptreact", "html", "css" },
 	keys = {
-		{ "<leader>cv", "<cmd>TWValues<cr>", desc = "Show Tailwind Values" },
+		{ "<leader>cv", "<cmd>TWValues<cr>", desc = "Show Tailwind values" },
 	},
 	opts = {
 		border = "rounded",

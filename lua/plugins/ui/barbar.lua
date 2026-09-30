@@ -1,10 +1,11 @@
 -- romgrk/barbar.nvim: buffer tabline. Mouse: click to open, click the button to close, drag to reorder.
 -- Keys: <M-h>/<M-l> previous/next buffer in tabline order (H and L stay the built-in window top/bottom; ]b/[b also
 -- cycle buffers), <leader>b* pick, pin, move, close and reopen.
+-- No dependencies: mini.icons is already loaded at priority 1000, and the git counts are read from b:gitsigns_status_dict
+-- through a pcall, so naming gitsigns here would only cost it its own lazy event.
 return {
 	"romgrk/barbar.nvim",
 	lazy = false,
-	dependencies = { "nvim-mini/mini.nvim", "lewis6991/gitsigns.nvim" },
 	init = function()
 		vim.g.barbar_auto_setup = false
 	end,
@@ -44,9 +45,6 @@ return {
 				[vim.diagnostic.severity.ERROR] = { enabled = true, icon = "󰃤 " },
 				[vim.diagnostic.severity.WARN] = { enabled = true, icon = "󰀦 " },
 			},
-			separator = { left = "", right = "" },
-			active = { separator = { left = "", right = "" } },
-			inactive = { separator = { left = "", right = "" } },
 		},
 	},
 }

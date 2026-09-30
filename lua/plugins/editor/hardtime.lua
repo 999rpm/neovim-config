@@ -22,6 +22,6 @@ return {
 		},
 	},
 	keys = {
-		{ "<leader>oH", "<cmd>Hardtime toggle<CR>", desc = "Hardtime" },
+		{ "<leader>oH", "<cmd>Hardtime toggle<CR>", desc = "Toggle hardtime" },
 	},
 }

@@ -4,7 +4,7 @@
 return {
 	"pwntester/octo.nvim",
 	cmd = "Octo",
-	dependencies = { "nvim-lua/plenary.nvim", "nvim-mini/mini.nvim" },
+	dependencies = { "nvim-lua/plenary.nvim" },
 	keys = {
 		{ "<leader>goi", "<cmd>Octo issue list<cr>", desc = "Issues" },
 		{ "<leader>gop", "<cmd>Octo pr list<cr>", desc = "Pull requests" },

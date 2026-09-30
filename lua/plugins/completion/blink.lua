@@ -4,10 +4,7 @@
 return {
 	"saghen/blink.cmp",
 	version = "*",
-	dependencies = {
-		"rafamadriz/friendly-snippets",
-		"folke/lazydev.nvim", -- full config in plugins/lsp/lazydev.lua; listed here for install/load ordering only
-	},
+	dependencies = { "rafamadriz/friendly-snippets" }, -- lazydev is reached through its provider module below, so it stays ft=lua
 	event = { "InsertEnter", "CmdlineEnter" }, -- the first : already completes through blink, not the built-in wildmenu
 
 	opts = {

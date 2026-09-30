@@ -8,7 +8,7 @@ return {
 			function()
 				require("neogen").generate()
 			end,
-			desc = "Generate Annotation",
+			desc = "Generate annotation",
 		},
 	},
 	opts = {

@@ -1,5 +1,5 @@
 -- stevearc/conform.nvim: formatting on save with per-filetype formatters, LSP as fallback.
--- Keys: <leader>cf format now, <leader>of buffer toggle, <leader>oF global toggle, <leader>ci :ConformInfo.
+-- Keys: <leader>cf format now, <leader>of buffer toggle, <leader>oF global toggle, <leader>pc :ConformInfo.
 return {
 	"stevearc/conform.nvim",
 	event = { "BufWritePre" },
@@ -10,27 +10,27 @@ return {
 			function()
 				require("conform").format({ async = true, lsp_format = "fallback" })
 			end,
-			mode = "",
+			mode = { "n", "x" }, -- not "", which would also bind the key in operator-pending mode
 			desc = "Format buffer",
 		},
 		{
 			"<leader>of",
 			function()
 				vim.b.disable_autoformat = not vim.b.disable_autoformat
-				vim.notify("Buffer Autoformat: " .. (vim.b.disable_autoformat and "OFF" or "ON"), vim.log.levels.INFO)
+				vim.notify("Autoformat (buffer): " .. (vim.b.disable_autoformat and "off" or "on"), vim.log.levels.INFO)
 			end,
-			desc = "Toggle format on save (buffer)",
+			desc = "Format on save (buffer)",
 		},
 		{
 			"<leader>oF",
 			function()
 				vim.g.disable_autoformat = not vim.g.disable_autoformat
-				vim.notify("Global Autoformat: " .. (vim.g.disable_autoformat and "OFF" or "ON"), vim.log.levels.INFO)
+				vim.notify("Autoformat (global): " .. (vim.g.disable_autoformat and "off" or "on"), vim.log.levels.INFO)
 			end,
-			desc = "Toggle format on save (global)",
+			desc = "Format on save (global)",
 		},
 		{
-			"<leader>ci",
+			"<leader>pc",
 			"<cmd>ConformInfo<CR>",
 			desc = "Conform info",
 		},

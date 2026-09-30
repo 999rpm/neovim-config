@@ -54,10 +54,10 @@ api.nvim_create_autocmd("BufReadPost", {
 	callback = function(event)
 		local exclude = { "gitcommit", "commit", "gitrebase" }
 		local buf = event.buf
-		if vim.tbl_contains(exclude, vim.bo[buf].filetype) or vim.b[buf].user_last_loc then
+		if vim.tbl_contains(exclude, vim.bo[buf].filetype) or vim.b[buf]._999rpm_last_loc then
 			return
 		end
-		vim.b[buf].user_last_loc = true
+		vim.b[buf]._999rpm_last_loc = true
 		local mark = api.nvim_buf_get_mark(buf, '"')
 		local lcount = api.nvim_buf_line_count(buf)
 		if mark[1] > 0 and mark[1] <= lcount then
@@ -113,17 +113,17 @@ api.nvim_create_autocmd({ "BufNewFile", "BufReadPre" }, {
 	pattern = { "/tmp/*", "$TMPDIR/*", "$TMP/*", "$TEMP/*", "*/shm/*", "/private/var/*" },
 	callback = function(ev)
 		vim.opt_local.undofile = false
-		if vim.b[ev.buf].user_secure_tmp then
+		if vim.b[ev.buf]._999rpm_secure_tmp then
 			return -- already armed for this buffer; don't stack a second pair on re-read
 		end
-		vim.b[ev.buf].user_secure_tmp = true
+		vim.b[ev.buf]._999rpm_secure_tmp = true
 
 		api.nvim_create_autocmd("BufWritePre", {
 			buf = ev.buf,
 			group = secure_tmp,
 			desc = "999rpm: suspend the global backup flag around this write",
 			callback = function()
-				vim.b[ev.buf].user_backup_was_on = vim.o.backup -- read at write time: the global could have been toggled since BufReadPre
+				vim.b[ev.buf]._999rpm_backup_was_on = vim.o.backup -- read at write time: the global could have been toggled since BufReadPre
 				vim.o.backup = false
 			end,
 		})
@@ -132,7 +132,7 @@ api.nvim_create_autocmd({ "BufNewFile", "BufReadPre" }, {
 			group = secure_tmp,
 			desc = "999rpm: restore the global backup flag after this write",
 			callback = function()
-				vim.o.backup = vim.b[ev.buf].user_backup_was_on and true or false
+				vim.o.backup = vim.b[ev.buf]._999rpm_backup_was_on and true or false
 			end,
 		})
 	end,
@@ -160,7 +160,7 @@ api.nvim_create_autocmd("BufWritePost", {
 		end
 
 		local cmd_base = ft_format_check[vim.bo[ev.buf].filetype]
-		if not cmd_base or fn.executable(cmd_base[1]) == 0 then
+		if not cmd_base or not utils.executable(cmd_base[1]) then
 			return
 		end
 
@@ -393,14 +393,7 @@ api.nvim_create_autocmd("FileType", {
 	callback = function(event)
 		vim.bo[event.buf].buflisted = false
 		vim.schedule(function()
-			vim.keymap.set("n", "q", function()
-				pcall(vim.cmd.close) -- the last window cannot close; the buffer still goes
-				pcall(api.nvim_buf_delete, event.buf, { force = true })
-			end, {
-				buf = event.buf,
-				silent = true,
-				desc = "Close buffer",
-			})
+			utils.map_close(event.buf, true) -- shared helper; see utils.lua
 		end)
 	end,
 })

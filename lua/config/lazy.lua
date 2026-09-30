@@ -1,4 +1,4 @@
--- lazy.nvim bootstrap and runtime settings. :Lazy or <leader>ol opens the manager; the statusline shows pending updates.
+-- lazy.nvim bootstrap and runtime settings. :Lazy or <leader>pl opens the manager; the statusline shows pending updates.
 -- In the Lazy window: H home, I install, U update, S sync, X clean, C check, L log, R restore, P profile, D debug, ? help.
 local fn = vim.fn
 local api = vim.api
@@ -21,7 +21,7 @@ if not uv.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(vim.env.LAZY or lazypath)
 
-local has_git = fn.executable("git") == 1
+local has_git = require("utils").executable("git") -- shared helper; see utils.lua
 local disabled_plugins = { -- names from 0.12's runtime/plugin; matchit stays on, so % also jumps between if/else/end words
 	"gzip",
 	"netrwPlugin", -- oil.lua opens directories
@@ -72,7 +72,7 @@ require("lazy").setup({
 	debug = false,
 })
 
-vim.keymap.set("n", "<leader>ol", "<cmd>Lazy<cr>", { desc = "Lazy" })
+vim.keymap.set("n", "<leader>pl", "<cmd>Lazy<cr>", { desc = "Lazy" })
 
 api.nvim_create_user_command("LazyDisable", function()
 	local config = require("lazy.core.config")

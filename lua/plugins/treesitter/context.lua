@@ -15,7 +15,7 @@ return {
 			function()
 				require("treesitter-context").toggle()
 			end,
-			desc = "Toggle TS Context",
+			desc = "Toggle treesitter context",
 		},
 		{
 			"[u",

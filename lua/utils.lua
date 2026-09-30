@@ -1,4 +1,4 @@
--- Shared helpers. Every entry names the files that call it.
+-- Shared helpers. Every entry names the files that call it, so a helper with no caller is visible as dead code.
 local fn = vim.fn
 local api = vim.api
 
@@ -13,8 +13,17 @@ end
 
 ---@param name string
 ---@return boolean
-function M.executable(name) -- This util is used by lint.lua, lspconfig.lua, options.lua, tree-sitter-d2.lua, treesitter.lua and yazi.lua
+function M.executable(name) -- This util is used by autocmds.lua, lazy.lua, lint.lua, lspconfig.lua, mason.lua, options.lua, shared.lua, tree-sitter-d2.lua, treesitter.lua and yazi.lua
 	return fn.executable(name) > 0
+end
+
+---Absolute path inside Mason's data directory, with the Windows layout when running there.
+---@param unix string path relative to the Mason root, POSIX layout
+---@param windows? string same path in the Windows layout, when it differs
+---@return string
+function M.mason_path(unix, windows) -- This util is used by dap-python.lua and dap.lua
+	local root = fn.stdpath("data") .. "/mason/"
+	return root .. ((fn.has("win32") == 1 and windows) or unix)
 end
 
 ---Leading-edge throttle: calls inside the window are dropped, not queued.
@@ -69,7 +78,7 @@ function M.warn_if_missing_exec(name, label, hint) -- This util is used by hex.l
 	return false
 end
 
----Augroup namespaced as "999rpm-<name>".
+---Augroup namespaced as "999rpm-<n>".
 ---@param name string
 ---@param clear? boolean defaults to true
 ---@return integer
@@ -82,6 +91,18 @@ end
 function M.menu_nav(buf) -- This util is used by harpoon.lua and nvim-bqf.lua
 	vim.keymap.set("n", "<Tab>", "j", { buf = buf, desc = "Next entry" })
 	vim.keymap.set("n", "<S-Tab>", "k", { buf = buf, desc = "Previous entry" })
+end
+
+---Binds q to close a throwaway window, and wipe its buffer where nothing else holds it.
+---@param buf integer
+---@param wipe? boolean also delete the buffer, defaults to false
+function M.map_close(buf, wipe) -- This util is used by autocmds.lua and by d2_text below
+	vim.keymap.set("n", "q", function()
+		pcall(vim.cmd.close) -- the last window cannot close; the buffer still goes
+		if wipe then
+			pcall(api.nvim_buf_delete, buf, { force = true })
+		end
+	end, { buf = buf, silent = true, desc = "Close" })
 end
 
 local nu_shell_options = { -- nushell/integrations values, except shellpipe
@@ -188,7 +209,8 @@ function M.get_current_branch_name() -- This util is used by options.lua
 	return cached
 end
 
----Client capabilities with folding ranges (nvim-ufo) and blink.cmp completion.
+---Client capabilities with folding ranges (nvim-ufo) and blink.cmp completion. Requiring blink here also runs its own
+---plugin file, which merges the same completion capabilities into vim.lsp.config("*") for anything started later.
 ---@return lsp.ClientCapabilities
 function M.get_lsp_capabilities() -- This util is used by lspconfig.lua
 	local caps = vim.lsp.protocol.make_client_capabilities()
@@ -202,7 +224,7 @@ end
 function M.setup_rounded_virtual_lines() -- This util is used by lspconfig.lua
 	local builtin = vim.diagnostic.handlers.virtual_lines
 	local state = {} ---@type table<integer, table<integer, {diagnostics: vim.Diagnostic[], opts: table, lnum?: integer}>>
-	local group = api.nvim_create_augroup("999rpm-virtual-lines", { clear = true })
+	local group = M.augroup("virtual-lines")
 
 	local function round(namespace, bufnr)
 		local vl_ns = vim.diagnostic.get_namespace(namespace).user_data.virt_lines_ns
@@ -367,11 +389,10 @@ end
 
 ---Renders the d2 diagram under the cursor to PNG and shows it in a split, where snacks.image draws it.
 function M.d2_render() -- This util is used by tree-sitter-d2.lua
-	local dir = fn.stdpath("cache") .. "/d2"
+	local dir = fn.stdpath("cache") .. "/999rpm-d2"
 	M.may_create_dir(dir)
 	local theme = vim.o.background == "light" and "0" or "200" -- d2's Neutral default, or Dark Mauve on a dark background
-	local out = dir .. "/{name}.png"
-	d2_run({ "--theme=" .. theme, "-", out }, function(_, name)
+	d2_run({ "--theme=" .. theme, "-", dir .. "/{name}.png" }, function(_, name)
 		local png = ("%s/%s.png"):format(dir, name)
 		local win = fn.bufwinid(png)
 		if win ~= -1 then
@@ -387,11 +408,11 @@ end
 ---Renders the d2 diagram under the cursor as text in a split; no image protocol needed. q closes it.
 function M.d2_text() -- This util is used by tree-sitter-d2.lua
 	d2_run({ "--stdout-format=txt", "-", "-" }, function(stdout)
-		local buf = fn.bufnr("d2://text")
+		local buf = fn.bufnr("999rpm://d2-text")
 		if buf == -1 then
 			buf = api.nvim_create_buf(false, true)
-			api.nvim_buf_set_name(buf, "d2://text")
-			vim.keymap.set("n", "q", "<Cmd>close<CR>", { buf = buf, desc = "Close" })
+			api.nvim_buf_set_name(buf, "999rpm://d2-text")
+			M.map_close(buf) -- shared q binding; see map_close above
 		end
 		local lines = vim.split(stdout, "\n", { trimempty = true })
 		vim.bo[buf].modifiable = true

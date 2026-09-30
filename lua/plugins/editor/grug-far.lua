@@ -14,14 +14,14 @@ return {
 				require("grug-far").open({})
 			end,
 			mode = { "n", "x" },
-			desc = "Search & Replace",
+			desc = "Search and replace",
 		},
 		{
 			"<leader>rw",
 			function()
 				require("grug-far").open({ prefills = { search = vim.fn.expand("<cword>") } })
 			end,
-			desc = "Replace Word Under Cursor",
+			desc = "Word under cursor",
 		},
 		{
 			"<leader>rf",
@@ -31,7 +31,7 @@ return {
 					prefills = { filesFilter = ext and ext ~= "" and ("*." .. ext) or nil },
 				})
 			end,
-			desc = "Replace In Current File Type",
+			desc = "Limit to this file type",
 		},
 	},
 }

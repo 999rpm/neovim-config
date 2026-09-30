@@ -42,7 +42,7 @@ opt.spelloptions:append("camel") -- Treat camelCase words as separate words for 
 
 opt.autowrite = true -- Automatically write changes when switching buffers or running commands
 opt.history = 500 -- Number of command and search history entries to retain
-opt.jumpoptions = "stack,view" -- Jumplist behaves like a browser back-stack, and restores each mark's saved view (0.11+ default is "clean"; neither flag is on)
+opt.jumpoptions = "stack,view,clean" -- Browser-style back-stack, restores each mark's saved view, and drops unloaded buffers (0.12 ships "clean" alone; the three flags are independent)
 opt.isfname:remove({ "=", "," }) -- Exclude '=' and ',' from characters valid in file names
 
 opt.timeoutlen = 500 -- Milliseconds to wait for a mapped key sequence to complete

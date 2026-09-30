@@ -1,12 +1,13 @@
 -- Mason plus two installer bridges: mason-lspconfig for servers, mason-tool-installer for formatters, linters and debug adapters.
--- :Mason or <leader>om opens the UI, :MasonUpdate refreshes the registry. In the UI: i install, u update, U update all,
+-- :Mason or <leader>pm opens the UI, :MasonUpdate refreshes the registry. In the UI: i install, u update, U update all,
 -- X uninstall, c/C check versions, <CR> expand, <C-f> language filter, g? help.
+-- Both bridges wait for VeryLazy: installing a tool is never on the critical path of opening a file.
 return {
 	{
 		"mason-org/mason.nvim",
 		lazy = false, -- setup() puts $MASON/bin on $PATH, which servers, formatters and debug adapters all look through
 		build = ":MasonUpdate",
-		keys = { { "<leader>om", "<cmd>Mason<cr>", desc = "Mason" } },
+		keys = { { "<leader>pm", "<cmd>Mason<cr>", desc = "Mason" } },
 		opts = {
 			ui = {
 				icons = {
@@ -19,7 +20,8 @@ return {
 	},
 	{
 		"mason-org/mason-lspconfig.nvim",
-		dependencies = { "mason-org/mason.nvim", "neovim/nvim-lspconfig" },
+		event = "VeryLazy",
+		dependencies = { "mason-org/mason.nvim" }, -- no nvim-lspconfig: v2 carries its own package mappings, and listing it would undo lspconfig.lua's lazy event
 		opts = {
 			automatic_enable = false, -- lspconfig.lua calls vim.lsp.enable() per server instead
 			ensure_installed = {
@@ -47,6 +49,7 @@ return {
 	},
 	{
 		"WhoIsSethDaniel/mason-tool-installer.nvim",
+		event = "VeryLazy",
 		dependencies = { "mason-org/mason.nvim" },
 		opts = function()
 			local tools = {
@@ -71,7 +74,7 @@ return {
 				"js-debug-adapter",
 				"haskell-debug-adapter",
 			}
-			if vim.fn.executable("go") == 1 then
+			if require("utils").executable("go") then
 				table.insert(tools, "gofumpt") -- Mason builds it with `go install`, which fails without a Go toolchain
 			end
 			return { ensure_installed = tools }

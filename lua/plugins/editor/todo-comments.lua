@@ -11,14 +11,14 @@ return {
 			function()
 				require("todo-comments").jump_next()
 			end,
-			desc = "Next Todo",
+			desc = "Next todo comment",
 		},
 		{
 			"[n",
 			function()
 				require("todo-comments").jump_prev()
 			end,
-			desc = "Prev Todo",
+			desc = "Previous todo comment",
 		},
 		{
 			"<leader>st",
@@ -32,7 +32,7 @@ return {
 			function()
 				Snacks.picker.todo_comments({ keywords = { "TODO", "FIX", "FIXME" } })
 			end,
-			desc = "Todo/Fix comments",
+			desc = "Todo and fix comments",
 		},
 	},
 

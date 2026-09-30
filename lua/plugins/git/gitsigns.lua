@@ -1,5 +1,6 @@
 -- lewis6991/gitsigns.nvim: signs, hunk actions and inline blame.
 -- Keys: ]c/[c next/previous hunk, <leader>gs stage, <leader>gr reset, <leader>gp preview, <leader>gf blame line, ih hunk text object.
+-- Toggles: <leader>og inline blame, <leader>oG line highlights. Staged hunks reuse the same glyphs in their own highlight.
 return {
 	"lewis6991/gitsigns.nvim",
 	event = { "BufReadPre", "BufNewFile" },
@@ -11,6 +12,13 @@ return {
 			changedelete = { text = "║" },
 			topdelete = { text = "│" },
 			untracked = { text = "┆" },
+		},
+		signs_staged = { -- gitsigns ships a different glyph set for staged hunks; matching them keeps one shape per column
+			add = { text = "┃" },
+			change = { text = "┃" },
+			delete = { text = "┃" },
+			changedelete = { text = "║" },
+			topdelete = { text = "│" },
 		},
 		current_line_blame = true,
 		current_line_blame_opts = {
@@ -29,13 +37,13 @@ return {
 
 			map("n", "]c", function()
 				if vim.wo.diff then
-					return "]c" -- native diff mode: fall through to Nvim's own diff-hunk nav
+					return "]c" -- diff mode: fall through to Nvim's own diff-change motion
 				end
 				vim.schedule(function()
 					gs.nav_hunk("next")
 				end)
 				return "<Ignore>"
-			end, { expr = true, desc = "Next Git Hunk" })
+			end, { expr = true, desc = "Next git hunk" })
 
 			map("n", "[c", function()
 				if vim.wo.diff then
@@ -45,17 +53,17 @@ return {
 					gs.nav_hunk("prev")
 				end)
 				return "<Ignore>"
-			end, { expr = true, desc = "Prev Git Hunk" })
+			end, { expr = true, desc = "Previous git hunk" })
 
-			map("n", "<leader>gs", gs.stage_hunk, { desc = "Stage Hunk" })
-			map("n", "<leader>gr", gs.reset_hunk, { desc = "Reset Hunk" })
-			map("n", "<leader>gp", gs.preview_hunk, { desc = "Preview Hunk" })
+			map("n", "<leader>gs", gs.stage_hunk, { desc = "Stage hunk" })
+			map("n", "<leader>gr", gs.reset_hunk, { desc = "Reset hunk" })
+			map("n", "<leader>gp", gs.preview_hunk, { desc = "Preview hunk" })
 			map("n", "<leader>gf", function()
 				gs.blame_line({ full = true })
-			end, { desc = "Blame Line (Popup)" })
-			map("n", "<leader>og", gs.toggle_current_line_blame, { desc = "Toggle Cursor Blame" })
-			map("n", "<leader>oG", gs.toggle_linehl, { desc = "Toggle Line Highlights" })
-			map({ "o", "x" }, "ih", gs.select_hunk, { desc = "Select Hunk" })
+			end, { desc = "Blame line (popup)" })
+			map("n", "<leader>og", gs.toggle_current_line_blame, { desc = "Toggle inline blame" })
+			map("n", "<leader>oG", gs.toggle_linehl, { desc = "Toggle line highlights" })
+			map({ "o", "x" }, "ih", gs.select_hunk, { desc = "Select hunk" })
 		end,
 	},
 }

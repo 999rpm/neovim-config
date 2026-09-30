@@ -3,16 +3,13 @@ return {
 	"MeanderingProgrammer/render-markdown.nvim",
 	ft = { "markdown" },
 
-	dependencies = {
-		"nvim-treesitter/nvim-treesitter",
-		"nvim-mini/mini.nvim",
-	},
+	dependencies = { "nvim-treesitter/nvim-treesitter" }, -- mini.icons is already loaded at priority 1000
 
 	keys = {
 		{
 			"<leader>um",
 			"<cmd>RenderMarkdown toggle<cr>",
-			desc = "Toggle Markdown Rendering",
+			desc = "Toggle markdown rendering",
 		},
 	},
 

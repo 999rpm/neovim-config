@@ -21,7 +21,7 @@ return {
 			function()
 				require("snacks.terminal").toggle(opencode_cmd, term_opts)
 			end,
-			desc = "Opencode",
+			desc = "Opencode terminal",
 		},
 		{
 			"<leader>ic",
@@ -29,7 +29,7 @@ return {
 				require("opencode").ask("@this: ")
 			end,
 			mode = { "n", "x" },
-			desc = "Ask opencode about this",
+			desc = "Opencode: ask about this",
 		},
 		{
 			"<leader>iS",
@@ -37,7 +37,7 @@ return {
 				require("opencode").select()
 			end,
 			mode = { "n", "x" },
-			desc = "Opencode actions",
+			desc = "Opencode: actions",
 		},
 	},
 }

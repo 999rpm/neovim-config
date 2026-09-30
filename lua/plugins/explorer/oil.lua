@@ -4,7 +4,6 @@
 return {
 	"stevearc/oil.nvim",
 	cmd = "Oil",
-	dependencies = { "nvim-mini/mini.nvim" },
 	init = function()
 		if vim.fn.argc() == 1 then
 			local stat = vim.uv.fs_stat(vim.fn.argv(0))
@@ -14,8 +13,8 @@ return {
 		end
 	end,
 	keys = {
-		{ "<leader>eP", "<cmd>Oil<cr>", desc = "Edit Directory (Buffer)" },
-		{ "<leader>ef", "<cmd>Oil --float<cr>", desc = "Edit Directory (Float)" },
+		{ "<leader>eP", "<cmd>Oil<cr>", desc = "Edit directory (buffer)" },
+		{ "<leader>ef", "<cmd>Oil --float<cr>", desc = "Edit directory (float)" },
 	},
 	opts = {
 		default_file_explorer = true,

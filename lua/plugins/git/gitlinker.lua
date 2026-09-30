@@ -4,7 +4,7 @@ return {
 	cmd = "GitLink",
 	opts = {},
 	keys = {
-		{ "<leader>gy", "<cmd>GitLink<cr>", mode = { "n", "x" }, desc = "Copy Git Link" },
-		{ "<leader>gY", "<cmd>GitLink!<cr>", mode = { "n", "x" }, desc = "Open Git Link" },
+		{ "<leader>gy", "<cmd>GitLink<cr>", mode = { "n", "x" }, desc = "Copy permalink" },
+		{ "<leader>gY", "<cmd>GitLink!<cr>", mode = { "n", "x" }, desc = "Open permalink" },
 	},
 }
