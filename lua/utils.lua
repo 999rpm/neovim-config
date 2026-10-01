@@ -13,7 +13,7 @@ end
 
 ---@param name string
 ---@return boolean
-function M.executable(name) -- This util is used by autocmds.lua, lazy.lua, lint.lua, lspconfig.lua, mason.lua, options.lua, shared.lua, tree-sitter-d2.lua, treesitter.lua, yazi.lua, and d2_run and notes_rg below
+function M.executable(name) -- This util is used by autocmds.lua, lazy.lua, lint.lua, lspconfig.lua, mason.lua, options.lua, shared.lua, tree-sitter-d2.lua, treesitter.lua, yazi.lua, and d2_run, notes_rg, jupyter_setup and jupyter_kernel_add below
 	return fn.executable(name) > 0
 end
 
@@ -91,7 +91,7 @@ end
 ---@param name string
 ---@param clear? boolean defaults to true
 ---@return integer
-function M.augroup(name, clear) -- This util is used by autocmds.lua, lint.lua, logseq.lua, lspconfig.lua, lualine.lua, markdown-plus.lua, nvim-bqf.lua, oil.lua and treesitter.lua
+function M.augroup(name, clear) -- This util is used by autocmds.lua, ipynb.lua, lint.lua, logseq.lua, lspconfig.lua, lualine.lua, markdown-plus.lua, molten.lua, nvim-bqf.lua, oil.lua and treesitter.lua, and notebook_kernel below
 	return api.nvim_create_augroup("999rpm-" .. name:gsub("_", "-"), { clear = clear ~= false })
 end
 
@@ -255,6 +255,31 @@ function M.on_colorscheme(name, apply) -- This util is used by barbar.lua, dap.l
 	})
 end
 
+---Fenced blocks of a markdown text: opening and closing row (1-based) and the info string's language ("" for none).
+---@param lines string[]
+---@return { open: integer, close: integer, lang: string }[]
+local function fenced_blocks(lines)
+	local blocks, open = {}, nil
+	for i, line in ipairs(lines) do
+		if open then
+			local close = line:match("^%s*([`~]+)%s*$")
+			if close and close:sub(1, 1) == open.fence:sub(1, 1) and #close >= #open.fence then
+				blocks[#blocks + 1] = { open = open.row, close = i, lang = open.lang }
+				open = nil
+			end
+		else
+			local fence, lang = line:match("^%s*(```+)%s*{?([%w_.+-]*)")
+			if not fence then
+				fence, lang = line:match("^%s*(~~~+)%s*{?([%w_.+-]*)")
+			end
+			if fence then
+				open = { row = i, lang = lang, fence = fence } -- {?: quarto writes ```{python}
+			end
+		end
+	end
+	return blocks
+end
+
 ---Diagram under the cursor: the whole buffer in a d2 file, else the fenced d2 block holding the cursor.
 ---@return string? source
 ---@return string name file stem for the rendered output
@@ -266,24 +291,9 @@ local function d2_source()
 		return table.concat(lines, "\n"), stem
 	end
 	local row = api.nvim_win_get_cursor(0)[1]
-	local open ---@type { row: integer, lang: string, fence: string }?
-	for i, line in ipairs(lines) do
-		if open then
-			local close = line:match("^%s*([`~]+)%s*$")
-			if close and close:sub(1, 1) == open.fence:sub(1, 1) and #close >= #open.fence then
-				if open.lang == "d2" and row >= open.row and row <= i then
-					return table.concat(lines, "\n", open.row + 1, i - 1), ("%s-%d"):format(stem, open.row)
-				end
-				open = nil
-			end
-		else
-			local fence, lang = line:match("^%s*(```+)%s*([%w_.+-]*)")
-			if not fence then
-				fence, lang = line:match("^%s*(~~~+)%s*([%w_.+-]*)")
-			end
-			if fence then
-				open = { row = i, lang = lang, fence = fence }
-			end
+	for _, block in ipairs(fenced_blocks(lines)) do
+		if block.lang == "d2" and row >= block.open and row <= block.close then
+			return table.concat(lines, "\n", block.open + 1, block.close - 1), ("%s-%d"):format(stem, block.open)
 		end
 	end
 	return nil, stem
@@ -1123,6 +1133,479 @@ function M.get_virtual_env() -- This util is used by lualine.lua
 		return fn.fnamemodify(venv, ":t")
 	end
 	return os.getenv("CONDA_DEFAULT_ENV") or ""
+end
+
+---Python of the Jupyter environment in stdpath("data")/999rpm-jupyter: pynvim, jupyter_client, jupytext and ipykernel.
+---@return string
+function M.jupyter_python() -- This util is used by options.lua, and jupyter_setup and jupytext below
+	return fn.stdpath("data") .. "/999rpm-jupyter/" .. (fn.has("win32") == 1 and "Scripts/python.exe" or "bin/python")
+end
+
+local JUPYTER_PACKAGES = { "pynvim", "jupyter_client", "jupytext", "ipykernel", "nbformat", "cairosvg", "pillow" } -- molten's requirements and the jupytext CLI; ipykernel gives the environment a python3 kernel of its own
+
+---Runs argv lists one after another through vim.system, in cwd; the first failure is reported and ends the chain.
+---@param steps string[][]
+---@param cwd string
+---@param on_done fun()
+local function run_chain(steps, cwd, on_done)
+	local i = 0
+	local function next_step()
+		i = i + 1
+		if not steps[i] then
+			return on_done()
+		end
+		local ok, err = pcall(vim.system, steps[i], { text = true, cwd = cwd }, function(res)
+			if res.code ~= 0 then
+				return warn(vim.trim((res.stderr or "") .. (res.stdout or "")), "Jupyter")
+			end
+			vim.schedule(next_step)
+		end)
+		if not ok then
+			warn(tostring(err), "Jupyter") -- vim.system raises when the executable is missing
+		end
+	end
+	next_step()
+end
+
+---Creates the Jupyter environment, installs or upgrades its packages and registers molten's remote plugin. uv does the
+---first two when it is on $PATH (and fetches a Python of its own when none is installed), else python3's venv and pip.
+---The steps run as argument lists from stdpath("data"), so neither 'shell' (zsh or nushell) nor a project's
+---.python-version, uv.toml or pip settings reach them.
+function M.jupyter_setup() -- This util is used by molten.lua
+	local python = M.jupyter_python()
+	local dir = vim.fs.dirname(vim.fs.dirname(python))
+	local uv = M.executable("uv")
+	local base = M.executable("python3") and "python3" or M.executable("python") and "python" or nil
+	local steps = {}
+	if not vim.uv.fs_stat(python) then
+		if not (uv or base) then
+			return warn("Neither uv nor python3 is on $PATH; one of them is needed once, to create " .. dir, "Jupyter")
+		end
+		steps[1] = uv and { "uv", "venv", "--quiet", dir } or { base, "-m", "venv", dir } -- uv's environment has no pip of its own
+	end
+	local install = uv and { "uv", "pip", "install", "--quiet", "--upgrade", "--python", python }
+		or { python, "-m", "pip", "install", "--quiet", "--upgrade" }
+	steps[#steps + 1] = vim.list_extend(install, JUPYTER_PACKAGES)
+	steps[#steps + 1] =
+		{ python, "-c", "import os; from jupyter_core.paths import jupyter_runtime_dir as d; os.makedirs(d(), exist_ok=True)" } -- molten fails with ENOENT on a kernel-*.json while this folder is missing
+	vim.notify(
+		("Building the Jupyter environment in %s with %s"):format(dir, uv and "uv" or "pip"),
+		vim.log.levels.INFO,
+		{ title = "Jupyter" }
+	)
+	run_chain(steps, fn.stdpath("data"), function()
+		vim.g.loaded_python3_provider = nil -- options.lua turns the provider off while no environment exists
+		vim.g.python3_host_prog = python
+		local ok, err = pcall(vim.cmd.UpdateRemotePlugins)
+		if ok then
+			pcall(vim.cmd.source, fn.stdpath("data") .. "/rplugin.vim") -- the new manifest: molten's commands exist without a restart
+		end
+		local level = ok and vim.log.levels.INFO or vim.log.levels.ERROR
+		vim.notify(ok and ("Jupyter environment ready in " .. dir) or tostring(err), level, { title = "Jupyter" })
+	end)
+end
+
+---Registers the uv project around the current file (else the working directory) as a Jupyter kernel, the way uv's
+---Jupyter guide does: ipykernel becomes a dev dependency, then the project's own Python writes the kernelspec, with
+---VIRTUAL_ENV set so `!uv pip install` in a cell installs into the project. molten's picker lists it afterwards.
+---@param name? string kernel name; defaults to the project folder's name
+function M.jupyter_kernel_add(name) -- This util is used by molten.lua
+	if not M.executable("uv") then
+		return warn("uv is not on $PATH.", "Jupyter")
+	end
+	local markers = { "pyproject.toml", "uv.lock" }
+	local root = vim.fs.root(0, markers) or vim.fs.root(fn.getcwd(), markers)
+	if not root then
+		return warn("No pyproject.toml above this file or the working directory; `uv init` creates one.", "Jupyter")
+	end
+	local label = (name and name ~= "") and name or vim.fs.basename(root)
+	local kernel = label:lower():gsub("[^%w._-]", "-") -- kernelspec names allow letters, digits, ".", "_" and "-"
+	run_chain(
+		{
+			{ "uv", "add", "--quiet", "--dev", "ipykernel" },
+			{
+				"uv",
+				"run",
+				"--quiet",
+				"python",
+				"-m",
+				"ipykernel",
+				"install",
+				"--user",
+				"--name",
+				kernel,
+				"--display-name",
+				label .. " (uv)",
+				"--env",
+				"VIRTUAL_ENV",
+				root .. "/.venv",
+			},
+		},
+		root,
+		function()
+			vim.notify(("Kernel %q registered; <leader>ki lists it"):format(kernel), vim.log.levels.INFO, { title = "Jupyter" })
+		end
+	)
+end
+
+---@return string jupytext from the Jupyter environment, else the one on $PATH
+local function jupytext()
+	local bin = vim.fs.dirname(M.jupyter_python()) .. "/jupytext"
+	return vim.uv.fs_stat(bin) and bin or "jupytext"
+end
+
+---@param cmd string[]
+---@return boolean ok, string output stdout on success, the error otherwise
+local function run_jupytext(cmd)
+	local ok, res = pcall(function()
+		return vim.system(cmd, { text = true }):wait()
+	end)
+	if not ok then
+		return false, tostring(res) -- vim.system raises when the executable is missing
+	end
+	return res.code == 0, res.code == 0 and res.stdout or vim.trim(res.stderr ~= "" and res.stderr or res.stdout)
+end
+
+local NOTEBOOK_TEMPLATE = { -- jupytext markdown for an empty Python notebook; the header carries the kernelspec into the .ipynb
+	"---",
+	"jupyter:",
+	"  kernelspec:",
+	"    display_name: Python 3",
+	"    language: python",
+	"    name: python3",
+	"---",
+	"",
+	"```python",
+	"",
+	"```",
+}
+
+---Opens an .ipynb as jupytext markdown and fires the read events an :edit fires, so plugins that load on them do. A
+---notebook jupytext cannot read opens as JSON instead. A notebook with saved outputs starts its kernel to show them.
+---@param ev vim.api.keyset.create_autocmd.callback_args
+function M.notebook_read(ev) -- This util is used by ipynb.lua
+	local buf, path = ev.buf, fn.fnamemodify(ev.match, ":p")
+	api.nvim_exec_autocmds("BufReadPre", { buffer = buf, modeline = false })
+	local exists = vim.uv.fs_stat(path) ~= nil
+	local lines, converted = NOTEBOOK_TEMPLATE, true
+	if exists then
+		local ok, out = run_jupytext({ jupytext(), "--to", "md", "--output", "-", path })
+		if ok then
+			lines = vim.split((out:gsub("\n$", "")), "\n")
+		else
+			converted, lines = false, fn.readfile(path)
+			warn("jupytext could not convert the notebook, so it opens as JSON. :JupyterSetup installs jupytext.\n" .. out, "Notebook")
+		end
+	end
+	vim.b[buf]._999rpm_notebook = converted
+	local undolevels = vim.bo[buf].undolevels
+	vim.bo[buf].undolevels = -1 -- the conversion is not an edit: u must not empty the buffer
+	api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+	vim.bo[buf].undolevels = undolevels
+	vim.bo[buf].modified = false
+	api.nvim_exec_autocmds("BufReadPost", { buffer = buf, modeline = false }) -- filetype detection (options.lua) and lazy loading
+	if converted and exists then
+		vim.schedule(function()
+			M.notebook_kernel(buf, true)
+		end)
+	end
+end
+
+---Writes the buffer into the .ipynb through jupytext --update (inputs replaced, outputs and metadata kept), then exports
+---the outputs molten produced in this session into the same file.
+---@param ev vim.api.keyset.create_autocmd.callback_args
+function M.notebook_write(ev) -- This util is used by ipynb.lua
+	local buf, path = ev.buf, fn.fnamemodify(ev.match, ":p")
+	local lines = api.nvim_buf_get_lines(buf, 0, -1, false)
+	if not vim.b[buf]._999rpm_notebook then -- opened as JSON: written back unchanged
+		if fn.writefile(lines, path) == 0 then
+			vim.bo[buf].modified = false
+		end
+		return
+	end
+	local tmp = fn.tempname() .. ".md"
+	fn.writefile(lines, tmp)
+	local cmd = { jupytext(), "--to", "ipynb", "--output", path, tmp }
+	if vim.uv.fs_stat(path) then
+		table.insert(cmd, 4, "--update") -- keeps the outputs and metadata already in the notebook
+	end
+	local ok, out = run_jupytext(cmd)
+	os.remove(tmp)
+	if not ok then
+		return vim.notify("Notebook not written: " .. out, vim.log.levels.ERROR, { title = "Notebook" })
+	end
+	vim.bo[buf].modified = false
+	if vim.b[buf]._999rpm_kernel then
+		pcall(vim.cmd, "MoltenExportOutput!") -- ! replaces the outputs jupytext kept with the ones run here
+	end
+end
+
+local notebook_queue = {} -- buffer -> cells pressed while its kernel was still starting
+
+---Starts a kernel for the buffer: the notebook's own (metadata.kernelspec.name) when it is installed, else molten's
+---picker. With auto (on open) it never prompts, and it imports the outputs saved in the notebook.
+---@param buf? integer
+---@param auto? boolean
+---@return boolean running
+function M.notebook_kernel(buf, auto) -- This util is used by molten.lua, and notebook_read and notebook_run below
+	buf = buf or api.nvim_get_current_buf()
+	if vim.b[buf]._999rpm_kernel then
+		return true
+	elseif buf ~= api.nvim_get_current_buf() then
+		return false -- molten starts kernels for the current buffer only
+	end
+	pcall(require("lazy").load, { plugins = { "molten-nvim" } })
+	if fn.exists(":MoltenInit") ~= 2 then
+		if not auto then
+			warn("molten's commands are not registered: run :JupyterSetup once.", "Jupyter")
+		end
+		return false
+	end
+	local path, name = api.nvim_buf_get_name(buf), nil
+	if path:match("%.ipynb$") and vim.uv.fs_stat(path) then
+		local ok, nb = pcall(vim.json.decode, table.concat(fn.readfile(path), "\n"))
+		name = ok and vim.tbl_get(nb, "metadata", "kernelspec", "name") or nil
+	end
+	if name and not vim.list_contains(fn.MoltenAvailableKernels(), name) then
+		warn(("Kernel %q is not installed here; <leader>ki picks another."):format(name), "Jupyter")
+		name = nil
+	end
+	if not name then
+		if not auto then
+			vim.cmd("MoltenInit") -- molten's own picker; the cell runs on the next key press
+		end
+		return false
+	end
+	local ok, err = pcall(vim.cmd, "MoltenInit " .. name)
+	if not ok or not vim.b[buf]._999rpm_kernel then -- molten reports its own failures through vim.notify
+		if not ok then
+			warn(tostring(err), "Jupyter")
+		end
+		return false
+	end
+	local ids = fn.MoltenRunningKernels(true)
+	local id = ids[#ids]
+	vim.b[buf]._999rpm_ready = false -- output sent before the kernel answers is lost, so notebook_run queues cells until then
+	api.nvim_create_autocmd("User", {
+		group = M.augroup("molten-ready", false),
+		pattern = "MoltenKernelReady",
+		desc = "999rpm: run the cells queued while the kernel started",
+		callback = function(ev)
+			if vim.tbl_get(ev, "data", "kernel_id") ~= id then
+				return
+			end
+			if api.nvim_buf_is_valid(buf) then
+				vim.b[buf]._999rpm_ready = nil
+			end
+			local queued = notebook_queue[buf]
+			notebook_queue[buf] = nil
+			if queued then
+				vim.schedule(queued)
+			end
+			return true -- one ready event per kernel: the autocommand removes itself
+		end,
+	})
+	if auto then
+		pcall(vim.cmd, "MoltenImportOutput")
+	end
+	return true
+end
+
+---Code cells in order: ```fences with a language in markdown and quarto, else the blocks between "<comment> %%" lines.
+---Rows are 1-based; first > last marks an empty cell, stop is the last row the cell owns.
+---@param buf integer
+---@return { head: integer?, first: integer, last: integer, foot: integer?, stop: integer }[]
+local function notebook_cells(buf)
+	local lines, cells = api.nvim_buf_get_lines(buf, 0, -1, false), {}
+	local ft = vim.bo[buf].filetype
+	if ft == "markdown" or ft == "quarto" then
+		for _, block in ipairs(fenced_blocks(lines)) do
+			if block.lang ~= "" then
+				cells[#cells + 1] =
+					{ head = block.open, first = block.open + 1, last = block.close - 1, foot = block.close, stop = block.close }
+			end
+		end
+		return cells
+	end
+	local leader = vim.trim(vim.bo[buf].commentstring:match("^(.-)%%s") or "")
+	local marker = "^%s*" .. vim.pesc(leader ~= "" and leader or "#") .. "%s*%%%%"
+	local heads = {}
+	for i, line in ipairs(lines) do
+		if line:match(marker) then
+			heads[#heads + 1] = i
+		end
+	end
+	local function add(head, first, stop)
+		local last = stop
+		while last >= first and lines[last]:match("^%s*$") do
+			last = last - 1
+		end
+		cells[#cells + 1] = { head = head, first = first, last = last, stop = stop }
+	end
+	if heads[1] and heads[1] > 1 then
+		add(nil, 1, heads[1] - 1) -- code above the first marker is a cell too, as jupytext reads it
+	end
+	for k, head in ipairs(heads) do
+		add(head, head + 1, (heads[k + 1] or (#lines + 1)) - 1)
+	end
+	return cells
+end
+
+---@return integer? index, table? cell the cell owning the row
+local function cell_at(cells, row)
+	for i, cell in ipairs(cells) do
+		if row >= (cell.head or cell.first) and row <= cell.stop then
+			return i, cell
+		end
+	end
+end
+
+---Runs code cells in molten: "cell" the one under the cursor, "next" that one and then the cursor moves to the next
+---cell, "above" every cell up to and including it, "all" every cell. A buffer with no kernel starts one first.
+---@param scope "cell"|"next"|"above"|"all"
+function M.notebook_run(scope) -- This util is used by molten.lua and notebook_attach below
+	local buf = api.nvim_get_current_buf()
+	local cells = notebook_cells(buf)
+	local idx = cell_at(cells, api.nvim_win_get_cursor(0)[1])
+	if not idx and scope ~= "all" then
+		return warn("The cursor is not in a code cell.", "Jupyter")
+	elseif #cells == 0 or not M.notebook_kernel(buf) then
+		return
+	end
+	local from, to = idx, idx
+	if scope == "above" then
+		from = 1
+	elseif scope == "all" then
+		from, to = 1, #cells
+	end
+	local function evaluate()
+		if api.nvim_get_current_buf() ~= buf then
+			return warn("The kernel is ready; the cell did not run because another buffer is current.", "Jupyter")
+		end
+		for i = from, to do
+			if cells[i].first <= cells[i].last then
+				fn.MoltenEvaluateRange(cells[i].first, cells[i].last)
+			end
+		end
+	end
+	if vim.b[buf]._999rpm_ready == false then
+		notebook_queue[buf] = evaluate -- notebook_kernel's MoltenKernelReady handler runs it
+	else
+		evaluate()
+	end
+	local after = scope == "next" and cells[idx + 1]
+	if after then
+		api.nvim_win_set_cursor(0, { math.min(after.first, api.nvim_buf_line_count(buf)), 0 })
+	end
+end
+
+---Moves to the first code line of the next (dir 1) or previous (dir -1) cell; a count repeats it.
+---@param dir 1|-1
+function M.notebook_goto(dir) -- This util is used by notebook_attach below
+	local buf = api.nvim_get_current_buf()
+	local row = api.nvim_win_get_cursor(0)[1]
+	local starts = vim.tbl_map(function(cell)
+		return math.min(cell.first, api.nvim_buf_line_count(buf))
+	end, notebook_cells(buf))
+	for _ = 1, vim.v.count1 do
+		local hit
+		for i = dir > 0 and 1 or #starts, dir > 0 and #starts or 1, dir do
+			if (dir > 0 and starts[i] > row) or (dir < 0 and starts[i] < row) then
+				hit = starts[i]
+				break
+			end
+		end
+		if not hit then
+			break
+		end
+		row = hit
+	end
+	api.nvim_win_set_cursor(0, { row, 0 })
+end
+
+---mini.ai textobject for the cell under the cursor, or the next one below it: ij its code, aj the code with its fence
+---or "# %%" line.
+---@param ai_type "a"|"i"
+---@return table? region
+function M.notebook_cell_region(ai_type) -- This util is used by mini.lua
+	local buf = api.nvim_get_current_buf()
+	local row = api.nvim_win_get_cursor(0)[1]
+	local cells = notebook_cells(buf)
+	local _, cell = cell_at(cells, row)
+	for _, c in ipairs(cell and {} or cells) do
+		if (c.head or c.first) > row then
+			cell = c
+			break
+		end
+	end
+	if not cell then
+		return nil
+	end
+	local first, last = cell.first, cell.last
+	if ai_type == "a" then
+		first, last = cell.head or cell.first, cell.foot or cell.last
+	end
+	if first > last then
+		return nil
+	end
+	local text = api.nvim_buf_get_lines(buf, last - 1, last, false)[1] or ""
+	return { from = { line = first, col = 1 }, to = { line = last, col = math.max(#text, 1) }, vis_mode = "V" }
+end
+
+---Cell keys for one buffer: ]j/[j wherever cells can exist; in notebooks and quarto documents also <S-CR>/<C-CR> to run
+---cells, and otter's language servers inside the code fences.
+---@param buf integer
+function M.notebook_attach(buf) -- This util is used by ipynb.lua
+	local ft = vim.bo[buf].filetype
+	local notebook = vim.b[buf]._999rpm_notebook or ft == "quarto"
+	if vim.b[buf]._999rpm_cells or (ft == "markdown" and not notebook) or api.nvim_buf_get_name(buf):find("%.otter%.") then
+		return -- plain markdown and the notes graph have no cells; otter's hidden buffers need no keys
+	end
+	vim.b[buf]._999rpm_cells = true
+	local function map(mode, lhs, rhs, desc)
+		vim.keymap.set(mode, lhs, rhs, { buf = buf, desc = desc })
+	end
+	map({ "n", "x", "o" }, "]j", function()
+		M.notebook_goto(1)
+	end, "Next cell") -- buffer-local: elsewhere ]j/[j are textobjects.lua's JSX moves
+	map({ "n", "x", "o" }, "[j", function()
+		M.notebook_goto(-1)
+	end, "Previous cell")
+	if not notebook then
+		return
+	end
+	map("n", "<S-CR>", function()
+		M.notebook_run("next")
+	end, "Run cell, go to next")
+	map("n", "<C-CR>", function()
+		M.notebook_run("cell")
+	end, "Run cell")
+	map("i", "<S-CR>", "<Esc><Cmd>lua require('utils').notebook_run('next')<CR>", "Run cell, go to next")
+	map("i", "<C-CR>", "<Esc><Cmd>lua require('utils').notebook_run('cell')<CR>", "Run cell")
+	vim.b[buf].disable_autoformat = true -- conform: prettier would reflow the jupytext markdown
+	vim.b[buf].disable_lint = true -- lint.lua: markdownlint flags the jupytext header
+	vim.schedule(function()
+		if api.nvim_get_current_buf() == buf then
+			pcall(function()
+				require("otter").activate()
+			end)
+		end
+	end)
+end
+
+---Opens a new notebook (".ipynb" is added when missing); it starts as one empty Python cell.
+---@param name? string
+function M.notebook_new(name) -- This util is used by molten.lua and ipynb.lua
+	local function open(file)
+		file = vim.trim(file or "")
+		if file ~= "" then
+			vim.cmd.edit(fn.fnameescape(file:match("%.ipynb$") and file or (file .. ".ipynb")))
+		end
+	end
+	if name and name ~= "" then
+		return open(name)
+	end
+	vim.ui.input({ prompt = "New notebook: ", completion = "file" }, open)
 end
 
 return M

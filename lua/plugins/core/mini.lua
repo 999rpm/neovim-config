@@ -4,7 +4,7 @@
 -- gL does the same with a live preview, where s enters a split pattern, j cycles the justify side, m sets the merge
 -- text, f and i filter, <BS> undoes a step and <CR> accepts. gl/gL, since ga is the built-in character info and gA coerce.
 -- mini.ai: a/i + b brackets, q quotes, t tag, a argument, g whole buffer (vag select all, yag yank all, =ig reindent),
--- ? prompt; aN/iN and al/il pick the next/last match.
+-- j notebook cell (vij selects the code, <leader>ko then ij runs it), ? prompt; aN/iN and al/il pick the next/last match.
 -- an/in stay 0.12's node selection and g] stays the built-in :tselect, so mini.ai's g[/g] edge jumps are off.
 return {
 	"nvim-mini/mini.nvim",
@@ -19,6 +19,9 @@ return {
 			custom_textobjects = {
 				f = false, -- af/if come from textobjects.lua (function definition)
 				g = require("mini.extra").gen_ai_spec.buffer(), -- whole buffer; replaces the old <leader>na select-all key
+				j = function(ai_type)
+					return require("utils").notebook_cell_region(ai_type)
+				end, -- notebook cell: ij its code, aj the code with its fence or "# %%" line
 			},
 			mappings = {
 				around_next = "aN", -- off an/in: 0.12 maps those in x and o to select the parent and child treesitter node

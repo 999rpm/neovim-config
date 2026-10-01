@@ -20,6 +20,7 @@ return {
 			["grug-far"] = true,
 			yazi = true,
 			["nvim-undotree"] = true, -- mappings.lua <leader>uu
+			molten_output = true, -- notebook/molten.lua's output window
 		},
 	},
 	keys = {

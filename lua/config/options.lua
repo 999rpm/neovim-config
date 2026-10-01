@@ -1,5 +1,6 @@
 -- Editor options. Leader is Space, local leader is backslash. vim.g.notes_dir points the notes layer at a Logseq-style
 -- graph folder. 'shell' follows the login shell from the passwd database; nushell gets its own shell* flags (utils.lua).
+-- The Python 3 provider runs only when :JupyterSetup's environment exists (notebook/molten.lua needs it).
 local utils = require("utils")
 
 local g = vim.g
@@ -17,7 +18,11 @@ g.notes_dir = vim.env.NOTES_DIR or "~/notes" -- Notes graph (journals/, pages/, 
 g.loaded_perl_provider = 0 -- Disable Perl provider
 g.loaded_ruby_provider = 0 -- Disable Ruby provider
 g.loaded_node_provider = 0 -- Disable Node.js provider
-g.loaded_python3_provider = 0 -- Disable Python 3 provider
+if vim.uv.fs_stat(utils.jupyter_python()) then
+	g.python3_host_prog = utils.jupyter_python() -- :JupyterSetup's environment runs molten.lua's remote plugin
+else
+	g.loaded_python3_provider = 0 -- no environment yet, so no provider probe at startup; :JupyterSetup turns it on
+end
 
 vim.schedule(function() -- the clipboard provider probe runs after the first screen draws instead of delaying startup
 	if vim.fn["provider#clipboard#Executable"]() ~= "" then
@@ -180,6 +185,7 @@ opt.backupskip = vim.o.wildignore -- Skip backing up files that match the wildig
 opt.backupskip:append({ "/tmp/*", "/private/tmp/*" }) -- Never back up temporary files
 
 opt.undofile = true -- Persist undo history across sessions
+opt.undolevels = 10000 -- Undo steps kept per buffer (0.12 keeps 1000); undofile saves all of them
 opt.undodir = vim.fn.stdpath("data") .. "/undo" -- Directory for persistent undo files; Neovim creates it on the first write
 
 opt.swapfile = false -- Disable swap files (rely on undo + backup instead)
@@ -220,6 +226,9 @@ vim.filetype.add({
 	extension = {
 		mdx = "mdx", -- MDX (Markdown + JSX) files
 		d2 = "d2", -- d2 diagrams; 0.12 does not detect them, and tree-sitter-d2.lua loads on this filetype
+		ipynb = function(_, buf)
+			return vim.b[buf]._999rpm_notebook and "markdown" or "json"
+		end, -- notebooks open as jupytext markdown (notebook/ipynb.lua), as JSON when the conversion fails
 	},
 	filename = {
 		Brewfile = "ruby", -- Homebrew bundle file

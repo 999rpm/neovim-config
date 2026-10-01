@@ -27,6 +27,9 @@ return {
 		},
 		current_line_blame_formatter = "󰜘 <author>, <author_time:%R> • <summary>",
 		on_attach = function(bufnr)
+			if vim.b[bufnr]._999rpm_notebook then
+				return false -- the buffer holds jupytext markdown, not the JSON git tracks
+			end
 			local gs = require("gitsigns")
 
 			local function map(mode, lhs, rhs, opts)

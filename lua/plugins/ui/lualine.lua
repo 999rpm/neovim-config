@@ -110,6 +110,11 @@ return {
 			return utils.buf_cached("mixed_indent", scan_mixed_indent) -- up to four whole-buffer searches; cached like trailing_space above
 		end
 
+		local function kernel()
+			local name = vim.b._999rpm_kernel -- set by notebook/molten.lua when a kernel starts; reading it costs no call into molten
+			return name and ("󰘚 " .. name) or ""
+		end
+
 		local function get_lsp_clients()
 			local clients = vim.lsp.get_clients({ bufnr = 0 }) -- this buffer's servers, not every server in the session
 			if #clients == 0 then
@@ -163,6 +168,9 @@ return {
 				symbols = icons.diff,
 				cond = hide_in_width,
 			},
+			kernel = {
+				kernel,
+			},
 			lsp = {
 				get_lsp_clients,
 				cond = hide_in_width,
@@ -210,6 +218,7 @@ return {
 					components.spaces,
 					components.indent,
 					components.diagnostics,
+					components.kernel,
 					components.lsp,
 				},
 				lualine_y = { "filetype", "encoding", "fileformat" },

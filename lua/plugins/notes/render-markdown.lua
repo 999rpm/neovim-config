@@ -4,12 +4,13 @@
 -- 0 in insert mode, so links and markup read as typed while editing.
 return {
 	"MeanderingProgrammer/render-markdown.nvim",
-	ft = { "markdown" },
+	ft = { "markdown", "quarto" },
 	dependencies = { "nvim-treesitter/nvim-treesitter" }, -- mini.icons is already loaded at priority 1000
 	keys = {
 		{ "<leader>um", "<cmd>RenderMarkdown toggle<cr>", desc = "Toggle markdown rendering" },
 	},
 	opts = {
+		file_types = { "markdown", "quarto" }, -- notebooks open as markdown; quarto documents render too
 		completions = { lsp = { enabled = true } },
 		latex = { enabled = false }, -- snacks.image draws math; this would need latex2text or utftex and draw it a second time
 		win_options = {

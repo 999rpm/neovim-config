@@ -52,7 +52,7 @@ return {
 				)
 			end
 
-			vim.treesitter.language.register("markdown", "mdx") -- mdx has no parser of its own
+			vim.treesitter.language.register("markdown", { "mdx", "quarto" }) -- neither has a parser of its own
 
 			local function start(buf, ft)
 				local lang = vim.treesitter.language.get_lang(ft) or ft

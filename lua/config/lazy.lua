@@ -22,12 +22,11 @@ end
 vim.opt.rtp:prepend(vim.env.LAZY or lazypath)
 
 local has_git = require("utils").executable("git") -- shared helper; see utils.lua
-local disabled_plugins = { -- names from 0.12's runtime/plugin
+local disabled_plugins = { -- names from 0.12's runtime/plugin; rplugin stays on, it defines molten.lua's commands
 	"gzip",
 	"matchit", -- editor/matchup.lua replaces it
 	"matchparen", -- editor/matchup.lua replaces it
 	"netrwPlugin", -- oil.lua opens directories
-	"rplugin",
 	"tarPlugin",
 	"zipPlugin",
 }

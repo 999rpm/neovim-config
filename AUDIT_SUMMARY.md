@@ -3,78 +3,87 @@
 What changed, and the reason it changed. Newest first. Older passes are condensed to their conclusions once a later
 pass has confirmed them.
 
-## 2026-10-01 (twelfth pass): three regressions, reference configs, fewer hand-written parts
+## 2026-10-01 (fourteenth pass): uv
 
-Method: Neovim 0.12.5 (the current stable), every plugin at its latest commit (only avante had moved), a pseudo-terminal
-set up like kitty (`COLORTERM=truecolor`, `TERM=xterm-kitty`, answering its startup queries) for the startup checks, and
-headless runs for the rest. The sixteen reference repos were cloned; plugin choices, options, autocommands and keymaps
-were extracted from all of them, and the files of folke/dot and linkarzu's neobean read in full. Every plugin added has
-commits within the last six months.
+- `:JupyterSetup` prefers uv: `uv venv` creates the environment (uv fetches a Python when none is installed) and
+  `uv pip install --python <env>` fills it, since uv's environments carry no pip. python3's `venv` and pip stay the
+  fallback. Every step runs from `stdpath("data")`, so a project's `.python-version`, `uv.toml` or pip settings do not
+  reach it.
+- `<leader>kv` / `:JupyterKernelAdd [name]` registers the uv project around the current file as a kernel, the way uv's
+  Jupyter guide does (`uv add --dev ipykernel`, then `ipykernel install --user --env VIRTUAL_ENV <root>/.venv`), through
+  argument lists, so the guide's `$(pwd)` form, which nushell does not accept, is not needed.
+- A cell run while its kernel starts is queued until molten's `MoltenKernelReady`: output sent before the kernel answered
+  was lost and the cell stayed "On Hold". A failed `MoltenInit`, which molten only reports through `vim.notify`, no longer
+  counts as a running kernel.
+- The setup and kernel steps share `run_chain()` in `utils.lua`.
+- Checked: a fresh environment built by uv 0.11 (no pip inside) runs molten and the notebook round trip; uv also upgrades
+  an environment pip built; with uv off `$PATH` the pip route still works; a uv project kernel registers, appears in
+  molten's list and reports the project's `.venv` as `sys.prefix`; a cell pressed 0.7 s after opening a notebook runs
+  once the kernel is ready.
 
-### Regressions fixed
+## 2026-10-01 (thirteenth pass): barbar underline, Jupyter notebooks
 
-- **Theme switcher never ran.** `999rpm-themer` and `999rpm-notes` both had `dir = stdpath("config")`; lazy.nvim matches
-  local specs by directory, so it merged them into one plugin named `999rpm-notes` with the themer's `lazy = false` and
-  the notes spec's `config`. No colorscheme loaded, the `<leader>u` theme keys did not exist, and the notes layer loaded
-  at startup. Both are now `virtual = true` specs with a slash-less name (lazy.nvim rejects a spec with only `name`).
-- **Colorizer disabled itself.** 0.12 detects truecolor but applies `termguicolors` at `VimEnter`, after the
-  `BufReadPre` of a file named on the command line, where colorizer's setup found it off, printed the error and returned.
-  The ninth pass had removed the option as a default. It is set again; a side effect is that colorizer now switches off
-  0.12's own LSP colour highlighting in the buffers it paints, so colours are drawn once.
-- **DAP warned for every missing adapter on any debug key.** `utils.mason_adapter()` wraps each adapter so its Mason file
-  is checked when that adapter's session starts. haskell-debug-adapter installs only when `stack` is on `$PATH`: the
-  launch configuration runs `stack ghci`.
+Method: Neovim 0.12.5, headless runs, nushell 0.116 and zsh 5.9; the lockfile's commits plus the two new plugins; a
+test notebook with saved outputs and a `# %%` script. Only notebook images in kitty could not be checked.
 
-### Replaced or added
+### barbar underline
 
-- tiny-inline-diagnostic.nvim replaces the 80-line rounded virtual-lines handler in `utils.lua`; its default already
-  draws only the cursor line.
-- vim-matchup replaces the bundled matchit and matchparen: `%` pairs `function`/`end` and HTML tags through treesitter.
-  Its offscreen popup is off, because treesitter-context shows the same line.
-- ts-comments.nvim: `gc` inside JSX writes `{/* */}`.
-- mini.align (already inside mini.nvim) on `gl`/`gL`; `ga` stays the built-in character info, `gA` coerce.
-- crates.nvim for `Cargo.toml`, through its in-process language server (`gra`, `K`, completion).
-- Snacks.rename is hooked into neo-tree and oil, so moving a file updates imports through the language servers.
-- Colorizer takes Tailwind colours from tailwindcss-language-server where it runs; blink drops a border it already takes
-  from `winborder` and highlights LSP labels with treesitter; pickers rank by frecency and the cwd.
-- Options: `shada` keeps 0.12's `/tmp/` and `/private/` exclusions it had overwritten, `sidescrolloff = 8`,
-  `switchbuf = useopen,uselast`, `pumborder = rounded`.
-- lualine no longer runs `git fetch origin` every 30 seconds: that raced lazygit and gitsigns for git's lock files and
-  could raise SSH prompts. Ahead/behind counts come from local refs.
-- A first run opens tokyonight moon (upstream's default) instead of the light day style.
+- Reported: the current tab used to be underlined in kanagawa lotus and dragon. In the twelfth pass's files no tabline
+  group carries an underline in any kanagawa style: kanagawa ships no barbar groups, so barbar derives them from
+  `TabLine`/`TabLineSel`, which have none, and barbar's default preset strips underlines from the separators. The old
+  underline could not be traced to a file; barbar has tracked master since the eighth pass and rebuilt its highlight
+  cache in June 2026.
+- `paint_tabs` (formerly `paint_slants`) copies barbar's fresh `BufferDefaultCurrent*` colours into `BufferCurrent*` with
+  an underline in the tab's text colour, separators included, for the themes in `underline_themes` (kanagawa, all
+  three styles). Icon groups inherit it from `BufferCurrent`. Checked: on in lotus and dragon, off after a switch to
+  tokyonight, back after a switch to kanagawa.
 
-### Keys
+### Jupyter notebooks
 
-- `<leader>x` merged into `<leader>d`: one group for every diagnostic view (`df` float, `db`/`dw` quickfix, Trouble on
-  `dd` `dD` `ds` `dl` `dq`). LSP workspace folders moved from `<leader>w*` to `<leader>lwa/lwr/lwl`.
-- New: `<leader>uu` 0.12's `:Undotree`, `dm` + mark deletes a mark (`dm` has no built-in job), `gl`/`gL` align.
-- which-key labels `ZZ`, `ZQ`, 0.12's `ZR` (restart) and matchup's `%` family. 458 global keymaps, none on kitty's
-  `ctrl+shift` or `alt+1`..`alt+9`.
+- molten-nvim runs code in Jupyter kernels and draws outputs under the cell, images through snacks.image (no image.nvim,
+  no ImageMagick Lua binding). It tracks main: the last tag, v1.9.2 (January 2025), predates the snacks.nvim provider
+  (May 2025).
+- otter.nvim attaches the language servers to the code cells.
+- The `.ipynb` handler is written in `utils.lua` (`notebook_*`, loaded by `notebook/ipynb.lua`): jupytext.nvim has had
+  no commits since April 2024, its maintained fork none since June 2025. Notebooks open as jupytext markdown, molten's
+  documented format; `:w` runs `jupytext --update`, then `MoltenExportOutput!`.
+- quarto-nvim skipped: otter alone gives the LSP features, the cell runner is a few lines over `MoltenEvaluateRange`,
+  and quarto's preview needs the Quarto CLI.
+- `:JupyterSetup` (also molten's build step) creates `stdpath("data")/999rpm-jupyter` through argument lists only.
+  `rplugin` left lazy's disabled list, since it defines molten's commands; the Python 3 provider runs only when that
+  environment exists.
+- Found while testing: molten fails with ENOENT on `kernel-*.json` while Jupyter's runtime folder does not exist, as on a
+  fresh machine; `:JupyterSetup` now creates it. molten reports errors through `vim.notify`, which noice owns, so they
+  stay out of headless output.
+- Checked: the notebook opens as markdown with no undo step and no gitsigns; the kernel from its metadata starts on open
+  and the saved outputs show; a run cell prints under its fence; `:w` keeps old outputs and adds new ones; `]j` `[j`
+  and `ij` `aj` in notebooks and `# %%` scripts; otter-ls attaches.
 
-### Declined
+### From the reference configs
 
-- kitty-scrollback.nvim: needs remote control in kitty.conf, and the TermOpen autocommand would put its view in insert
-  mode; not verifiable without kitty. smart-splits: it would change kitty's split keys.
-- quicker.nvim overlaps nvim-bqf, and its `<`/`>` collide with bqf's list history.
-- marks.nvim, nvim-treesitter-endwise, themery.nvim, virt-column.nvim: no commits for 9 to 23 months.
-- telescope, fzf-lua, bufferline, nvim-cmp, diffview, neogit, alpha, fidget: snacks, barbar, blink, codediff, lazygit
-  and noice cover them.
-- Reference keymaps such as `j`/`k` to `gj`/`gk`, `<C-d>zz`, `x` to `"_x`, `<C-c>` to `ciw`: each takes a built-in or one
-  of hardtime's keys.
-- mini.trailspace for the trim-on-write autocommand: no less code, and it would mark trailing spaces that 'listchars'
-  already shows.
+- `undolevels = 10000`; prose filetypes get soft wrap with spell (group `999rpm-prose`); `]e` `[e` / `]w` `[w` for
+  errors / warnings only; insert-mode `,` `.` `;` start a new undo step.
+- The d2 block lookup and the notebook cell scan share `fenced_blocks()`.
 
 ### Checked and left as is
 
-- Four plugins have had no commits for over a year (promise-async, guess-indent, nvim-dap-virtual-text, hex.nvim). They
-  work, and no maintained alternative exists; vim-sleuth is older still.
-- `v:errmsg` still holds barbar's silent `dictwatcherdel` E116.
-- which-key's health lists prefix overlaps, all by design: Neovim's own `gc`/`gcc` beside `gco` `gcO` `gcA`, and
-  mini.ai's `a`/`i` beside 0.12's `an`/`in`, mini.ai's `al`/`aN` and matchup's `a%`/`i%`. No duplicate keymaps. The
-  eleventh pass's "no overlaps" line was wrong for the same reason.
-- `:grep` fills the quickfix list and `:!` runs under both nushell 0.116 and zsh.
+- which-key, trouble, noice, todo-comments and persistence have had no commits for 10 to 11 months, lazy.nvim for 9.
+  Kept: stable, and nothing maintained does the same job.
+- New global keys (`<leader>k*`, `]e` `[e` `]w` `[w`, insert `,` `.` `;`) collide with nothing; `<S-CR>`, `<C-CR>` and
+  the cell `]j` `[j` are buffer-local. kitty.conf binds neither `shift+enter` nor `ctrl+enter`.
+- `:grep` and `:!` still work under nushell and zsh.
 
 ## Earlier passes: conclusions only
+
+**Twelfth pass (2026-10-01).** Three regressions: the theme switcher never ran, because two local specs shared
+`dir = stdpath("config")` and lazy.nvim merged them (both are now `virtual = true` with slash-less names); colorizer
+disabled itself, because 0.12 applies `termguicolors` at `VimEnter` (set again); DAP warned for every missing adapter
+(`utils.mason_adapter()` checks per session). tiny-inline-diagnostic replaced an 80-line handler, vim-matchup replaced
+matchit and matchparen; ts-comments, mini.align, crates.nvim and Snacks.rename were added; lualine stopped running
+`git fetch`. `<leader>x` merged into `<leader>d`, workspace folders moved to `<leader>lw*`. Declined: kitty-scrollback,
+smart-splits, quicker.nvim, marks.nvim, nvim-treesitter-endwise, themery, virt-column, reference keymaps that take
+built-ins, mini.trailspace. Over a year without commits but kept: promise-async, guess-indent, nvim-dap-virtual-text,
+hex.nvim. `v:errmsg` holds barbar's silent `dictwatcherdel` E116.
 
 **Eleventh pass (2026-09-30).** The Logseq layer: markdown-oxide rooted at a `logseq/` graph with
 `moxide/settings.toml`, `notes/logseq.lua` with the `notes_*` helpers (journals, pages, references, tasks, agenda,

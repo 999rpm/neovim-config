@@ -370,11 +370,12 @@ api.nvim_create_autocmd("MenuPopup", {
 })
 
 api.nvim_create_autocmd("FileType", {
-	group = augroup("spell_check"),
-	desc = "999rpm: spell check on for prose filetypes",
-	pattern = { "text", "tex", "plaintex", "typst", "gitcommit", "markdown" },
+	group = augroup("prose"),
+	desc = "999rpm: spell check and soft wrap for prose filetypes",
+	pattern = { "text", "tex", "plaintex", "typst", "gitcommit", "markdown", "quarto" },
 	callback = function()
 		vim.opt_local.spell = true
+		vim.opt_local.wrap = true -- 'linebreak' and 'breakindent' (options.lua) break at words and keep the indent
 	end,
 })
 

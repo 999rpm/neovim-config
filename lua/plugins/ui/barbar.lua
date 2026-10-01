@@ -4,22 +4,39 @@
 -- Slanted tabs: every buffer sits between U+E0BC and U+E0BA, so both edges lean the same way (the "slanted" preset pairs
 -- U+E0BC with U+E0BE, a trapezoid). The corner triangles take the tabline fill colour and the glyph background the tab's
 -- own colour, derived from the active theme after every switch, the way lualine colours its section edges.
+-- Themes that bring no barbar colours of their own (kanagawa: lotus, wave, dragon) underline the current tab instead,
+-- edge to edge in the tab's text colour; tokyonight, catppuccin and monokai-pro keep their own current-tab colours.
 local slant = { left = "\u{e0bc}", right = "\u{e0ba}" } -- escapes: private-use glyphs do not survive every copy of this file
+local underline_themes = { kanagawa = true } -- vim.g.colors_name values; add a theme here to underline its current tab
+local current_parts =
+	{ "", "Index", "Number", "Mod", "ModBtn", "Btn", "Pin", "PinBtn", "ADDED", "CHANGED", "DELETED", "ERROR", "WARN", "INFO", "HINT" }
 
----Separator colours per buffer state: corner = tabline fill, body = the tab. Without a fill colour (transparent mode)
----the theme's own separator highlights stay.
-local function paint_slants()
-	local function bg(name)
-		return vim.api.nvim_get_hl(0, { name = name, link = false }).bg
+---Separator colours per buffer state (corner = tabline fill, body = the tab) and the current tab's underline. Without a
+---fill colour (transparent mode) the theme's own separator highlights stay.
+local function paint_tabs()
+	local function get(name)
+		return vim.api.nvim_get_hl(0, { name = name, link = false })
 	end
-	local fill = bg("BufferTabpageFill") or bg("TabLineFill")
+	local sp = underline_themes[vim.g.colors_name] and get("BufferDefaultCurrent").fg or nil
+	if sp then
+		for _, part in ipairs(current_parts) do
+			local def = get("BufferDefaultCurrent" .. part) -- barbar's fresh colours; BufferCurrent* may still hold the last theme's
+			def.underline, def.sp = true, sp
+			vim.api.nvim_set_hl(0, "BufferCurrent" .. part, def)
+		end
+		pcall(function()
+			require("barbar.icons").set_highlights() -- icon groups copy BufferCurrent, underline included
+		end)
+	end
+	local fill = get("BufferTabpageFill").bg or get("TabLineFill").bg
 	if not fill then
 		return
 	end
 	for _, state in ipairs({ "Current", "Visible", "Inactive", "Alternate" }) do
-		local body = bg("Buffer" .. state) or fill
+		local body = get("Buffer" .. state).bg or fill
+		local mark = state == "Current" and sp or nil
 		for _, suffix in ipairs({ "Sign", "SignRight" }) do
-			vim.api.nvim_set_hl(0, "Buffer" .. state .. suffix, { fg = fill, bg = body })
+			vim.api.nvim_set_hl(0, "Buffer" .. state .. suffix, { fg = fill, bg = body, underline = mark ~= nil, sp = mark })
 		end
 	end
 end
@@ -71,6 +88,6 @@ return {
 	},
 	config = function(_, opts)
 		require("barbar").setup(opts)
-		require("utils").on_colorscheme("barbar-slants", paint_slants)
+		require("utils").on_colorscheme("barbar-tabs", paint_tabs)
 	end,
 }

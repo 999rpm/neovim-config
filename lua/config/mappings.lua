@@ -8,6 +8,7 @@
 -- 0.12 defaults left alone: ]d [d ]D [D diagnostics, <C-w>d diagnostic float, ]q [q ]l [l lists, ]b [b buffers, ]a [a args,
 -- ]t [t tags, ]<Space> [<Space> blank lines, an/in parent/child node, K hover, <C-s> signature help (insert), gr* LSP keys,
 -- ZR restart Neovim, :Undotree (<leader>uu here). % g% [% ]% z% a% i% come from matchup.lua, gl/gL (align) from mini.lua.
+-- Added here: ]e/[e and ]w/[w jump to errors/warnings only; , . ; in insert mode each close an undo step.
 -- hardtime.lua owns h j k l J and the arrow keys (it wraps them to count repeats), so nothing here maps them.
 local map = vim.keymap.set
 
@@ -31,6 +32,15 @@ map("n", "<leader>db", function()
 	vim.cmd.copen()
 end, { desc = "Buffer diagnostics to quickfix" })
 map("n", "<leader>dw", vim.diagnostic.setqflist, { desc = "All diagnostics to quickfix" }) -- every open buffer, and opens the list
+for key, severity in pairs({ e = "ERROR", w = "WARN" }) do -- ]d/[d stay every severity
+	local level, label = vim.diagnostic.severity[severity], severity == "ERROR" and "error" or "warning"
+	map("n", "]" .. key, function()
+		vim.diagnostic.jump({ count = vim.v.count1, severity = level })
+	end, { desc = "Next " .. label })
+	map("n", "[" .. key, function()
+		vim.diagnostic.jump({ count = -vim.v.count1, severity = level })
+	end, { desc = "Previous " .. label })
+end
 
 map("n", "dm", function()
 	local mark = vim.fn.getcharstr()
@@ -44,6 +54,9 @@ end, { desc = "Delete mark (next key names it, ! all lowercase)" }) -- dm has no
 map("n", "<leader><leader>", "V", { desc = "Visual line" })
 map("x", "<leader><leader>", "<Esc>", { desc = "Leave visual" })
 map("i", "<M-m>", "<Esc>", { desc = "Leave insert" })
+for _, char in ipairs({ ",", ".", ";" }) do
+	map("i", char, char .. "<C-g>u", { desc = "Insert " .. char .. " and start a new undo step" }) -- u undoes a clause, not the whole insert
+end
 
 map("x", "<Tab>", ">gv", { desc = "Indent, keep selection" })
 map("x", "<S-Tab>", "<gv", { desc = "Dedent, keep selection" })

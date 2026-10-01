@@ -8,7 +8,10 @@ Markdown doubles as a Logseq-style knowledge base: journals, pages, `[[links]]` 
 tags, block references, tasks with an agenda, templates, an outliner that moves and folds bullets together with their
 children, and a link graph. The files keep Logseq's layout, so the Logseq app still opens the same folder.
 
-94 plugin specs, two of them local (`999rpm-themer`, `999rpm-notes`). A bare `nvim` loads the dozen listed under "What
+Jupyter notebooks (`.ipynb`) open as markdown and run against real Jupyter kernels: outputs and plots appear under each
+cell, the language servers work inside the code cells, and `:w` writes a normal notebook back, outputs included.
+
+97 plugin specs, three of them local (`999rpm-themer`, `999rpm-notes`, `999rpm-ipynb`). A bare `nvim` loads the dozen listed under "What
 loads when". Startup time moves with disk cache, terminal and plugin versions; `nvim --startuptime` measures it.
 
 ## Install
@@ -25,7 +28,12 @@ nvim
 First launch clones the plugins, then Mason installs the language servers (markdown-oxide among them), formatters,
 linters and debug adapters listed in `lua/plugins/lsp/mason.lua`. Parsers build once the tree-sitter CLI is present
 (Mason installs it too). `:NotesInit` creates `journals/`, `pages/` and `assets/` in the notes graph. `<leader>pl`
-manages plugins, `<leader>pm` manages tools, `<leader>ph` reports what is missing.
+manages plugins, `<leader>pm` manages tools, `<leader>ph` reports what is missing. molten's build step runs
+`:JupyterSetup` once: it creates `stdpath("data")/999rpm-jupyter`, installs pynvim, jupyter_client, jupytext,
+ipykernel, nbformat, cairosvg and pillow into it, and registers molten's commands. uv does the work when it is on `$PATH`
+(it downloads a Python itself if none is installed); otherwise python3's `venv` module and pip do. Running `:JupyterSetup`
+again upgrades those packages. An environment built by uv has no pip inside, so after uv is removed, delete the folder
+and run `:JupyterSetup` again.
 
 ### External binaries
 
@@ -38,6 +46,9 @@ manages plugins, `<leader>pm` manages tools, `<leader>ph` reports what is missin
 | d2 | d2 diagrams, `d2 fmt` and the notes link graph; one static binary, from `curl -fsSL https://d2lang.com/install.sh \| sh -s --` or the release archive at github.com/terrastruct/d2 |
 | Node.js 22+ | Copilot, mcp-hub, the JS/TS servers, js-debug-adapter |
 | python3 | debugpy, ruff, basedpyright |
+| uv, or python3 with the `venv` module | `:JupyterSetup`, which prefers uv; `<leader>kv` registers a uv project as a kernel |
+| ipykernel in other environments (optional) | a micromamba or venv environment becomes a kernel after `python -m ipykernel install --user --name <env>` inside it |
+| cairo (optional) | SVG outputs in notebooks, through cairosvg |
 | ImageMagick (`magick`) | image conversion for snacks.image (markdown images, math, d2 PNGs) |
 | kitty, or another terminal with the kitty graphics protocol | inline images, math and the graph image |
 | lazygit | `<leader>gl` |
@@ -58,7 +69,7 @@ init.lua                    entry point: options, autocmds, mappings, lazy
 lazy-lock.json              pinned plugin commits
 after/queries/markdown/     folds.scm: a bullet folds together with its children
 snippets/                   markdown snippets (Logseq-style commands), read by blink, edited through nvim-scissors
-lua/utils.lua               helpers shared by config and plugin files, the notes_* helpers included
+lua/utils.lua               helpers shared by config and plugin files, the notes_* and notebook_* helpers included
 lua/config/
   options.lua               editor options, the notes graph folder, shell detection, filetype rules
   autocmds.lua              autocommands, all in 999rpm-* groups
@@ -73,6 +84,7 @@ lua/plugins/
   editor/                   motions, text editing, sessions, snippets
   ui/                       barbar, lualine, noice, trouble, folds, scrollbar, breadcrumbs
   notes/                    the Logseq layer, markdown-plus, auto-save, render-markdown, img-clip
+  notebook/                 Jupyter: molten, otter, the .ipynb handler
   git/                      gitsigns, codediff, gitlinker, octo
   explorer/                 neo-tree, oil, yazi
   debug/                    nvim-dap and its panels
@@ -148,8 +160,11 @@ as dead code.
 | `notes/logseq.lua` | 999rpm-notes (local spec: the `notes_*` helpers in utils.lua) | `ft=markdown`, `<leader>n*`, `:Journal`, `:NotesInit` |
 | `notes/markdown-plus.lua` | YousefHadder/markdown-plus.nvim | `ft=markdown` |
 | `notes/auto-save.lua` | okuuva/auto-save.nvim | `ft=markdown` |
-| `notes/render-markdown.lua` | MeanderingProgrammer/render-markdown.nvim | `ft=markdown` |
+| `notes/render-markdown.lua` | MeanderingProgrammer/render-markdown.nvim | `ft=markdown,quarto` |
 | `notes/img-clip.lua` | HakonHarnes/img-clip.nvim | `<leader>cp` |
+| `notebook/molten.lua` | benlubas/molten-nvim (main branch) | `VeryLazy`, `<leader>k*` |
+| `notebook/otter.lua` | jmbuhr/otter.nvim | the first notebook or quarto buffer |
+| `notebook/ipynb.lua` | 999rpm-ipynb (local spec: the `notebook_*` helpers in utils.lua) | startup (autocommands only) |
 | `git/gitsigns.lua` | lewis6991/gitsigns.nvim | `BufReadPre` |
 | `git/codediff.lua` | esmuellert/codediff.nvim | `:CodeDiff` |
 | `git/gitlinker.lua` | linrongbin16/gitlinker.nvim | `<leader>gy` / `gY` |
@@ -287,6 +302,7 @@ nothing else does.
 | `<leader>h` | Harpoon |
 | `<leader>i` | AI: avante, opencode |
 | `<leader>j` / `<leader>J` | Flash: jump anywhere visible / select a treesitter node |
+| `<leader>k` | Kernel and notebook (Jupyter): start, restart, interrupt, run the cell / line / a motion / everything, outputs, export, new notebook, register a uv project (`kv`) |
 | `<leader>l` | LSP: definitions, references, symbols, calls; `lwa` `lwr` `lwl` add, remove, list workspace folders |
 | `<leader>m` | Multicursor |
 | `<leader>n` | Notes graph: journals, pages, references, tasks, agenda, tags, templates, focus, graph, commit |
@@ -325,7 +341,11 @@ nothing else does.
 | `]c` `[c` | Git hunks (Neovim's own change jumps in diff mode) |
 | `]r` `[r` | Next / previous occurrence of the symbol under the cursor |
 | `]m` `[m` / `]M` `[M` | Function start / end, from treesitter, in every language |
-| `]k` `[k` `],` `[,` `]j` `[j` | Class, parameter, JSX element |
+| `]k` `[k` `],` `[,` `]j` `[j` | Class, parameter, JSX element (in notebooks, quarto and `# %%` scripts `]j` `[j` move by cell) |
+| `]e` `[e` / `]w` `[w` | Next / previous error / warning (`]d` `[d` stay every severity) |
+| `ij` / `aj` | A cell's code without / with its fence or `# %%` line |
+| `<S-CR>` / `<C-CR>` | In notebooks: run the cell and go to the next / run it in place, insert mode included |
+| insert `,` `.` `;` | Insert the character and start a new undo step |
 | `]n` `[n` | Todo comments (normal mode; the visual-mode pair is Neovim's node selection) |
 | `[u` | Jump to the enclosing context line |
 | `gd` / `gD` | Definition / declaration, where a server answers them |
@@ -420,7 +440,9 @@ run. The notes layer waits for a markdown buffer or a `<leader>n` key.
 Opening a file adds the language servers, treesitter, completion, git signs and the rest. A markdown file adds the notes
 layer, markdown-plus, auto-save and render-markdown; a page of the notes graph brings the count to 40. The installers
 behind Mason wait for `VeryLazy`, so a tool download is never on the path of opening a file, and the debug stack waits
-for a `<leader>D` key.
+for a `<leader>D` key. molten waits for `VeryLazy` too; its commands exist from startup through Neovim's remote-plugin
+manifest, which is why `rplugin` is no longer among the disabled runtime plugins. The `.ipynb` handler is three
+autocommands registered at startup, and otter loads with the first notebook.
 
 mason-lspconfig does not name nvim-lspconfig, because version 2 carries its own package mappings and the entry would
 force lspconfig to load at startup. barbar does not name gitsigns, because it reads `b:gitsigns_status_dict` through a
@@ -449,6 +471,31 @@ any terminal; `q` closes it. In a `.d2` file the whole file is the diagram; in m
 the cursor. A dark background renders with d2's Dark Mauve theme, a light one with its default. conform runs `d2 fmt`
 on save. The notes link graph (`<leader>ng`, `<leader>nG`) goes through the same renderer.
 
+## Notebooks (Jupyter)
+
+`nvim analysis.ipynb` converts the notebook with jupytext into markdown: text cells stay markdown, code cells become
+` ```python ` fences, and the jupytext header keeps the kernelspec. The kernel named there starts on open and the saved
+outputs reappear under their cells. `<S-CR>` runs the cell and moves to the next one, as Shift+Enter does in JupyterLab;
+`<C-CR>` runs it in place; `<leader>ka` runs everything up to the cursor, `<leader>kA` the whole notebook. Output shows as
+virtual lines under the closing fence; images go through snacks.image into kitty. `<leader>ke` enters the output window
+for long output, `<leader>kp` opens an image in a viewer, `<leader>kb` sends HTML output to the browser.
+
+`:w` converts back with `jupytext --update`, which replaces the inputs and keeps the outputs and metadata already in the
+file, then exports the outputs run in this session. A notebook jupytext cannot read opens as JSON and is written back
+unchanged. `:NotebookNew name` or `<leader>kN` starts a new notebook with one empty Python cell; `nvim new.ipynb` does too.
+
+Inside code cells otter gives the usual language-server keys: `K`, `gd`, `grr`, `grn`, `gra`, completion and
+diagnostics. `]j` `[j` move by cell, `ij` `aj` select one (so `<leader>ko` then `ij` runs it). The same motions, text
+objects and `<leader>k` keys work in any file split into cells by `# %%` lines, the percent format jupytext writes for
+scripts, and in quarto documents.
+
+The kernel picker (`<leader>ki` on a buffer with no kernel) lists every installed kernelspec. In a uv project,
+`<leader>kv` (`:JupyterKernelAdd [name]`) adds one: it runs `uv add --dev ipykernel` and writes a kernelspec that starts
+the project's `.venv`, with `VIRTUAL_ENV` set so `!uv pip install` in a cell installs into the project. A micromamba or
+venv environment appears there once `python -m ipykernel install --user --name <env>` has been run inside it. A cell run
+while its kernel is still starting waits for it, so its output is not lost. The statusline names the buffer's kernel. `:checkhealth molten` reports missing Python packages; `:JupyterSetup` reinstalls them. Not
+available compared with JupyterLab: widgets and in-editor HTML.
+
 ## Terminals
 
 `<leader>tf`, `<leader>tv` and `<leader>th` open a floating, vertical and horizontal terminal. Each layout is a
@@ -464,9 +511,10 @@ shells get Vim's. Changing `'shell'` inside a session re-applies the matching fl
 `.zshenv`, so `:!cmd`, `:make` and the formatters see the PATH set there, including `~/.local/bin`. Under nushell,
 `:make` and `:grep` save a command's stdout and stderr to the quickfix list, the way `2>&1| tee` does for zsh. A `:%!`
 filter under nushell takes a nushell pipeline (`lines | sort | str join (char nl)`), or `^sort` for the external
-command. The d2 renders, the git calls behind the statusline and `<leader>nc`, the format checks and every notes search
-(ripgrep) pass an argument list to `vim.system`, with no shell in between, so they behave the same under zsh and
-nushell.
+command. The d2 renders, the git calls behind the statusline and `<leader>nc`, the format checks, every notes search
+(ripgrep), `:JupyterSetup`, `:JupyterKernelAdd` and the jupytext conversions pass an argument list to `vim.system`,
+with no shell in between, so they behave the same under zsh and nushell. Kernels are started by jupyter_client from their kernelspec, not by the
+shell.
 
 `<C-s>` always reaches Neovim: its terminal UI switches the tty to raw mode, which turns off XON/XOFF flow control. At the
 zsh prompt the same key still freezes output unless `.zshrc` has `unsetopt FLOW_CONTROL`; the current `.zshrc` does not
@@ -475,11 +523,11 @@ set it. Nushell does not take the key at all.
 ## Kitty
 
 `shell .` in `kitty.conf` makes kitty follow the login shell too. kitty.conf binds `ctrl+shift+*` and `alt+1`..`alt+9`;
-Neovim here uses neither, which a dump of all 882 keymaps confirms. Its Alt keys (`<M-h>` `<M-l>` `<M-j>` `<M-k>` `<M-w>`
+Neovim here uses neither, which a dump of every keymap confirms. Its Alt keys (`<M-h>` `<M-l>` `<M-j>` `<M-k>` `<M-w>`
 `<M-a>` `<M-s>` `<M-d>` `<M-y>` `<M-x>` `<M-e>` `<M-q>` `<M-m>`, `<M-arrows>`, insert-mode `<A-h/j/k/l>` and `<A-CR>`)
 and `<M-LeftMouse>` reach Neovim because kitty.conf has no mapping or `mouse_map` for them. `ctrl+t` stays unbound in
-kitty, so `<C-t>` reaches Neovim and fzf's widget. `<C-,>` and `<C-CR>` need kitty's keyboard protocol, which is on by
-default and which Neovim switches on; `ctrl+enter` stays unbound in kitty.conf for that reason.
+kitty, so `<C-t>` reaches Neovim and fzf's widget. `<C-,>`, `<C-CR>` and `<S-CR>` need kitty's keyboard protocol, which is on
+by default and which Neovim switches on; `ctrl+enter` and `shift+enter` stay unbound in kitty.conf for that reason.
 
 ## Themes
 
@@ -492,6 +540,10 @@ barbar draws every buffer between U+E0BC and U+E0BA, so both tab edges lean the 
 from the theme: the corner takes the tabline fill and the glyph background the tab's own colour, the way lualine colours
 its section edges. With a transparent background there is no fill colour to take, and the theme's separator colours stay.
 
+kanagawa (lotus, wave, dragon) brings no barbar colours of its own, so its current tab is also underlined from edge to
+edge in the tab's text colour; tokyonight, catppuccin and monokai-pro mark the current tab with their own colours.
+`underline_themes` at the top of `ui/barbar.lua` lists the themes that get the underline.
+
 ## Conventions
 
 - One plugin per file, named after the plugin. Dependencies with no configuration of their own live in
@@ -500,8 +552,9 @@ its section edges. With a transparent background there is no fill colour to take
 - Comments: one header per file saying what the plugin does, the keys this config binds for it and the keys the plugin
   brings inside its own windows, then end-of-line comments only. No full-line comment appears below a file's header.
 - Names that belong to this config carry `999rpm`: autocommand groups are `999rpm-<n>` (`:autocmd 999rpm-*` lists them),
-  buffer-local variables `b:_999rpm_*`, highlight groups `999rpmNotes*`, the local specs `999rpm-themer` and
-  `999rpm-notes` (both `virtual = true`: no repository, no runtimepath entry), the terminal env var `NVIM_999RPM_TERM`, the theme state file `999rpm-theme.json`, the d2 cache
+  buffer-local variables `b:_999rpm_*`, highlight groups `999rpmNotes*`, the local specs `999rpm-themer`,
+  `999rpm-notes` and `999rpm-ipynb` (all `virtual = true`: no repository, no runtimepath entry), the Jupyter
+  environment `999rpm-jupyter/`, the terminal env var `NVIM_999RPM_TERM`, the theme state file `999rpm-theme.json`, the d2 cache
   `999rpm-d2/`, the d2 text buffer `999rpm://d2-text`, picker sources `999rpm_*`, and notes commits start with
   `999rpm: notes`.
 - which-key entries carrying only a `desc` are labels, not mappings: which-key calls `vim.keymap.set` only for entries
@@ -520,7 +573,8 @@ its section edges. With a transparent background there is no fill colour to take
 ## Structure notes
 
 The layout holds up: one category folder per concern, one plugin per file, shared code in one place. Two changes are
-worth making only if the config keeps growing. `utils.lua` is over 1,100 lines, most of them the notes helpers; moving
-those into `lua/notes.lua` (with the same "used by" notes) would leave `utils.lua` for the helpers several files share.
+worth making only if the config keeps growing. `utils.lua` is over 1,500 lines, most of them the notes and notebook
+helpers; moving those into `lua/notes.lua` and `lua/notebook.lua` (with the same "used by" notes) would leave `utils.lua`
+for the helpers several files share.
 The modules `config`, `plugins` and `utils` are generic names; no installed plugin ships a module with those names today,
 and a `lua/999rpm/` prefix would rule the clash out for good.
