@@ -118,9 +118,9 @@ function M.map_close(buf, wipe) -- This util is used by autocmds.lua and by d2_t
 end
 
 local nu_shell_options = { -- nushell/integrations values, except shellpipe
-	shellcmdflag = "--login --stdin --no-newline -c",
+	shellcmdflag = "--stdin --no-newline -c", -- no --login: :! commands inherit Neovim's environment and skip env.nu/config.nu
 	shellredir = "out+err> %s",
-	shellpipe = "| complete | update stderr { ansi strip } | tee { [$in.stdout $in.stderr] | str join | ansi strip | save --force --raw %s } | into record", -- saves stdout too, like 2>&1| tee; upstream's stderr-only save left :grep with an empty quickfix list
+	shellpipe = "| complete | update stderr { ansi strip } | do {|r| [$r.stdout $r.stderr] | str join | ansi strip | save --force --raw %s; $r } $in", -- do, not tee: tee's closure runs in parallel and nu exits before it writes the errorfile
 	shellquote = "",
 	shellxquote = "",
 	shellxescape = "",
@@ -359,7 +359,7 @@ function M.d2_text(src, name) -- This util is used by tree-sitter-d2.lua and not
 		if buf == -1 then
 			buf = api.nvim_create_buf(false, true)
 			api.nvim_buf_set_name(buf, "999rpm://d2-text")
-			M.map_close(buf) -- shared q binding; see map_close above
+			M.map_close(buf)
 		end
 		local lines = vim.split(stdout, "\n", { trimempty = true })
 		vim.bo[buf].modifiable = true
@@ -396,7 +396,7 @@ end
 
 ---Root of the notes graph (vim.g.notes_dir, options.lua), with ~ expanded.
 ---@return string
-function M.notes_root() -- This util is used by logseq.lua, auto-save.lua and img-clip.lua
+function M.notes_root() -- This util is used by img-clip.lua, and by the notes_* helpers below
 	return vim.fs.normalize(vim.g.notes_dir or "~/notes")
 end
 
@@ -1304,6 +1304,9 @@ function M.notebook_read(ev) -- This util is used by ipynb.lua
 	vim.bo[buf].undolevels = undolevels
 	vim.bo[buf].modified = false
 	api.nvim_exec_autocmds("BufReadPost", { buffer = buf, modeline = false }) -- filetype detection (options.lua) and lazy loading
+	if vim.bo[buf].filetype == "" then -- vim.lsp.enable() fires FileType when lspconfig loads on BufReadPre, so :setf skips this nested read
+		vim.bo[buf].filetype = vim.filetype.match({ buf = buf, filename = path }) or ""
+	end
 	if converted and exists then
 		vim.schedule(function()
 			M.notebook_kernel(buf, true)

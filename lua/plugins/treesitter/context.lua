@@ -1,4 +1,4 @@
--- nvim-treesitter-context: pins the enclosing function or class to the top of the window.
+-- nvim-treesitter/nvim-treesitter-context: pins the enclosing function or class to the top of the window.
 -- Keys: [u jump to the context, <leader>oc toggle it.
 return {
 	"nvim-treesitter/nvim-treesitter-context",

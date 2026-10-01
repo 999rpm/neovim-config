@@ -15,6 +15,7 @@ return {
 				dismiss = "<M-e>", -- <C-]> stays the native insert-mode abbreviation trigger
 			},
 		},
+		panel = { enabled = false }, -- <M-]>/<M-[> cycle suggestions in place; the panel's <M-CR> is markdown-plus's <A-CR>
 		filetypes = {
 			markdown = true,
 			help = true,

@@ -1,6 +1,6 @@
 -- rachartier/tiny-inline-diagnostic.nvim: the cursor line's diagnostics drawn inline in a rounded bubble, long messages
--- wrapped below it; other lines keep only their sign. Replaces a hand-written virtual-lines handler that lived in
--- utils.lua. <leader>od (snacks.lua) hides every diagnostic, these included; <leader>df opens the full float.
+-- wrapped below it; other lines keep only their sign. <leader>od (snacks.lua) hides every diagnostic, these included;
+-- <leader>df opens the full float.
 return {
 	"rachartier/tiny-inline-diagnostic.nvim",
 	event = "VeryLazy",

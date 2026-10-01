@@ -1,6 +1,6 @@
--- Colorschemes and the switcher that drives them. State (theme, style, transparency) persists across sessions in
--- stdpath("data")/999rpm-theme.json, so the choice survives a restart.
--- Keys: <leader>ut next theme, <leader>uT toggle transparency, <leader>uc next style, <leader>uC pick theme and style.
+-- folke/tokyonight.nvim, catppuccin/nvim, rebelot/kanagawa.nvim, loctvl842/monokai-pro.nvim and the 999rpm-themer
+-- switcher that drives them. Theme, style and transparency persist in stdpath("data")/999rpm-theme.json.
+-- Keys: <leader>ut next theme, <leader>uc next style, <leader>uC pick theme and style, <leader>ot toggle transparency.
 local fn, api, json = vim.fn, vim.api, vim.json
 local state_file = fn.stdpath("data") .. "/999rpm-theme.json"
 
@@ -194,7 +194,7 @@ local function init()
 
 	local mappings = {
 		["<leader>ut"] = { actions.cycle_theme, "Next theme" },
-		["<leader>uT"] = { actions.toggle_transparency, "Toggle transparency" },
+		["<leader>ot"] = { actions.toggle_transparency, "Toggle transparency" },
 		["<leader>uc"] = { actions.cycle_style, "Next style" },
 		["<leader>uC"] = { actions.select_style, "Pick theme and style" },
 	}
@@ -210,7 +210,7 @@ return {
 	{ "loctvl842/monokai-pro.nvim", lazy = true },
 	{
 		"999rpm-themer", -- a name with no slash: lazy.nvim looks for no repository
-		virtual = true, -- and adds no rtp entry; a shared `dir` once made lazy.nvim merge this spec into 999rpm-notes
+		virtual = true, -- and adds no rtp entry; local specs need distinct names, or lazy.nvim merges them
 		lazy = false,
 		priority = 1000,
 		config = init,

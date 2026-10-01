@@ -1,5 +1,5 @@
--- Imports every category folder. lazy.nvim does not descend into sub-folders on its own, so a new folder must be added here.
--- The file is named loader.lua, not init.lua: two modules sharing the basename "init" repeatedly went missing in transit.
+-- Imports every category folder; lazy.nvim does not descend into sub-folders on its own, so a new folder is added here.
+-- Named loader.lua rather than init.lua, so it never shares a basename with the root init.lua.
 return {
 	{ import = "plugins.core" }, -- snacks, mini, which-key, themes
 	{ import = "plugins.lsp" }, -- servers, mason, rustaceanvim

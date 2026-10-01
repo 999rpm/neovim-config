@@ -1,15 +1,15 @@
--- theHamsta/nvim-dap-virtual-text: variable values inline while a session is stopped. <leader>Dv toggles them.
+-- theHamsta/nvim-dap-virtual-text: variable values inline while a session is stopped. <leader>ov toggles them.
 return {
 	"theHamsta/nvim-dap-virtual-text",
 	dependencies = { "mfussenegger/nvim-dap" },
 	cmd = { "DapVirtualTextToggle", "DapVirtualTextEnable", "DapVirtualTextDisable" },
 	keys = {
 		{
-			"<leader>Dv",
+			"<leader>ov",
 			function()
 				require("nvim-dap-virtual-text").toggle()
 			end,
-			desc = "Toggle virtual text",
+			desc = "Toggle debug virtual text",
 		},
 	},
 	opts = {

@@ -1,5 +1,5 @@
--- nvim-treesitter (main branch): parser installs and highlighting.
--- Parsers install through the tree-sitter CLI (mason.lua installs it). :TSUpdate refreshes them.
+-- nvim-treesitter/nvim-treesitter (main branch): parser installs and highlighting through Neovim's own treesitter. Parsers build with the
+-- tree-sitter CLI (mason.lua installs it); :TSUpdate refreshes them, :TSInstall {lang} adds one.
 return {
 	{
 		"nvim-treesitter/nvim-treesitter",
@@ -11,30 +11,46 @@ return {
 			local utils = require("utils")
 			local ensure_installed = {
 				"lua",
+				"luadoc",
+				"luap", -- Lua patterns inside strings
 				"vim",
 				"vimdoc",
 				"query",
-				"yaml",
-				"toml",
+				"regex", -- noice.lua's cmdline highlighting and snacks.picker
+				"printf", -- format strings inside Lua, C and Python
 				"markdown",
 				"markdown_inline",
+				"latex", -- snacks.image's inline math
+				"yaml",
+				"toml",
+				"json", -- also serves jsonc: main ships no jsonc parser
+				"json5",
+				"xml",
+				"ini",
 				"html",
 				"css",
 				"jsdoc",
 				"javascript",
 				"typescript",
-				"json", -- also serves the jsonc filetype: core maps ft jsonc -> lang json, and `main` ships no separate jsonc parser
-				"json5",
 				"tsx",
-				"bash",
-				"nu",
 				"python",
 				"c",
 				"cpp",
 				"rust",
 				"haskell",
-				"regex", -- noice.lua's cmdline highlighting and snacks.picker
-				"latex", -- snacks.image's inline math and render-markdown's LaTeX blocks
+				"sql",
+				"bash",
+				"zsh",
+				"nu",
+				"kitty", -- kitty.conf
+				"dockerfile",
+				"make",
+				"cmake",
+				"just",
+				"diff",
+				"git_rebase",
+				"git_config",
+				"gitignore",
 			}
 
 			local ts = require("nvim-treesitter")
@@ -45,10 +61,7 @@ return {
 				utils.warn_if_missing_exec(
 					"tree-sitter",
 					"nvim-treesitter",
-					"Parsers cannot auto-install until Mason finishes installing tree-sitter-cli, or "
-						.. "until it is installed directly (an OS package, or `cargo install "
-						.. "tree-sitter-cli`, which upstream's README prefers over npm). Run "
-						.. ":TSUpdate once it is on $PATH."
+					"Parsers install once Mason has tree-sitter-cli, or an OS package provides it; then run :TSUpdate."
 				)
 			end
 

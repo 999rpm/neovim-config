@@ -19,7 +19,7 @@ return {
 				vim.b.disable_autoformat = not vim.b.disable_autoformat
 				vim.notify("Autoformat (buffer): " .. (vim.b.disable_autoformat and "off" or "on"), vim.log.levels.INFO)
 			end,
-			desc = "Format on save (buffer)",
+			desc = "Toggle format on save (buffer)",
 		},
 		{
 			"<leader>oF",
@@ -27,7 +27,7 @@ return {
 				vim.g.disable_autoformat = not vim.g.disable_autoformat
 				vim.notify("Autoformat (global): " .. (vim.g.disable_autoformat and "off" or "on"), vim.log.levels.INFO)
 			end,
-			desc = "Format on save (global)",
+			desc = "Toggle format on save (global)",
 		},
 		{
 			"<leader>pc",

@@ -6,18 +6,18 @@ local utils = require("utils")
 local g = vim.g
 local opt = vim.opt
 
-g.mapleader = " " -- Set the leader key to Space
-g.maplocalleader = "\\" -- Local leader: backslash; review, grug-far and Octo buffers keep their keys on it
-g.have_nerd_font = true -- Tell plugins that a Nerd Font is installed (for icons)
-g.markdown_recommended_style = 0 -- Disable default markdown recommended style
-g.yaml_indent_multiline_scalar = 1 -- Fix YAML indentation for multiline strings
-g.no_gitrebase_maps = 1 -- Disable default mappings for git rebase
-g.no_man_maps = 1 -- Disable default mappings for man pages
-g.notes_dir = vim.env.NOTES_DIR or "~/notes" -- Notes graph (journals/, pages/, assets/); $NOTES_DIR overrides; utils.notes_root() reads it
+g.mapleader = " "
+g.maplocalleader = "\\" -- markdown, review, grug-far and Octo buffers keep their keys on it
+g.have_nerd_font = true -- plugins that check it draw icons
+g.markdown_recommended_style = 0 -- the markdown ftplugin leaves indentation alone
+g.yaml_indent_multiline_scalar = 1 -- indent continuation lines of a multi-line YAML string
+g.no_gitrebase_maps = 1 -- no ftplugin keys in git rebase buffers
+g.no_man_maps = 1 -- no ftplugin keys in man pages; autocmds.lua's close_with_q adds q
+g.notes_dir = vim.env.NOTES_DIR or "~/notes" -- notes graph (journals/, pages/, assets/); $NOTES_DIR overrides
 
-g.loaded_perl_provider = 0 -- Disable Perl provider
-g.loaded_ruby_provider = 0 -- Disable Ruby provider
-g.loaded_node_provider = 0 -- Disable Node.js provider
+g.loaded_perl_provider = 0
+g.loaded_ruby_provider = 0
+g.loaded_node_provider = 0
 if vim.uv.fs_stat(utils.jupyter_python()) then
 	g.python3_host_prog = utils.jupyter_python() -- :JupyterSetup's environment runs molten.lua's remote plugin
 else
@@ -30,228 +30,213 @@ vim.schedule(function() -- the clipboard provider probe runs after the first scr
 	end
 end)
 
-opt.mouse = "n" -- Enable mouse support in Normal mode only (use "a" for all modes)
-opt.confirm = true -- Prompt to save changes before exiting a modified buffer
+opt.mouse = "n" -- normal mode only; "a" would extend it to every mode
+opt.confirm = true -- ask before leaving a modified buffer instead of failing
 
 opt.shell = utils.login_shell() -- login shell from the passwd database, so chsh applies without a new login
 utils.apply_shell_options() -- nushell needs its own shell* flags; every other shell keeps Neovim's defaults
 
-opt.shada = "!,'1000,<50,s10,h,r/tmp/,r/private/" -- Globals, marks for 1000 files, 50 lines per register, 10 KiB items, no hlsearch at start, no /tmp or /private files (0.12's own exclusions)
-opt.secure = true -- Prevents shell/write commands in modelines and prevents autocmds from untrusted files
-opt.modelines = 0 -- Disable modelines to prevent files from overriding editor settings
-opt.iskeyword:append("-") -- Treat dash-separated words as a single keyword (e.g. kebab-case)
+opt.shada = "!,'1000,<50,s10,h,r/tmp/,r/private/" -- marks for 1000 files (default 100); the rest is the default
+opt.secure = true -- no shell or write commands from local config files
+opt.modelines = 0 -- files cannot set options through modelines
+opt.iskeyword:append("-") -- kebab-case counts as one word for w, * and completion
 
-opt.spelllang = { "en", "cjk" } -- Enable spell checking for English and CJK characters
-opt.spellsuggest:append("9") -- Show at most 9 spelling suggestions to keep menus concise
-opt.spelloptions:append("camel") -- Treat camelCase words as separate words for spell checking
+opt.spelllang = { "en", "cjk" } -- cjk: East Asian characters are not flagged
+opt.spellsuggest:append("9") -- at most 9 suggestions in z=
+opt.spelloptions:append("camel") -- camelCase parts are checked as separate words
 
-opt.autowrite = true -- Automatically write changes when switching buffers or running commands
-opt.history = 500 -- Number of command and search history entries to retain
-opt.jumpoptions = "stack,view,clean" -- Browser-style back-stack, restores each mark's saved view, and drops unloaded buffers (0.12 ships "clean" alone; the three flags are independent)
-opt.isfname:remove({ "=", "," }) -- Exclude '=' and ',' from characters valid in file names
+opt.autowrite = true -- write before :make, :next and similar commands
+opt.history = 500 -- command-line and search history entries
+opt.jumpoptions = "stack,view,clean" -- browser-style jump stack, saved views, no entries for unloaded buffers
+opt.isfname:remove({ "=", "," }) -- gf stops at = and ,
 
-opt.timeoutlen = 500 -- Milliseconds to wait for a mapped key sequence to complete
-opt.ttimeoutlen = 0 -- Milliseconds to wait for a terminal key code sequence (instant)
-opt.updatetime = 100 -- Milliseconds of inactivity before writing the swap file and triggering CursorHold
-opt.redrawtime = 1500 -- Maximum time (ms) allowed for syntax highlighting per redraw
-opt.synmaxcol = 240 -- Only highlight syntax up to column 240 (improves performance on long lines)
+opt.timeoutlen = 500 -- ms to finish a mapped key sequence
+opt.ttimeoutlen = 0 -- ms to finish a terminal key code
+opt.updatetime = 100 -- ms of idle time before CursorHold
+opt.redrawtime = 1500 -- ms of syntax highlighting per redraw before it gives up
+opt.synmaxcol = 240 -- no syntax highlighting past column 240
 
-opt.termguicolors = true -- 0.12 detects truecolor but applies it only at VimEnter; colorizer reads it on the first BufReadPre of `nvim file`
-opt.guicursor = "n-v-c:block-Cursor/lCursor,i-ci-ve:ver25-Cursor2/lCursor2,r-cr:hor20,o:hor20" -- Block in normal/visual, bar in insert, underline in replace and operator-pending
-opt.title = true -- Set the terminal window title to the current file
-opt.titlestring = "%{v:lua.require('utils').get_current_branch_name()} • %<%F %=%l/%L" -- Custom window title format: filepath and line/total
+opt.termguicolors = true -- 0.12 applies detected truecolor only at VimEnter; colorizer reads it on the first BufReadPre
+opt.guicursor = "n-v-c:block-Cursor/lCursor,i-ci-ve:ver25-Cursor2/lCursor2,r-cr:hor20,o:hor20" -- block, bar in insert, underline in replace
+opt.title = true -- terminal title shows the branch and the file
+opt.titlestring = "%{v:lua.require('utils').get_current_branch_name()} • %<%F %=%l/%L"
 
-opt.showmode = false -- Hide the mode indicator (e.g. -- INSERT -- ); the statusline handles this
-opt.laststatus = 3 -- Use a single global statusline shared across all windows
-opt.showtabline = 2 -- Always show the tabline, even when only one tab is open
-opt.tabclose:append({ "uselast" }) -- Jump to the last accessed tab when a tab is closed
-opt.ruler = false -- Hide the cursor position ruler (redundant with a statusline plugin)
-opt.showcmd = true -- Show a pending count, register or operator (2d, "a) while it is typed
-opt.cmdheight = 0 -- Collapse the command line when not in use (maximises editing space)
-opt.showcmdloc = "statusline" -- Draw it in the statusline (lualine.lua places %S), since the command line is hidden
-opt.shortmess:append("sIc") -- Suppress search wrap, the intro screen, and insert-completion messages ("match 1 of 2")
+opt.showmode = false -- lualine shows the mode
+opt.laststatus = 3 -- one global statusline
+opt.showtabline = 2 -- barbar's tabline is always visible
+opt.tabclose:append({ "uselast" }) -- closing a tab returns to the last used one
+opt.ruler = false -- lualine shows the position
+opt.showcmd = true -- pending count, register or operator (2d, "a) while it is typed
+opt.cmdheight = 0 -- no command line until it is used; noice draws it
+opt.showcmdloc = "statusline" -- lualine places %S, since the command line is hidden
+opt.shortmess:append("sIc") -- no "search hit BOTTOM", no intro screen, no "match 1 of 2"
 
-opt.pumblend = 5 -- Pseudo-transparency for the popup completion menu (0 = opaque, 100 = invisible)
-opt.winblend = 0 -- Pseudo-transparency for floating windows
-opt.winborder = "rounded" -- Default border for floats that don't set their own (lazy.nvim, neo-tree, LSP floats, blink)
-opt.pumborder = "rounded" -- Border for the built-in popup menu (0.12), which appears when blink is not loaded yet
+opt.pumblend = 5 -- popup menu transparency
+opt.winblend = 0 -- floating windows stay opaque
+opt.winborder = "rounded" -- border for floats that set none (LSP floats, lazy.nvim, blink)
+opt.pumborder = "rounded" -- border for the built-in popup menu, used before blink loads
 
-opt.smoothscroll = true -- Enable smooth scrolling with <C-d>/<C-u>
-opt.mousemodel = "popup" -- Right-click opens a popup menu instead of extending visual selection; see autocmds.lua's MenuPopup entry for what's in it
-opt.mousescroll = { "ver:3", "hor:3" } -- Mouse wheel scrolls 3 lines vertically, 3 columns horizontally
+opt.smoothscroll = true -- scroll by screen line through wrapped lines
+opt.mousemodel = "popup" -- right click opens the menu autocmds.lua builds
+opt.mousescroll = { "ver:3", "hor:3" }
 
 opt.fillchars = {
-	stl = " ", -- Fill character for the active statusline
-	msgsep = "‾", -- Separator between the message area and the editor
-	foldopen = "󰅀", -- Icon shown for an open fold
-	foldclose = "󰅂", -- Icon shown for a closed fold
-	fold = " ", -- Padding after a closed fold's own summary line (not the fold *column*); blank so nvim-ufo's virtual-text summary isn't followed by a row of dots
-	foldsep = " ", -- Fill character between fold levels in the fold column
-	diff = "╱", -- Fill character for deleted lines in diff mode
-	eob = " ", -- Hide the '~' markers after the end of the buffer
-	horiz = "━", -- Horizontal window separator
-	horizup = "┻", -- Horizontal separator with upward junction
-	horizdown = "┳", -- Horizontal separator with downward junction
-	vert = "┃", -- Vertical window separator
-	vertleft = "┫", -- Vertical separator with left junction
-	vertright = "┣", -- Vertical separator with right junction
-	verthoriz = "╋", -- Crossroad junction for window separators
+	stl = " ",
+	msgsep = "‾",
+	foldopen = "󰅀",
+	foldclose = "󰅂",
+	fold = " ", -- blank, so ufo's fold summary is not followed by dots
+	foldsep = " ",
+	diff = "╱", -- deleted lines in diff mode
+	eob = " ", -- no ~ after the end of the buffer
+	horiz = "━",
+	horizup = "┻",
+	horizdown = "┳",
+	vert = "┃",
+	vertleft = "┫",
+	vertright = "┣",
+	verthoriz = "╋",
 }
 
-opt.splitbelow = true -- Open horizontal splits below the current window
-opt.splitright = true -- Open vertical splits to the right of the current window
-opt.splitkeep = "screen" -- Keep the same text visible on screen when splitting
-opt.switchbuf = "useopen,uselast" -- Quickfix, Trouble and :sbuffer jumps reuse a window already showing the buffer
-opt.winminheight = 1 -- Minimum height for non-active windows
-opt.winheight = 1 -- Minimum height for the active window
-opt.winwidth = 30 -- Minimum width for the active window
-opt.winminwidth = 0 -- Minimum width for non-active windows (allows them to collapse fully)
-opt.helpheight = 0 -- No minimum height for :help windows; the split takes its usual half
+opt.splitbelow = true
+opt.splitright = true
+opt.splitkeep = "screen" -- the text stays in place when a split opens
+opt.switchbuf = "useopen,uselast" -- quickfix, Trouble and :sbuffer jumps reuse a window already showing the buffer
+opt.winminheight = 1
+opt.winheight = 1
+opt.winwidth = 30 -- the focused window is at least 30 columns wide
+opt.winminwidth = 0 -- other windows may collapse completely
+opt.helpheight = 0 -- :help splits take their usual half
 
-opt.number = true -- Show absolute line numbers
-opt.relativenumber = true -- Show relative line numbers for easy vertical motion
-opt.numberwidth = 2 -- Width of the line number column (default is 4)
-opt.signcolumn = "yes:1" -- Always show the sign column to prevent the text from jumping
-opt.cursorline = true -- Highlight the line the cursor is on
-opt.cursorlineopt = "number" -- Only highlight the line number, not the entire line
-opt.cursorcolumn = false -- Do not highlight the column the cursor is in
-opt.scrolloff = 15 -- Keep at least 15 lines visible above and below the cursor
-opt.sidescrolloff = 8 -- Keep 8 columns visible left and right of the cursor; 'wrap' is off, so long lines scroll sideways
+opt.number = true
+opt.relativenumber = true -- autocmds.lua's number_toggle turns it off in unfocused windows and insert mode
+opt.numberwidth = 2
+opt.signcolumn = "yes:1" -- always one column, so text never shifts when a sign appears
+opt.cursorline = true
+opt.cursorlineopt = "number" -- only the line number is highlighted
+opt.scrolloff = 15 -- lines kept above and below the cursor
+opt.sidescrolloff = 8 -- columns kept left and right; 'wrap' is off, so long lines scroll sideways
 
-opt.expandtab = true -- Insert spaces when pressing Tab
-opt.shiftwidth = 2 -- Number of spaces used for each level of (auto-)indentation
-opt.tabstop = 2 -- Number of spaces a Tab character visually represents
-opt.softtabstop = 2 -- Number of spaces a Tab inserts/removes during editing
-opt.smartindent = true -- Insert extra indent level after opening braces, keywords, etc.
+opt.expandtab = true
+opt.shiftwidth = 2
+opt.tabstop = 2
+opt.softtabstop = 2
+opt.smartindent = true -- extra indent after an opening brace; filetypes with an 'indentexpr' ignore it
 
-opt.formatoptions:remove({ "c", "r", "o", "t" }) -- Don't auto-insert comment leaders on Enter or 'o'/'O'
-opt.formatoptions:append("mM") -- Correctly break lines at multi-byte characters (useful for CJK text)
-opt.textwidth = 100 -- Hard-wrap lines at 100 characters when formatting with gq
-opt.colorcolumn = "+0" -- Highlight the column at 'textwidth' as a visual guide
-opt.wrap = false -- Do not visually wrap long lines (scroll horizontally instead)
-opt.whichwrap:append("<>[]hl") -- Allow these keys to move across line boundaries
-opt.breakindent = true -- Preserve indentation visually when lines are wrapped
-opt.breakindentopt = "shift:2" -- Indent wrapped continuations by 2 extra spaces
-opt.showbreak = "󱞩 " -- Prefix shown at the start of each wrapped line segment
-opt.linebreak = true -- Wrap long lines at word boundaries rather than mid-word
-opt.shiftround = true -- Round indentation to the nearest multiple of 'shiftwidth'
-opt.virtualedit = "block" -- Allow the cursor to move freely within a visual block selection
-opt.matchpairs:append({ "<:>", "「:」", "『:』", "【:】", "《:》" }) -- Extend % to angle and CJK brackets; a pair must be two different characters
+opt.formatoptions:remove({ "c", "r", "o", "t" }) -- no comment leader on <CR> or o/O, no auto-wrap
+opt.formatoptions:append("mM") -- line breaks between multi-byte characters (CJK text)
+opt.textwidth = 100 -- gq wraps here
+opt.colorcolumn = "+0" -- guide at 'textwidth'
+opt.wrap = false -- prose filetypes turn it on (autocmds.lua)
+opt.whichwrap:append("<>[]hl") -- these keys cross line ends
+opt.breakindent = true -- wrapped lines keep their indent
+opt.breakindentopt = "shift:2"
+opt.showbreak = "󱞩 "
+opt.linebreak = true -- wrap at word boundaries
+opt.shiftround = true -- > and < round to a multiple of 'shiftwidth'
+opt.virtualedit = "block" -- blockwise visual can extend past line ends
+opt.matchpairs:append({ "<:>", "「:」", "『:』", "【:】", "《:》" }) -- % on angle and CJK brackets; a pair needs two different characters
 
-opt.ignorecase = true -- Case-insensitive search by default
-opt.smartcase = true -- Switch to case-sensitive search when the pattern contains uppercase
-opt.infercase = true -- Adjust completion case to match what has been typed so far
-opt.showmatch = true -- Briefly jump to the matching bracket when inserting one
-opt.inccommand = "split" -- Preview :substitute replacements live in a split window
-opt.path:append("**") -- Make :find search recursively through all subdirectories
+opt.ignorecase = true
+opt.smartcase = true -- an uppercase letter makes the search case-sensitive
+opt.infercase = true -- keyword completion adapts to the typed case
+opt.showmatch = true -- a typed bracket briefly shows its partner
+opt.inccommand = "split" -- :s previews every change in a split
+opt.path:append("**") -- :find searches subdirectories
 
 if utils.executable("rg") then
-	opt.grepprg = "rg --vimgrep --no-heading --smart-case" -- overrides 0.12's own rg default, which passes -uu and so searches ignored and hidden files too
-	opt.grepformat = "%f:%l:%c:%m" -- file:line:column:text, as rg --vimgrep prints it
+	opt.grepprg = "rg --vimgrep --no-heading --smart-case" -- 0.12's own rg default passes -uu, which searches ignored and hidden files
+	opt.grepformat = "%f:%l:%c:%m"
 end
 
-opt.pumheight = 10 -- Maximum number of items shown in the popup completion menu
-opt.completeopt = "menu,menuone" -- Menu even for a single match, no auto-selection; "preview" is absent rather than removed after the fact
-opt.complete:append("kspell") -- Include spelling suggestions in insert-mode completion
-opt.complete:remove({ "w", "b", "u", "t" }) -- Remove other-window buffers, unlisted buffers, and tags (reduce noise)
+opt.pumheight = 10
+opt.completeopt = "menu,menuone" -- built-in completion: menu for a single match too, nothing preselected
+opt.complete:append("kspell") -- spelling suggestions in keyword completion
+opt.complete:remove({ "w", "b", "u", "t" }) -- current buffer only: no other windows, unlisted buffers or tags
 
-opt.wildmode = "list:longest,list:full" -- First complete to the longest common string, then cycle through all matches
-opt.wildignorecase = true -- Ignore case when completing file names and paths
-opt.wildignore:append(".,..") -- Ignore current and parent directory entries
-opt.wildignore:append("*/node_modules/*") -- Node.js dependencies
-opt.wildignore:append("*/.git/*") -- Git repository directory
-opt.wildignore:append("*/dist/*") -- Build output directory
-opt.wildignore:append(".git,.hg,.svn") -- Version control directories
-opt.wildignore:append("*.aux,*.out,*.toc") -- LaTeX auxiliary files
-opt.wildignore:append("*.o,*.obj,*.exe,*.dll,*.manifest,*.rbc,*.class") -- Compiled binaries and objects
-opt.wildignore:append("*.ai,*.bmp,*.gif,*.ico,*.jpg,*.jpeg,*.png,*.psd,*.webp") -- Images
-opt.wildignore:append("*.avi,*.divx,*.mp4,*.webm,*.mov,*.m2ts,*.mkv,*.vob,*.mpg,*.mpeg") -- Videos
-opt.wildignore:append("*.mp3,*.oga,*.ogg,*.wav,*.flac") -- Audio files
-opt.wildignore:append("*.eot,*.otf,*.ttf,*.woff,*.woff2") -- Font files
-opt.wildignore:append("*.doc,*.pdf,*.cbr,*.cbz") -- Document and ebook files
-opt.wildignore:append("*.zip,*.tar.gz,*.tar.bz2,*.rar,*.tar.xz,*.kgb") -- Archives
-opt.wildignore:append("*.swp,*.lock,.DS_Store,._*") -- Editor swap files and macOS metadata
-opt.wildignore:append("*/__pycache__/*,*.pyc,*.pkl") -- Python bytecode and cache
-opt.wildignore:append("*.bbl,*.blg,*.brf,*.fls,*.fdb_latexmk,*.synctex.gz,*.xdv") -- LaTeX build artifacts
-opt.wildignore:append({ "*.dylib", "*.bin", "*/build/**", "*.tiff", "*.svg" }) -- Misc binaries and assets
+opt.wildmode = "list:longest,list:full" -- longest common part first, then every match
+opt.wildignorecase = true
+opt.wildignore:append(".,..")
+opt.wildignore:append("*/node_modules/*,*/.git/*,*/dist/*,.git,.hg,.svn")
+opt.wildignore:append("*.aux,*.out,*.toc,*.bbl,*.blg,*.brf,*.fls,*.fdb_latexmk,*.synctex.gz,*.xdv") -- LaTeX
+opt.wildignore:append("*.o,*.obj,*.exe,*.dll,*.manifest,*.rbc,*.class,*.dylib,*.bin") -- compiled files
+opt.wildignore:append("*.ai,*.bmp,*.gif,*.ico,*.jpg,*.jpeg,*.png,*.psd,*.webp,*.tiff,*.svg") -- images
+opt.wildignore:append("*.avi,*.divx,*.mp4,*.webm,*.mov,*.m2ts,*.mkv,*.vob,*.mpg,*.mpeg") -- video
+opt.wildignore:append("*.mp3,*.oga,*.ogg,*.wav,*.flac") -- audio
+opt.wildignore:append("*.eot,*.otf,*.ttf,*.woff,*.woff2") -- fonts
+opt.wildignore:append("*.doc,*.pdf,*.cbr,*.cbz") -- documents
+opt.wildignore:append("*.zip,*.tar.gz,*.tar.bz2,*.rar,*.tar.xz,*.kgb") -- archives
+opt.wildignore:append("*.swp,*.lock,.DS_Store,._*") -- swap files, lockfiles, macOS metadata
+opt.wildignore:append("*/__pycache__/*,*.pyc,*.pkl,*/build/**") -- Python caches, build output
 
 local backup_dir = vim.fn.stdpath("data") .. "/backup//"
-utils.may_create_dir(backup_dir) -- Neovim does not create 'backupdir': without it every write succeeds and no backup is made
+utils.may_create_dir(backup_dir) -- Neovim does not create 'backupdir'; without it no backup is written
 
-opt.backup = true -- Keep a backup copy of files before overwriting
-opt.backupcopy = "yes" -- Overwrite the original backup file on each save (preserves inode)
-opt.backupdir = backup_dir -- Directory where backup files are stored
-opt.backupskip = vim.o.wildignore -- Skip backing up files that match the wildignore patterns
-opt.backupskip:append({ "/tmp/*", "/private/tmp/*" }) -- Never back up temporary files
+opt.backup = true -- keep the previous version of a file
+opt.backupcopy = "yes" -- copy, then overwrite the original, so its inode survives
+opt.backupdir = backup_dir
+opt.backupskip = vim.o.wildignore -- no backups of files 'wildignore' hides
+opt.backupskip:append({ "/tmp/*", "/private/tmp/*" })
 
-opt.undofile = true -- Persist undo history across sessions
-opt.undolevels = 10000 -- Undo steps kept per buffer (0.12 keeps 1000); undofile saves all of them
-opt.undodir = vim.fn.stdpath("data") .. "/undo" -- Directory for persistent undo files; Neovim creates it on the first write
+opt.undofile = true -- undo history survives a restart
+opt.undolevels = 10000 -- 0.12 keeps 1000
+opt.undodir = vim.fn.stdpath("data") .. "/undo" -- created on the first write
 
-opt.swapfile = false -- Disable swap files (rely on undo + backup instead)
-opt.writebackup = false -- Disable the temporary pre-write backup (not needed with backup=true)
+opt.swapfile = false -- undo files and backups cover recovery
+opt.writebackup = false -- 'backup' already keeps the old version
 
-opt.sessionoptions:remove({ "blank", "buffers", "terminal" }) -- Exclude empty windows, buffers, and terminals from sessions
+opt.sessionoptions:remove({ "blank", "buffers", "terminal" }) -- sessions keep no empty windows, hidden buffers or terminals
 
-opt.foldlevel = 99 -- Open all folds when first entering a buffer
-opt.foldlevelstart = 99 -- Start every new buffer with all folds fully open
-opt.foldcolumn = "1" -- One column: statuscol's foldfunc draws one glyph per fold-start line whatever the depth, so wider caps nothing
-opt.foldtext = "" -- Draw closed folds via the extmark path instead of the old foldtext() string; required for nvim-ufo's virtual-text summaries and snacks.indent's guides to render correctly across a closed fold's line
+opt.foldlevel = 99 -- folds start open
+opt.foldlevelstart = 99
+opt.foldcolumn = "1" -- statuscol draws one glyph per fold start, whatever the depth
+opt.foldtext = "" -- closed folds keep their highlighted text; ufo adds its line count
 
-opt.list = true -- Show invisible characters defined in 'listchars'
-opt.listchars = { -- Visual representation of invisible characters
-	tab = "  ", -- Tabs are shown as two spaces (intentionally invisible)
-	extends = "󰄾", -- Indicator when a line extends beyond the right edge
-	precedes = "󰄽", -- Indicator when a line extends beyond the left edge
-	conceal = "󰈉", -- Replacement character for concealed text
-	trail = "·", -- Middle-dot for trailing whitespace
-	nbsp = "󱁐", -- Visible marker for non-breaking spaces
+opt.list = true
+opt.listchars = {
+	tab = "  ", -- tabs stay invisible
+	extends = "󰄾",
+	precedes = "󰄽",
+	conceal = "󰈉",
+	trail = "·",
+	nbsp = "󱁐",
 }
-opt.conceallevel = 2 -- Conceal marked text (e.g. hide URL syntax in Markdown links)
-opt.concealcursor = "" -- Never conceal text on the cursor line (any mode)
+opt.conceallevel = 2 -- render-markdown.lua sets markdown's own level
+opt.concealcursor = "" -- the cursor line always shows the raw text
 
-opt.diffopt = { -- assigned, not appended: 0.12's default already carries linematch:40, and appending linematch:60 left both in the string
-	"internal", -- Use the built-in diff library rather than an external diff binary
-	"filler", -- Show filler lines where the other side has inserted text
-	"closeoff", -- Leave diff mode when the last other diff window closes
-	"indent-heuristic", -- Shift hunks to line up on indentation, which reads better
-	"algorithm:histogram", -- Histogram algorithm produces cleaner, more readable diffs
-	"context:3", -- Show 3 lines of context around each change
-	"vertical", -- Always show diffs side-by-side in vertical splits
-	"inline:char", -- Highlight the individual changed characters inside a changed line
-	"linematch:60", -- Align similar lines in hunks up to 60 lines; independent of inline:, not an alternative to it
+opt.diffopt = { -- assigned whole: 0.12 already carries linematch:40, and appending a second linematch left both
+	"internal",
+	"filler",
+	"closeoff",
+	"indent-heuristic",
+	"algorithm:histogram",
+	"context:3",
+	"vertical",
+	"inline:char", -- changed characters inside a changed line
+	"linematch:60", -- aligns similar lines in hunks up to 60 lines
 }
 
 vim.filetype.add({
 	extension = {
-		mdx = "mdx", -- MDX (Markdown + JSX) files
-		d2 = "d2", -- d2 diagrams; 0.12 does not detect them, and tree-sitter-d2.lua loads on this filetype
+		mdx = "mdx",
+		d2 = "d2", -- 0.12 does not detect it; tree-sitter-d2.lua loads on this filetype
 		ipynb = function(_, buf)
 			return vim.b[buf]._999rpm_notebook and "markdown" or "json"
 		end, -- notebooks open as jupytext markdown (notebook/ipynb.lua), as JSON when the conversion fails
 	},
-	filename = {
-		Brewfile = "ruby", -- Homebrew bundle file
-		justfile = "just", -- just task runner (lowercase)
-		Justfile = "just", -- just task runner (capitalised)
-		Jenkinsfile = "groovy", -- Jenkins pipeline definition
-		["todo.txt"] = "todotxt", -- todo.txt format
-		["yarn.lock"] = "yaml", -- Yarn lockfile (structured as YAML)
-		["helmfile.yaml"] = "yaml", -- Helm chart values file
-		buckconfig = "toml", -- Buck build system config
-		flowconfig = "ini", -- Flow type checker config
-		[".buckconfig"] = "toml", -- Buck build system config (dotfile variant)
-		[".flowconfig"] = "ini", -- Flow type checker config (dotfile variant)
-		[".jsbeautifyrc"] = "json", -- js-beautify formatter config
-		[".jscsrc"] = "json", -- JSCS linter config
-		[".watchmanconfig"] = "json", -- Watchman file watcher config
+	filename = { -- names 0.12.5 does not detect on its own
+		buckconfig = "toml",
+		flowconfig = "ini",
+		[".buckconfig"] = "toml",
+		[".flowconfig"] = "ini",
+		[".jsbeautifyrc"] = "json",
+		[".watchmanconfig"] = "json",
 	},
 	pattern = {
-		["%.config/git/users/.*"] = "gitconfig", -- Per-user git config files
-		["%.kube/config"] = "yaml", -- Kubernetes kubeconfig
-		[".*%.js%.map"] = "json", -- JavaScript source maps
-		[".*%.postman_collection"] = "json", -- Postman collection exports
-		["Jenkinsfile.*"] = "groovy", -- Jenkinsfile variants (e.g. Jenkinsfile.prod)
+		["%.config/git/users/.*"] = "gitconfig",
+		[".*%.js%.map"] = "json", -- source maps; 0.12.5 reads *.map as MapServer files
+		[".*%.postman_collection"] = "json",
+		["Jenkinsfile.*"] = "groovy", -- Jenkinsfile itself is detected; its variants are not
 	},
 })
 
@@ -262,11 +247,11 @@ if
 	and USER ~= SUDO_USER
 	and vim.env.HOME ~= vim.fn.expand("~" .. USER, true)
 	and vim.env.HOME == vim.fn.expand("~" .. SUDO_USER, true)
-then
-	vim.opt_global.modeline = false -- Disable modeline (security risk when running as root)
-	vim.opt_global.undofile = false -- Do not persist undo history when running as sudo
-	vim.opt_global.swapfile = false -- Do not create swap files when running as sudo
-	vim.opt_global.backup = false -- Do not create backup files when running as sudo
-	vim.opt_global.writebackup = false -- Do not write a pre-save backup when running as sudo
-	vim.opt_global.shadafile = "NONE" -- Do not read or write the shada file when running as sudo
+then -- sudo with the invoking user's $HOME: nothing persists into that home
+	vim.opt_global.modeline = false
+	vim.opt_global.undofile = false
+	vim.opt_global.swapfile = false
+	vim.opt_global.backup = false
+	vim.opt_global.writebackup = false
+	vim.opt_global.shadafile = "NONE"
 end

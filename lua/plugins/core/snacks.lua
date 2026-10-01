@@ -52,7 +52,7 @@ return {
 		statuscolumn = { enabled = false }, -- statuscol.lua
 		quickfile = { enabled = true },
 		scroll = { enabled = true },
-		words = { enabled = true, debounce = 200 }, -- replaces a hand-written documentHighlight autocommand pair; no keys of its own
+		words = { enabled = true, debounce = 200 }, -- underlines the symbol under the cursor where it recurs; ]r/[r walk them
 		image = {
 			enabled = true, -- markdown images and ```math blocks render inline through kitty's graphics protocol
 			convert = { notify = true }, -- a failed conversion reports instead of leaving a blank
@@ -259,15 +259,32 @@ return {
 	},
 	config = function(_, opts)
 		require("snacks").setup(opts)
-		Snacks.toggle.option("number", { name = "line numbers" }):map("<leader>on")
-		Snacks.toggle.option("relativenumber", { name = "relative numbers" }):map("<leader>oN")
-		Snacks.toggle.option("wrap", { name = "wrap" }):map("<leader>ow")
-		Snacks.toggle.option("spell", { name = "spelling" }):map("<leader>os")
-		Snacks.toggle.indent({ name = "indent guides" }):map("<leader>oi")
-		Snacks.toggle.diagnostics({ name = "diagnostics" }):map("<leader>od")
-		Snacks.toggle.dim({ name = "dimming" }):map("<leader>oD")
-		Snacks.toggle.inlay_hints({ name = "inlay hints" }):map("<leader>oh")
-		Snacks.toggle.words({ name = "reference highlights" }):map("<leader>oR")
+		local toggle = Snacks.toggle
+		local function named(t, name) -- indent(), dim() and words() take no options, so the label is set on the toggle
+			t.opts.name = name
+			return t
+		end
+		toggle.option("number", { name = "line numbers" }):map("<leader>on")
+		toggle
+			.new({
+				id = "relativenumber",
+				name = "relative numbers",
+				get = function()
+					return vim.g._999rpm_relativenumber ~= false
+				end,
+				set = function(state)
+					vim.g._999rpm_relativenumber = state -- read by autocmds.lua's number_toggle group, which would turn them back on
+					vim.wo.relativenumber = state and vim.wo.number
+				end,
+			})
+			:map("<leader>oN")
+		toggle.option("wrap", { name = "wrap" }):map("<leader>ow")
+		toggle.option("spell", { name = "spelling" }):map("<leader>os")
+		toggle.diagnostics({ name = "diagnostics" }):map("<leader>od")
+		toggle.inlay_hints({ name = "inlay hints" }):map("<leader>oh")
+		named(toggle.indent(), "indent guides"):map("<leader>oi")
+		named(toggle.dim(), "dimming"):map("<leader>oD")
+		named(toggle.words(), "reference highlights"):map("<leader>oR")
 		vim.treesitter.query.set( -- the plugin's own query also hands ```mermaid blocks to mmdc, which needs a Chromium; math only here
 			"markdown",
 			"images",

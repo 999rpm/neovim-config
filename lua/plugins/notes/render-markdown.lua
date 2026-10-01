@@ -1,13 +1,12 @@
 -- MeanderingProgrammer/render-markdown.nvim: draws headings, bullets, checkboxes, callouts, tables, ==highlights== and
--- [[wiki links]] in place and shows the raw text on the cursor line. <leader>um toggles it. Its in-process completion
+-- [[wiki links]] in place and shows the raw text on the cursor line. <leader>om toggles it. Its in-process completion
 -- source offers checkbox states and callout names through blink. It owns markdown's 'conceallevel': 3 while rendered,
 -- 0 in insert mode, so links and markup read as typed while editing.
 return {
 	"MeanderingProgrammer/render-markdown.nvim",
 	ft = { "markdown", "quarto" },
-	dependencies = { "nvim-treesitter/nvim-treesitter" }, -- mini.icons is already loaded at priority 1000
 	keys = {
-		{ "<leader>um", "<cmd>RenderMarkdown toggle<cr>", desc = "Toggle markdown rendering" },
+		{ "<leader>om", "<cmd>RenderMarkdown toggle<cr>", desc = "Toggle markdown rendering" },
 	},
 	opts = {
 		file_types = { "markdown", "quarto" }, -- notebooks open as markdown; quarto documents render too
@@ -30,10 +29,10 @@ return {
 		},
 		code = {
 			sign = false,
-			width = "block",
+			width = "full",
 			right_pad = 1,
 			style = "language",
-			border = "thin", -- lower visual + render cost
+			border = "thin",
 		},
 		bullet = {
 			icons = { "● ", "○ ", "◆ ", "◇ " },

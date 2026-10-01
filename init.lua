@@ -1,12 +1,14 @@
--- Neovim 0.12+ config by 999rpm. Load order: options, autocmds, mappings, then lazy.nvim with every spec under lua/plugins/.
--- lua/config/ holds editor settings, lua/plugins/<category>/ one plugin per file, lua/utils.lua the helpers they share.
--- lua/plugins/notes/ turns markdown into a Logseq-style graph: journals, pages, backlinks, tasks, agenda, templates.
--- Keys: a personal key sits on a built-in only when it does the same job better; mappings.lua lists the built-ins worth
--- knowing, which-key.lua the groups (press <leader> and wait). kitty.conf leaves every key used here to Neovim.
--- Nothing loads at startup that a keypress could load instead: the dashboard opens with a handful of plugins, and the
--- language servers, completion and installers arrive with the first real buffer. zsh and nushell both work as 'shell'.
--- Needs git, a C compiler, ripgrep, the tree-sitter CLI and a Nerd Font. README.md lists the optional tools, and
--- AUDIT_SUMMARY.md why each part is the way it is.
+-- 999rpm's Neovim config, for Neovim 0.12+. Load order: options, autocmds, mappings, then lazy.nvim, which imports
+-- every spec under lua/plugins/ (plugins/loader.lua lists the category folders).
+-- Layout: lua/config/ editor settings, lua/plugins/<category>/ one plugin per file, plugins/deps/shared.lua the
+-- libraries several plugins need, lua/utils.lua the shared helpers, each naming the files that call it.
+-- Beyond code: plugins/notes/ is a Logseq-style notes graph (journals, pages, backlinks, tasks, agenda, templates),
+-- and plugins/notebook/ runs Jupyter notebooks against real kernels.
+-- Keys: built-in keys keep their jobs; a personal key sits on one only when it does the same job better. mappings.lua
+-- lists the built-ins worth knowing, which-key.lua the leader groups (press <leader> and wait), and every on/off
+-- switch is under <leader>o. kitty.conf binds only ctrl+shift and alt+digit keys, none of which are used here.
+-- Startup loads about a dozen plugins; servers, completion and the rest arrive with the first file. 'shell' follows
+-- the login shell, zsh or nushell. Needs git, a C compiler, ripgrep, the tree-sitter CLI and a Nerd Font.
 vim.loader.enable()
 
 require("config.options")

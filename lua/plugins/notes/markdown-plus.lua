@@ -4,9 +4,9 @@
 -- list those keys keep their usual job, blink's <Tab>/<CR> included.
 -- Buffer keys on <localleader> (\): mx toggle checkbox, lt + u/t/n/c change the list type, mb/mi/mS/m`/m= bold/italic/
 -- strikethrough/code/highlight, h+/h- promote/demote a heading, ht table of contents, t + a table command (which-key
--- lists them). Tables (insert): <A-h>/<A-j>/<A-k>/<A-l> move between cells.
--- Two defaults go back to Neovim: insert-mode <C-t> (indent the line) and ]b/[b (next/previous buffer). ]]/[[ stay the
--- heading jumps because the markdown ftplugin maps them first.
+-- lists them). gd follows a table-of-contents link to its heading; where markdown-oxide attaches, its gd takes over.
+-- Handed back to Neovim: insert-mode <C-t> (indent the line) and ]b/[b (next/previous buffer). The insert-mode
+-- <A-h/j/k/l> cell moves stay off, so copilot.lua's <M-l> keeps accepting a word. ]]/[[ stay the heading jumps.
 local conflicts = { ["<C-T>"] = "i", ["]b"] = "n", ["[b"] = "n" }
 
 local function hand_back(buf)
@@ -25,7 +25,9 @@ end
 return {
 	"YousefHadder/markdown-plus.nvim",
 	ft = "markdown",
-	opts = {},
+	opts = {
+		table = { keymaps = { insert_mode_navigation = false } },
+	},
 	config = function(_, opts)
 		require("markdown-plus").setup(opts)
 		vim.api.nvim_create_autocmd("FileType", {

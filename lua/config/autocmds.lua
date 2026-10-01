@@ -22,8 +22,8 @@ api.nvim_create_autocmd("BufWritePre", {
 		if skip_fts[vim.bo[ev.buf].filetype] then
 			return
 		end
-		local view = fn.winsaveview() -- winsaveview, not getpos("."): also restores the scroll offset, so a write near the window edge doesn't jump the screen
-		vim.cmd([[keeppatterns %s/\s\+$//e]]) -- keeppatterns: without it every write overwrites the last search pattern and re-lights hlsearch
+		local view = fn.winsaveview() -- the scroll offset is restored too, so the screen does not jump
+		vim.cmd([[keeppatterns %s/\s\+$//e]]) -- keeppatterns: the last search pattern survives the write
 		fn.winrestview(view)
 	end,
 })
@@ -32,7 +32,7 @@ api.nvim_create_autocmd("BufWritePre", {
 	group = augroup("auto_create_dir"),
 	desc = "999rpm: create missing parent directories before writing a new file",
 	callback = function(ctx)
-		utils.may_create_dir(fn.fnamemodify(ctx.file, ":p:h")) -- shared helper rather than an inline mkdir; see utils.lua
+		utils.may_create_dir(fn.fnamemodify(ctx.file, ":p:h"))
 	end,
 })
 
@@ -69,7 +69,7 @@ api.nvim_create_autocmd("BufReadPost", {
 local auto_read_group = augroup("auto_read")
 api.nvim_create_autocmd({ "FocusGained", "TermClose", "TermLeave" }, {
 	group = auto_read_group,
-	desc = "999rpm: checktime so autoread can pick up on-disk changes", -- not CursorHold: at updatetime=100 that re-read every buffer ten times a second
+	desc = "999rpm: checktime so autoread can pick up on-disk changes", -- CursorHold would re-read every buffer ten times a second at updatetime=100
 	callback = function()
 		if fn.getcmdwintype() == "" and vim.bo.buftype ~= "nofile" then
 			vim.cmd("checktime")
@@ -176,7 +176,7 @@ api.nvim_create_autocmd("BufWritePost", {
 })
 
 local yank_group = augroup("highlight_yank")
-local pre_yank_view -- plain upvalue, not vim.g: a vim.g write crosses the Lua/Vimscript boundary and copies the table each time
+local pre_yank_view -- an upvalue: a vim.g write would copy the table across the Vimscript boundary on every move
 api.nvim_create_autocmd("CursorMoved", {
 	group = yank_group,
 	desc = "999rpm: track the pre-yank cursor position",
@@ -191,9 +191,9 @@ api.nvim_create_autocmd("TextYankPost", {
 	group = yank_group,
 	desc = "999rpm: flash yanked text, then restore the cursor",
 	callback = function()
-		vim.hl.on_yank({ higroup = "IncSearch", timeout = 150 }) -- vim.hl, not vim.highlight: the latter is a deferred-deprecated alias, removal targeted at 2.0.0
+		vim.hl.on_yank({ higroup = "IncSearch", timeout = 150 })
 		if vim.v.event.operator == "y" and pre_yank_view then
-			fn.winrestview(pre_yank_view) -- winrestview, not setpos: also restores the scroll offset, so a yank near the window edge doesn't jump the screen
+			fn.winrestview(pre_yank_view) -- y leaves the cursor where the yank started, with the same scroll offset
 		end
 	end,
 })
@@ -221,7 +221,7 @@ api.nvim_create_autocmd({ "BufEnter", "FocusGained", "InsertLeave", "WinEnter" }
 	group = number_toggle,
 	desc = "999rpm: relative numbers in the focused window",
 	callback = function()
-		if vim.wo.number then
+		if vim.wo.number and vim.g._999rpm_relativenumber ~= false then -- false: <leader>oN (snacks.lua) turned them off
 			vim.wo.relativenumber = true
 		end
 	end,
@@ -303,7 +303,7 @@ api.nvim_create_autocmd("OptionSet", {
 	group = augroup("shell_options"),
 	pattern = "shell",
 	desc = "999rpm: re-apply the shell* flags when 'shell' changes",
-	callback = utils.apply_shell_options, -- shared helper; see utils.lua
+	callback = utils.apply_shell_options,
 })
 
 api.nvim_create_autocmd("MenuPopup", {
@@ -386,7 +386,7 @@ api.nvim_create_autocmd("FileType", {
 	callback = function(event)
 		vim.bo[event.buf].buflisted = false
 		vim.schedule(function()
-			utils.map_close(event.buf, true) -- shared helper; see utils.lua
+			utils.map_close(event.buf, true)
 		end)
 	end,
 })

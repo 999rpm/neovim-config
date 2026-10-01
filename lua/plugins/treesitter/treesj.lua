@@ -2,7 +2,6 @@
 -- (<leader>cs is the snippets group). :TSJSplit and :TSJJoin force one direction.
 return {
 	"Wansmer/treesj",
-	dependencies = { "nvim-treesitter/nvim-treesitter" },
 	keys = {
 		{
 			"<leader>cj",

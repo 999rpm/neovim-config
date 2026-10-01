@@ -2,6 +2,5 @@
 return {
 	"m-demare/hlargs.nvim",
 	event = { "BufReadPost", "BufNewFile" },
-	dependencies = { "nvim-treesitter/nvim-treesitter" },
 	opts = {},
 }

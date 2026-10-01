@@ -1,4 +1,5 @@
--- Mason plus two installer bridges: mason-lspconfig for servers, mason-tool-installer for formatters, linters and debug adapters.
+-- mason-org/mason.nvim with two installer bridges: mason-lspconfig for servers, WhoIsSethDaniel/mason-tool-installer
+-- for formatters, linters and debug adapters.
 -- :Mason or <leader>pm opens the UI, :MasonUpdate refreshes the registry. In the UI: i install, u update, U update all,
 -- X uninstall, c/C check versions, <CR> expand, <C-f> language filter, g? help.
 -- Both bridges wait for VeryLazy: installing a tool is never on the critical path of opening a file.

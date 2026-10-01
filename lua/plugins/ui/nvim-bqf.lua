@@ -21,7 +21,7 @@ return {
 			pattern = "qf",
 			desc = "999rpm: Tab/S-Tab move through quickfix items",
 			callback = function(ev)
-				require("utils").menu_nav(ev.buf) -- shared helper; see utils.lua
+				require("utils").menu_nav(ev.buf)
 			end,
 		})
 		if vim.bo.filetype == "qf" then

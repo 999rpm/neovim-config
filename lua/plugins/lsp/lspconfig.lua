@@ -1,11 +1,11 @@
--- Language servers through vim.lsp.config/vim.lsp.enable. Mason installs the binaries (mason.lua); rust is rustaceanvim's.
--- Nvim 0.12's own LSP keys, kept as they are: K hover, grn rename (inc-rename preview), gra code action, grx code lens,
+-- neovim/nvim-lspconfig: server definitions, started through vim.lsp.config/vim.lsp.enable. Mason installs the binaries
+-- (mason.lua); rust-analyzer belongs to rustaceanvim.lua.
+-- Built-in LSP keys, kept as they are: K hover, grn rename (inc-rename preview), gra code action, grx code lens,
 -- grr references, gri implementation, grt type definition, gO document symbols, <C-s> signature help in insert mode.
--- Nvim's own diagnostic keys, also kept: ]d/[d next/previous, ]D/[D last/first, <C-w>d float. Floats take 'winborder'.
--- Added here: gd definition, gD declaration, <C-k> signature help (normal), <leader>lwa/lwr/lwl add, remove and list
--- workspace folders. Diagnostics: tiny-inline-diagnostic.lua draws the cursor line's messages, mappings.lua holds
--- <leader>df/db/dw (float, buffer and workspace to quickfix). Occurrence highlighting and ]r/[r come from snacks.words
--- (snacks.lua); the toggles for diagnostics (<leader>od) and inlay hints (<leader>oh) live there too.
+-- Built-in diagnostic keys, also kept: ]d/[d next/previous, ]D/[D last/first, <C-w>d float. Floats take 'winborder'.
+-- Added per buffer, only where an attached server answers them: gd definition, gD declaration, <C-k> signature help
+-- (normal mode); everywhere a server attaches: <leader>lwa/lwr/lwl add, remove and list workspace folders.
+-- Diagnostics: tiny-inline-diagnostic.lua draws the cursor line's messages, mappings.lua holds <leader>df/db/dw.
 return {
 	"neovim/nvim-lspconfig",
 	event = { "BufReadPre", "BufNewFile" }, -- off the startup path; the servers still attach before the first FileType
@@ -54,30 +54,32 @@ return {
 					vim.keymap.set(mode or "n", keys, func, { buf = event.buf, desc = "LSP: " .. desc, silent = true })
 				end
 
-				map("gd", function()
-					vim.lsp.buf.definition({
-						on_list = function(options)
-							local unique, seen = {}, {}
-							for _, loc in ipairs(options.items) do
-								local key = loc.filename .. loc.lnum -- filename plus line identifies one definition
-								if not seen[key] then
-									seen[key] = true
-									table.insert(unique, loc)
+				if client:supports_method("textDocument/definition", event.buf) then -- render-markdown's and crates.nvim's in-process servers answer none, so gd stays built-in there
+					map("gd", function()
+						vim.lsp.buf.definition({
+							on_list = function(options)
+								local unique, seen = {}, {}
+								for _, loc in ipairs(options.items) do
+									local key = loc.filename .. loc.lnum -- filename plus line identifies one definition
+									if not seen[key] then
+										seen[key] = true
+										table.insert(unique, loc)
+									end
 								end
-							end
-							options.items = unique
-							vim.fn.setloclist(0, {}, " ", options)
-							if #unique > 1 then
-								vim.cmd.lopen()
-							else
-								vim.cmd("silent! lfirst") -- silent: an empty list is not an error
-							end
-						end,
-					})
-				end, "Go to definition")
+								options.items = unique
+								vim.fn.setloclist(0, {}, " ", options)
+								if #unique > 1 then
+									vim.cmd.lopen()
+								else
+									vim.cmd("silent! lfirst") -- silent: an empty list is not an error
+								end
+							end,
+						})
+					end, "Go to definition")
+				end
 
 				if client:supports_method("textDocument/declaration", event.buf) then
-					map("gD", vim.lsp.buf.declaration, "Go to declaration") -- elsewhere gD stays Nvim's file-global declaration search
+					map("gD", vim.lsp.buf.declaration, "Go to declaration") -- elsewhere gD stays the built-in file-global declaration search
 				end
 
 				if client:supports_method("textDocument/rename", event.buf) then
@@ -86,7 +88,9 @@ return {
 					end, { buf = event.buf, expr = true, silent = true, desc = "LSP: Rename" })
 				end
 
-				map("<C-k>", vim.lsp.buf.signature_help, "Signature help")
+				if client:supports_method("textDocument/signatureHelp", event.buf) then
+					map("<C-k>", vim.lsp.buf.signature_help, "Signature help")
+				end
 
 				map("<leader>lwa", vim.lsp.buf.add_workspace_folder, "Add workspace folder")
 				map("<leader>lwr", vim.lsp.buf.remove_workspace_folder, "Remove workspace folder")

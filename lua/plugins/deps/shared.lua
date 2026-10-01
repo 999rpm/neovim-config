@@ -9,6 +9,7 @@ return {
 	{ "b0o/schemastore.nvim", lazy = true }, -- lspconfig (jsonls, yamlls)
 	{ "rafamadriz/friendly-snippets", lazy = true }, -- blink
 	{ "nvim-neotest/neotest-jest", lazy = true }, -- neotest
+	{ "nvim-neotest/neotest-python", lazy = true }, -- neotest
 	{
 		"nvim-telescope/telescope-fzf-native.nvim", -- dropbar menus; the fzf library only, not telescope
 		lazy = true,

@@ -21,7 +21,7 @@ if not uv.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(vim.env.LAZY or lazypath)
 
-local has_git = require("utils").executable("git") -- shared helper; see utils.lua
+local has_git = require("utils").executable("git")
 local disabled_plugins = { -- names from 0.12's runtime/plugin; rplugin stays on, it defines molten.lua's commands
 	"gzip",
 	"matchit", -- editor/matchup.lua replaces it
@@ -49,7 +49,7 @@ local icons = {
 
 require("lazy").setup({
 	spec = {
-		{ import = "plugins.loader" }, -- resolves to lua/plugins/loader.lua; see that file's own header
+		{ import = "plugins.loader" }, -- lua/plugins/loader.lua imports every category folder
 	},
 	defaults = { lazy = false, version = false },
 	lockfile = fn.stdpath("config") .. "/lazy-lock.json",

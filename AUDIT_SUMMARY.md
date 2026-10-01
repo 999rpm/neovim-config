@@ -1,79 +1,81 @@
 # Config log
 
-What changed, and the reason it changed. Newest first. Older passes are condensed to their conclusions once a later
+What changed, and the reason it changed. Newest first; older passes are condensed to their conclusions once a later
 pass has confirmed them.
 
-## 2026-10-01 (fourteenth pass): uv
+## 2026-10-02 (fifteenth pass)
 
-- `:JupyterSetup` prefers uv: `uv venv` creates the environment (uv fetches a Python when none is installed) and
-  `uv pip install --python <env>` fills it, since uv's environments carry no pip. python3's `venv` and pip stay the
-  fallback. Every step runs from `stdpath("data")`, so a project's `.python-version`, `uv.toml` or pip settings do not
-  reach it.
-- `<leader>kv` / `:JupyterKernelAdd [name]` registers the uv project around the current file as a kernel, the way uv's
-  Jupyter guide does (`uv add --dev ipykernel`, then `ipykernel install --user --env VIRTUAL_ENV <root>/.venv`), through
-  argument lists, so the guide's `$(pwd)` form, which nushell does not accept, is not needed.
-- A cell run while its kernel starts is queued until molten's `MoltenKernelReady`: output sent before the kernel answered
-  was lost and the cell stayed "On Hold". A failed `MoltenInit`, which molten only reports through `vim.notify`, no longer
-  counts as a running kernel.
-- The setup and kernel steps share `run_chain()` in `utils.lua`.
-- Checked: a fresh environment built by uv 0.11 (no pip inside) runs molten and the notebook round trip; uv also upgrades
-  an environment pip built; with uv off `$PATH` the pip route still works; a uv project kernel registers, appears in
-  molten's list and reports the project's `.venv` as `sys.prefix`; a cell pressed 0.7 s after opening a notebook runs
-  once the kernel is ready.
+Method: Neovim 0.12.5, nushell 0.116, zsh 5.9, actionlint 1.7.12, the lockfile's commits; headless runs per filetype,
+keymap dumps (global and per buffer, every plugin loaded) and `:checkhealth`.
 
-## 2026-10-01 (thirteenth pass): barbar underline, Jupyter notebooks
+### Fixed
 
-Method: Neovim 0.12.5, headless runs, nushell 0.116 and zsh 5.9; the lockfile's commits plus the two new plugins; a
-test notebook with saved outputs and a `# %%` script. Only notebook images in kitty could not be checked.
+- Nushell: `shellpipe` used `tee`, whose closure runs in parallel; nu 0.116 exits before it writes the errorfile, so
+  `:grep` and `:make` ended in E40 (1 run in 30 wrote it). A `do` closure writes it every time, no-match runs included.
+  `--login` left `shellcmdflag`, as in nushell/integrations: `:!` no longer runs env.nu and config.nu, which failed
+  every command whenever a tool they call (zoxide) was missing.
+- A notebook opened with `:edit` inside a session got no filetype, so no cell keys or otter. Both read events replay
+  inside the BufReadCmd handler, and `vim.lsp.enable()` (lspconfig loading on BufReadPre) fires FileType for open
+  buffers, after which filetypedetect's `:setf` skips. The handler sets the filetype itself when it is still empty.
+- `gd` and normal-mode `<C-k>` are set only when an attached server answers definitions or signature help. In markdown
+  only render-markdown's in-process server attached, so `gd` went to a server that cannot answer it.
+- nvim-lint ran actionlint on every YAML file, and plain YAML got "on"/"jobs" errors; it now runs on
+  `.github/workflows/*.y(a)ml` only. The `yaml.github` entry never matched, since workflows open as `yaml`. Files are
+  also linted when opened.
+- `<leader>oN` was undone by the `number_toggle` autocommands on the next BufEnter or InsertLeave; both read
+  `vim.g._999rpm_relativenumber` now.
+- snacks' `indent()`, `dim()` and `words()` toggles take no options, so the names passed to them were dropped; the
+  labels are set on the toggles. Every `<leader>o` description reads "Toggle ...".
+- On/off switches moved under `<leader>o`: transparency `<leader>uT` to `ot`, markdown rendering `<leader>um` to `om`,
+  debug virtual text `<leader>Dv` to `ov`.
+- Copilot's panel key `<M-CR>` collided with markdown-plus's `<A-CR>` in markdown; the panel is off, suggestions cycle
+  with `<M-]>`/`<M-[>`. markdown-plus's insert `<A-h/j/k/l>` cell moves hid copilot's `<M-l>`; off as well.
+- Filetype rules 0.12.5 handles itself are gone (Brewfile, Jenkinsfile, justfile, yarn.lock, helmfile.yaml,
+  .kube/config, .jscsrc), and so is `todo.txt` as `todotxt`, a filetype with no runtime support.
+- `notes_root` named two callers that do not call it. kitty.conf named a config.nu setting that does not exist;
+  nushell 0.116 sends prompt and directory marks by default.
 
-### barbar underline
+### Added
 
-- Reported: the current tab used to be underlined in kanagawa lotus and dragon. In the twelfth pass's files no tabline
-  group carries an underline in any kanagawa style: kanagawa ships no barbar groups, so barbar derives them from
-  `TabLine`/`TabLineSel`, which have none, and barbar's default preset strips underlines from the separators. The old
-  underline could not be traced to a file; barbar has tracked master since the eighth pass and rebuilt its highlight
-  cache in June 2026.
-- `paint_tabs` (formerly `paint_slants`) copies barbar's fresh `BufferDefaultCurrent*` colours into `BufferCurrent*` with
-  an underline in the tab's text colour, separators included, for the themes in `underline_themes` (kanagawa, all
-  three styles). Icon groups inherit it from `BufferCurrent`. Checked: on in lotus and dragon, off after a switch to
-  tokyonight, back after a switch to kanagawa.
+- neotest-python (pytest; `$VIRTUAL_ENV`, else a venv folder in the project, else python3) and rustaceanvim's own
+  neotest adapter; `<leader>Td` debugs the nearest test.
+- Parsers: kitty, zsh, diff, git_config, git_rebase, gitignore, luadoc, luap, printf, xml, ini, sql, dockerfile,
+  make, cmake, just. gitcommit stays out: its 3.3 MB parser ran the compiler out of memory on a 4 GB machine.
+- `moxide/settings.toml`: `excluded_folders = ["logseq"]` (markdown-oxide 0.25.12) keeps the copies in Logseq's
+  `bak/` and `version-files/` out of the index.
 
-### Jupyter notebooks
+### Removed and tidied
 
-- molten-nvim runs code in Jupyter kernels and draws outputs under the cell, images through snacks.image (no image.nvim,
-  no ImageMagick Lua binding). It tracks main: the last tag, v1.9.2 (January 2025), predates the snacks.nvim provider
-  (May 2025).
-- otter.nvim attaches the language servers to the code cells.
-- The `.ipynb` handler is written in `utils.lua` (`notebook_*`, loaded by `notebook/ipynb.lua`): jupytext.nvim has had
-  no commits since April 2024, its maintained fork none since June 2025. Notebooks open as jupytext markdown, molten's
-  documented format; `:w` runs `jupytext --update`, then `MoltenExportOutput!`.
-- quarto-nvim skipped: otter alone gives the LSP features, the cell runner is a few lines over `MoltenEvaluateRange`,
-  and quarto's preview needs the Quarto CLI.
-- `:JupyterSetup` (also molten's build step) creates `stdpath("data")/999rpm-jupyter` through argument lists only.
-  `rplugin` left lazy's disabled list, since it defines molten's commands; the Python 3 provider runs only when that
-  environment exists.
-- Found while testing: molten fails with ENOENT on `kernel-*.json` while Jupyter's runtime folder does not exist, as on a
-  fresh machine; `:JupyterSetup` now creates it. molten reports errors through `vim.notify`, which noice owns, so they
-  stay out of headless output.
-- Checked: the notebook opens as markdown with no undo step and no gitsigns; the kernel from its metadata starts on open
-  and the saved outputs show; a run cell prints under its fence; `:w` keeps old outputs and adds new ones; `]j` `[j`
-  and `ij` `aj` in notebooks and `# %%` scripts; otter-ls attaches.
-
-### From the reference configs
-
-- `undolevels = 10000`; prose filetypes get soft wrap with spell (group `999rpm-prose`); `]e` `[e` / `]w` `[w` for
-  errors / warnings only; insert-mode `,` `.` `;` start a new undo step.
-- The d2 block lookup and the notebook cell scan share `fenced_blocks()`.
+- nvim-treesitter left the dependency lists of neotest, render-markdown, treesj, rainbow-delimiters and hlargs; none
+  of them loads it on 0.12.
+- `options.lua` comments follow the lower-case end-of-line style of the other files. History notes and "see utils.lua"
+  pointers are gone, and every plugin header starts with the repository name.
+- README cut from 580 lines to an overview.
 
 ### Checked and left as is
 
-- which-key, trouble, noice, todo-comments and persistence have had no commits for 10 to 11 months, lazy.nvim for 9.
-  Kept: stable, and nothing maintained does the same job.
-- New global keys (`<leader>k*`, `]e` `[e` `]w` `[w`, insert `,` `.` `;`) collide with nothing; `<S-CR>`, `<C-CR>` and
-  the cell `]j` `[j` are buffer-local. kitty.conf binds neither `shift+enter` nor `ctrl+enter`.
-- `:grep` and `:!` still work under nushell and zsh.
+- nvim-treesitter was archived on 3 April 2026 and unarchived on 19 July, with commits through 30 September. Kept:
+  tree-sitter-manager.nvim (rafi, SeniorMars) only installs parsers, and textobjects and tree-sitter-d2 call into it.
+- TypeScript 7 serves LSP itself (`tsc --lsp`, lspconfig `tsc`) and has no Mason package; Mason pins ts_ls to
+  TypeScript 6.0.3. ts_ls kept.
+- noice kept over 0.12's `vim._core.ui2` (jdhao, rafi): ui2 is private and experimental.
+- The python and ruby ftplugins map `]m [m ]M [M` themselves and win in those buffers; they jump the same way.
+- No mapping uses `<C-S-...>` or `<M-1>`...`<M-9>`, the only keys kitty.conf binds.
+- `E31` in `v:errmsg` comes from which-key's own cleanup. snacks' health errors about `vim.ui.select` and the
+  dashboard appear only headless, where UIEnter never fires.
 
 ## Earlier passes: conclusions only
+
+**Fourteenth pass (2026-10-01).** `:JupyterSetup` prefers uv (`uv venv`, then `uv pip install --python`), python3's
+venv and pip as the fallback, all from `stdpath("data")`. `<leader>kv` / `:JupyterKernelAdd` registers the uv project
+as a kernel the way uv's Jupyter guide does, through argument lists, so nushell needs no `$(pwd)`. Cells pressed while
+the kernel starts wait for `MoltenKernelReady`. `run_chain()` in `utils.lua` serves both.
+
+**Thirteenth pass (2026-10-01).** Jupyter notebooks: molten-nvim (main, for the snacks.image provider) runs kernels,
+otter.nvim attaches the servers to cells, and the `.ipynb` handler in `utils.lua` converts through the jupytext CLI
+(jupytext.nvim and its fork are unmaintained). quarto-nvim skipped. kanagawa's current tab gets an underline through
+`paint_tabs`. From the reference configs: `undolevels = 10000`, prose filetypes with soft wrap and spell, `]e [e` /
+`]w [w`, insert `,` `.` `;` undo breaks.
 
 **Twelfth pass (2026-10-01).** Three regressions: the theme switcher never ran, because two local specs shared
 `dir = stdpath("config")` and lazy.nvim merged them (both are now `virtual = true` with slash-less names); colorizer

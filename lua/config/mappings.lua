@@ -117,7 +117,7 @@ map("n", "<M-Down>", "<Cmd>resize -2<CR>", { desc = "Shorter window" })
 map("n", "<M-Left>", "<Cmd>vertical resize -2<CR>", { desc = "Narrower window" })
 map("n", "<M-Right>", "<Cmd>vertical resize +2<CR>", { desc = "Wider window" })
 
-local term_wincmd = require("utils").term_wincmd -- shared helper; see utils.lua
+local term_wincmd = require("utils").term_wincmd
 map("t", "<M-w>", term_wincmd("k", "<M-w>"), { expr = true, desc = "Window up (floats get the key)" })
 map("t", "<M-s>", term_wincmd("j", "<M-s>"), { expr = true, desc = "Window down (floats get the key)" })
 map("t", "<M-a>", term_wincmd("h", "<M-a>"), { expr = true, desc = "Window left (floats get the key)" })

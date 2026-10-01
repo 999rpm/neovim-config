@@ -1,7 +1,8 @@
 -- nvim-treesitter/nvim-treesitter-textobjects (main branch): select, swap and move by function, class, parameter and scope.
 -- Objects: af/if function, ac/ic class, a,/i, parameter, aS scope. Swap: <leader>a/<leader>A parameter with next/previous.
--- Moves: ]m/[m function start and ]M/[M function end (the built-in method motions, now for every language), ]k/[k class,
--- ]K/[K class end, ],/[, parameter, ]j/[j JSX element. Built-ins kept: ]f/[f open file, ]] [[ sections, as/is sentences.
+-- Moves: ]m/[m function start and ]M/[M function end, ]k/[k class, ]K/[K class end, ],/[, parameter, ]j/[j JSX element.
+-- The python and ruby ftplugins map their own ]m [m ]M [M, which win in those buffers and jump the same way.
+-- Built-ins kept: ]f/[f open file, ]] [[ sections, as/is sentences.
 return {
 	"nvim-treesitter/nvim-treesitter-textobjects",
 	branch = "main",

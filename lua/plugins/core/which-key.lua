@@ -1,13 +1,11 @@
--- folke/which-key.nvim: shows what follows a prefix. Groups here name every prefix used across the config.
--- Press <leader> and wait, or ? for buffer-local keys; <PageUp>/<PageDown> scroll a long popup.
--- Grouping rules, applied throughout: a prefix collects one kind of thing, the lowercase key is the common action and
--- its uppercase twin the wider or rarer form (f/F file, s/S scope, t/T terminal vs test, d/D diagnostics vs debug,
--- g/G hunks vs review). Nothing that only turns something on or off lives outside <leader>o. One kind of thing, one
--- group: every diagnostic view is under <leader>d, every LSP list and workspace folder under <leader>l. <leader>n is the
--- notes graph, <leader>k the Jupyter kernel and cells, <leader>y the yank and register helpers; markdown buffers add
--- their own \m \l \t \h groups.
--- A spec entry carrying only `desc` is a label, not a mapping: which-key calls vim.keymap.set only for entries that
--- also carry an rhs, so the gr* and g* entries at the end name Nvim's own keys and commands without taking them over.
+-- folke/which-key.nvim: lists what follows a prefix. Press <leader> and wait, or ? for buffer-local keys;
+-- <PageUp>/<PageDown> scroll a long popup.
+-- Grouping: a prefix holds one kind of thing, and the lowercase key is the common action, its uppercase twin the wider
+-- or rarer one (d/D diagnostics/debug, t/T terminal/test, g/G hunks/review). Every on/off switch sits under <leader>o
+-- and nothing else does; the snacks toggles there show their current state. <leader>n is the notes graph, <leader>k
+-- the Jupyter kernel, <leader>y yank and register helpers; markdown buffers add \m \l \t \h.
+-- An entry with only a desc is a label, not a mapping: which-key sets a keymap only for entries with an rhs, so the g*
+-- and gr* labels below name built-in keys without taking them over.
 local function markdown()
 	return vim.bo.filetype == "markdown"
 end
