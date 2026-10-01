@@ -12,6 +12,7 @@ return {
 	{ import = "plugins.debug" }, -- nvim-dap and its panels
 	{ import = "plugins.test" }, -- neotest
 	{ import = "plugins.lang" }, -- formatters, linters and per-language helpers
+	{ import = "plugins.notes" }, -- Logseq-style notes: journals, pages, tasks, markdown editing and rendering
 	{ import = "plugins.ai" }, -- avante, opencode, mcphub
 	{ import = "plugins.deps" }, -- libraries other files reference by name
 }

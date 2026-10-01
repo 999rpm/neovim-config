@@ -2,18 +2,16 @@
 -- Nvim 0.12's own LSP keys, kept as they are: K hover, grn rename (inc-rename preview), gra code action, grx code lens,
 -- grr references, gri implementation, grt type definition, gO document symbols, <C-s> signature help in insert mode.
 -- Nvim's own diagnostic keys, also kept: ]d/[d next/previous, ]D/[D last/first, <C-w>d float. Floats take 'winborder'.
--- Added here: gd definition, gD declaration, <C-k> signature help (normal), <leader>xf line diagnostics,
--- <leader>xb/<leader>xw diagnostics to quickfix (buffer/workspace), <leader>wa/wr/wf workspace folders.
--- Occurrence highlighting and ]r/[r come from snacks.words (snacks.lua); the toggles for diagnostics (<leader>od) and
--- inlay hints (<leader>oh) live there too.
+-- Added here: gd definition, gD declaration, <C-k> signature help (normal), <leader>lwa/lwr/lwl add, remove and list
+-- workspace folders. Diagnostics: tiny-inline-diagnostic.lua draws the cursor line's messages, mappings.lua holds
+-- <leader>df/db/dw (float, buffer and workspace to quickfix). Occurrence highlighting and ]r/[r come from snacks.words
+-- (snacks.lua); the toggles for diagnostics (<leader>od) and inlay hints (<leader>oh) live there too.
 return {
 	"neovim/nvim-lspconfig",
 	event = { "BufReadPre", "BufNewFile" }, -- off the startup path; the servers still attach before the first FileType
 	dependencies = { "b0o/schemastore.nvim" }, -- JSON/YAML schema catalog for jsonls and yamlls
 	config = function()
 		local utils = require("utils")
-
-		utils.setup_rounded_virtual_lines() -- registers the virtual_lines_rounded handler used below
 
 		vim.diagnostic.config({
 			update_in_insert = false,
@@ -34,17 +32,9 @@ return {
 					[vim.diagnostic.severity.INFO] = "󰭷 ",
 				},
 			},
-			virtual_lines = false, -- replaced by the rounded handler below
-			virtual_lines_rounded = { current_line = true }, -- cursor line only, with a rounded corner (utils.lua)
-			virtual_text = false, -- would double up with the lines above
+			virtual_lines = false, -- tiny-inline-diagnostic.lua draws the cursor line's diagnostics instead
+			virtual_text = false, -- the same; left on, both would draw
 		})
-
-		vim.keymap.set("n", "<leader>xw", vim.diagnostic.setqflist, { desc = "Workspace to quickfix" }) -- every open buffer, and opens the list
-		vim.keymap.set("n", "<leader>xb", function()
-			local items = vim.diagnostic.toqflist(vim.diagnostic.get(0)) -- current buffer only
-			vim.fn.setqflist({}, " ", { title = "Diagnostics", items = items })
-			vim.cmd.copen()
-		end, { desc = "Buffer to quickfix" })
 
 		vim.lsp.config("*", {
 			capabilities = utils.get_lsp_capabilities(),
@@ -98,13 +88,11 @@ return {
 
 				map("<C-k>", vim.lsp.buf.signature_help, "Signature help")
 
-				map("<leader>wa", vim.lsp.buf.add_workspace_folder, "Add folder")
-				map("<leader>wr", vim.lsp.buf.remove_workspace_folder, "Remove folder")
-				map("<leader>wf", function()
+				map("<leader>lwa", vim.lsp.buf.add_workspace_folder, "Add workspace folder")
+				map("<leader>lwr", vim.lsp.buf.remove_workspace_folder, "Remove workspace folder")
+				map("<leader>lwl", function()
 					vim.print(vim.lsp.buf.list_workspace_folders())
-				end, "List folders")
-
-				map("<leader>xf", vim.diagnostic.open_float, "Line diagnostics") -- shorter reach than the built-in <C-w>d
+				end, "List workspace folders")
 
 				if client.name == "ruff" then
 					client.server_capabilities.hoverProvider = false -- basedpyright answers hover for Python
@@ -237,7 +225,12 @@ return {
 			cssls = {},
 			dockerls = {},
 			docker_compose_language_service = {},
-			markdown_oxide = {},
+			markdown_oxide = {
+				root_markers = { ".moxide.toml", "logseq", ".obsidian", ".git" }, -- a Logseq graph keeps its logseq/ folder at the root
+				capabilities = {
+					workspace = { didChangeWatchedFiles = { dynamicRegistration = true } }, -- upstream's README: pages created outside Neovim get indexed
+				},
+			},
 			mdx_analyzer = {},
 		}
 

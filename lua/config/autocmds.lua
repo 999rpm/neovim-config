@@ -67,11 +67,11 @@ api.nvim_create_autocmd("BufReadPost", {
 })
 
 local auto_read_group = augroup("auto_read")
-api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold" }, {
+api.nvim_create_autocmd({ "FocusGained", "TermClose", "TermLeave" }, {
 	group = auto_read_group,
-	desc = "999rpm: checktime so autoread can pick up on-disk changes",
+	desc = "999rpm: checktime so autoread can pick up on-disk changes", -- not CursorHold: at updatetime=100 that re-read every buffer ten times a second
 	callback = function()
-		if fn.getcmdwintype() == "" then
+		if fn.getcmdwintype() == "" and vim.bo.buftype ~= "nofile" then
 			vim.cmd("checktime")
 		end
 	end,
@@ -244,8 +244,8 @@ api.nvim_create_autocmd("VimResized", {
 
 api.nvim_create_autocmd("FileType", {
 	group = augroup("no_conceal"),
-	desc = "999rpm: no concealing in json/markdown/text",
-	pattern = { "json", "jsonc", "markdown", "text" },
+	desc = "999rpm: no concealing in json and text",
+	pattern = { "json", "jsonc", "text" }, -- markdown's conceal level belongs to render-markdown.lua, which resets it on every mode change
 	callback = function()
 		vim.opt_local.conceallevel = 0
 	end,
@@ -372,15 +372,7 @@ api.nvim_create_autocmd("MenuPopup", {
 api.nvim_create_autocmd("FileType", {
 	group = augroup("spell_check"),
 	desc = "999rpm: spell check on for prose filetypes",
-	pattern = { "text", "plaintex", "typst", "gitcommit", "markdown" },
-	callback = function()
-		vim.opt_local.spell = true
-	end,
-})
-api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
-	group = augroup("spell_check_ext"),
-	desc = "999rpm: spell check on for .txt/.tex before FileType fires",
-	pattern = { "*.txt", "*.tex" },
+	pattern = { "text", "tex", "plaintex", "typst", "gitcommit", "markdown" },
 	callback = function()
 		vim.opt_local.spell = true
 	end,

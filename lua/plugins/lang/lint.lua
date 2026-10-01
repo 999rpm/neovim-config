@@ -1,4 +1,5 @@
--- mfussenegger/nvim-lint: linters without a language server, run on write and on leaving insert mode. Missing binaries are skipped.
+-- mfussenegger/nvim-lint: linters without a language server, run on write and on leaving insert mode. Missing binaries are skipped,
+-- and so is any buffer with b:disable_lint set.
 return {
 	"mfussenegger/nvim-lint",
 	event = { "BufReadPre", "BufNewFile" },
@@ -30,7 +31,10 @@ return {
 		vim.api.nvim_create_autocmd({ "BufWritePost", "InsertLeave" }, {
 			group = utils.augroup("lint"),
 			desc = "999rpm: run nvim-lint on write and on leaving insert mode",
-			callback = function()
+			callback = function(ev)
+				if vim.b[ev.buf].disable_lint then
+					return -- notes/logseq.lua sets it in graph buffers, where markdownlint would flag every outline line
+				end
 				lint.try_lint(nil, { filter = installed }) -- nil: nvim-lint resolves the filetype itself, compound ones like yaml.github included
 				lint.try_lint(always, { filter = installed })
 			end,

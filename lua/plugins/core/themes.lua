@@ -73,7 +73,7 @@ local adapters = {
 local theme_order = { "tokyonight", "catppuccin", "kanagawa", "monokai-pro" }
 
 local State = {
-	data = { theme = "tokyonight", style_index = 1, transparent = true },
+	data = { theme = "tokyonight", style_index = 4, transparent = false }, -- first run: moon, tokyonight's own default; the saved choice wins after that
 }
 
 function State:load()
@@ -204,13 +204,13 @@ local function init()
 end
 
 return {
-	{ "folke/tokyonight.nvim", lazy = true, opts = {} },
+	{ "folke/tokyonight.nvim", lazy = true },
 	{ "catppuccin/nvim", name = "catppuccin", lazy = true },
 	{ "rebelot/kanagawa.nvim", lazy = true },
 	{ "loctvl842/monokai-pro.nvim", lazy = true },
 	{
-		dir = fn.stdpath("config"),
-		name = "999rpm-themer", -- local spec with no repository, so lazy.nvim needs a name for it
+		"999rpm-themer", -- a name with no slash: lazy.nvim looks for no repository
+		virtual = true, -- and adds no rtp entry; a shared `dir` once made lazy.nvim merge this spec into 999rpm-notes
 		lazy = false,
 		priority = 1000,
 		config = init,

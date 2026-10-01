@@ -2,7 +2,7 @@
 -- highlighting and the option toggles under <leader>o.
 -- Picker: opens in the result list (normal mode). <Tab>/<S-Tab> next/previous, <C-Space> mark for multi-select,
 -- <C-a> mark all, <CR> open, i or / type a query, <C-s>/<C-v>/<C-t> split/vsplit/tab, <C-q> to quickfix,
--- <A-h>/<A-i> hidden/ignored files, <A-p> preview, ? help, q or <Esc> close.
+-- <A-h>/<A-i> hidden/ignored files, <A-p> preview, ? help, q or <Esc> close. Results rank by frecency.
 -- Terminal: <Esc><Esc> normal mode, q (normal mode) hide, gf open file under cursor.
 -- Images: kitty draws markdown images and LaTeX math inline; <leader>ui opens the one under the cursor in a float.
 -- d2 diagrams render through tree-sitter-d2.lua. Dashboard (bare `nvim`): f find, n new, g grep, r recent, c config,
@@ -72,6 +72,7 @@ return {
 			enabled = true,
 			ui_select = true,
 			focus = "list",
+			matcher = { frecency = true, cwd_bonus = true }, -- files opened often and recently, and files under the cwd, rank first
 			sources = {
 				grep = { focus = "input" }, -- live sources need a query first
 				grep_buffers = { focus = "input" },

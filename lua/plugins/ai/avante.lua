@@ -13,7 +13,7 @@ return {
 		providers = {
 			claude = {
 				endpoint = "https://api.anthropic.com",
-				model = "claude-sonnet-5",
+				model = "claude-sonnet-5-5", -- current Sonnet API id; "claude-sonnet-5" matches no model
 			},
 		},
 		behaviour = {

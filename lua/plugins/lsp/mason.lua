@@ -72,9 +72,12 @@ return {
 				"debugpy", -- debug adapters for dap.lua and dap-python.lua; installing them here keeps nvim-dap out of startup
 				"codelldb",
 				"js-debug-adapter",
-				"haskell-debug-adapter",
 			}
-			if require("utils").executable("go") then
+			local utils = require("utils")
+			if utils.executable("stack") then
+				table.insert(tools, "haskell-debug-adapter") -- dap.lua launches it through `stack ghci`; without stack it has nothing to run
+			end
+			if utils.executable("go") then
 				table.insert(tools, "gofumpt") -- Mason builds it with `go install`, which fails without a Go toolchain
 			end
 			return { ensure_installed = tools }

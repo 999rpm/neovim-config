@@ -1,0 +1,19 @@
+{
+  "Scheduled": { "prefix": "scheduled", "body": "SCHEDULED: <${1:$CURRENT_YEAR-$CURRENT_MONTH-$CURRENT_DATE $CURRENT_DAY_NAME_SHORT}>", "description": "Logseq scheduled date" },
+  "Deadline": { "prefix": "deadline", "body": "DEADLINE: <${1:$CURRENT_YEAR-$CURRENT_MONTH-$CURRENT_DATE $CURRENT_DAY_NAME_SHORT}>", "description": "Logseq deadline" },
+  "Date": { "prefix": "date", "body": "$CURRENT_YEAR-$CURRENT_MONTH-$CURRENT_DATE", "description": "Today's date" },
+  "Time": { "prefix": "time", "body": "$CURRENT_HOUR:$CURRENT_MINUTE", "description": "Current time" },
+  "Page reference": { "prefix": "pageref", "body": "[[${1:page}]]$0", "description": "Link to a page" },
+  "Block reference": { "prefix": "blockref", "body": "((${1:uuid}))$0", "description": "Reference a block by its id:: property" },
+  "Embed page": { "prefix": "embedpage", "body": "{{embed [[${1:page}]]}}$0", "description": "Logseq page embed" },
+  "Embed block": { "prefix": "embedblock", "body": "{{embed ((${1:uuid}))}}$0", "description": "Logseq block embed" },
+  "Query": { "prefix": "query", "body": "{{query ${1:(task TODO DOING)}}}$0", "description": "Logseq simple query (evaluated by the Logseq app)" },
+  "Property": { "prefix": "property", "body": "${1:key}:: ${2:value}$0", "description": "Block or page property" },
+  "Template": { "prefix": "template", "body": "template:: ${1:name}$0", "description": "Mark the block as a template (<leader>ni inserts it)" },
+  "Priority": { "prefix": "priority", "body": "[#${1|A,B,C|}]$0", "description": "Task priority" },
+  "Callout": { "prefix": "callout", "body": ["> [!${1|NOTE,TIP,IMPORTANT,WARNING,CAUTION|}]", "> $0"], "description": "Callout block" },
+  "Code block": { "prefix": "code", "body": ["```${1:lang}", "$0", "```"], "description": "Fenced code block" },
+  "Math block": { "prefix": "math", "body": ["```math", "$0", "```"], "description": "LaTeX block (snacks.image draws it)" },
+  "d2 block": { "prefix": "d2", "body": ["```d2", "$0", "```"], "description": "d2 diagram (<leader>ud draws it)" },
+  "Table": { "prefix": "table", "body": ["| ${1:a} | ${2:b} |", "| --- | --- |", "| $3 | $4 |"], "description": "Two-column table" }
+}

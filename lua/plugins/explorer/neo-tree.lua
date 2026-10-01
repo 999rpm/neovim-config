@@ -1,6 +1,7 @@
 -- nvim-neo-tree/neo-tree.nvim: sidebar tree with git status and diagnostics. barbar.lua shifts the tabline beside it.
 -- Keys: <leader>ee toggle, <leader>er reveal the current file. In the tree: <Tab> expand, l/<CR> open, h collapse,
 -- P float preview, a add, d delete, r rename, y/x/p copy/cut/paste, c copy to, m move, R refresh, q close, ? help.
+-- r and m update imports through the language servers.
 return {
 	"nvim-neo-tree/neo-tree.nvim",
 	branch = "v3.x",
@@ -12,6 +13,20 @@ return {
 	},
 	opts = {
 		close_if_last_window = false, -- autocmds.lua auto_close_win decides, for quickfix and Trouble windows too
+		event_handlers = { -- a moved or renamed file asks the language servers to update imports (Snacks.rename)
+			{
+				event = "file_moved",
+				handler = function(data)
+					Snacks.rename.on_rename_file(data.source, data.destination)
+				end,
+			},
+			{
+				event = "file_renamed",
+				handler = function(data)
+					Snacks.rename.on_rename_file(data.source, data.destination)
+				end,
+			},
+		},
 		popup_border_style = "rounded",
 		enable_git_status = true,
 		enable_diagnostics = true,

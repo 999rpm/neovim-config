@@ -1,5 +1,5 @@
--- Editor options. Leader is Space, local leader is backslash.
--- 'shell' follows the login shell from the passwd database; nushell gets its own shell* flags (utils.lua).
+-- Editor options. Leader is Space, local leader is backslash. vim.g.notes_dir points the notes layer at a Logseq-style
+-- graph folder. 'shell' follows the login shell from the passwd database; nushell gets its own shell* flags (utils.lua).
 local utils = require("utils")
 
 local g = vim.g
@@ -12,6 +12,7 @@ g.markdown_recommended_style = 0 -- Disable default markdown recommended style
 g.yaml_indent_multiline_scalar = 1 -- Fix YAML indentation for multiline strings
 g.no_gitrebase_maps = 1 -- Disable default mappings for git rebase
 g.no_man_maps = 1 -- Disable default mappings for man pages
+g.notes_dir = vim.env.NOTES_DIR or "~/notes" -- Notes graph (journals/, pages/, assets/); $NOTES_DIR overrides; utils.notes_root() reads it
 
 g.loaded_perl_provider = 0 -- Disable Perl provider
 g.loaded_ruby_provider = 0 -- Disable Ruby provider
@@ -30,11 +31,10 @@ opt.confirm = true -- Prompt to save changes before exiting a modified buffer
 opt.shell = utils.login_shell() -- login shell from the passwd database, so chsh applies without a new login
 utils.apply_shell_options() -- nushell needs its own shell* flags; every other shell keeps Neovim's defaults
 
-opt.shada = "!,'1000,<50,s10,h" -- Globals, marks for 1000 files, 50 lines per register, 10 KiB items, no hlsearch at start
+opt.shada = "!,'1000,<50,s10,h,r/tmp/,r/private/" -- Globals, marks for 1000 files, 50 lines per register, 10 KiB items, no hlsearch at start, no /tmp or /private files (0.12's own exclusions)
 opt.secure = true -- Prevents shell/write commands in modelines and prevents autocmds from untrusted files
 opt.modelines = 0 -- Disable modelines to prevent files from overriding editor settings
 opt.iskeyword:append("-") -- Treat dash-separated words as a single keyword (e.g. kebab-case)
-opt.runtimepath:remove("/usr/share/vim/vimfiles") -- Exclude system Vim files from the runtime path
 
 opt.spelllang = { "en", "cjk" } -- Enable spell checking for English and CJK characters
 opt.spellsuggest:append("9") -- Show at most 9 spelling suggestions to keep menus concise
@@ -51,6 +51,7 @@ opt.updatetime = 100 -- Milliseconds of inactivity before writing the swap file 
 opt.redrawtime = 1500 -- Maximum time (ms) allowed for syntax highlighting per redraw
 opt.synmaxcol = 240 -- Only highlight syntax up to column 240 (improves performance on long lines)
 
+opt.termguicolors = true -- 0.12 detects truecolor but applies it only at VimEnter; colorizer reads it on the first BufReadPre of `nvim file`
 opt.guicursor = "n-v-c:block-Cursor/lCursor,i-ci-ve:ver25-Cursor2/lCursor2,r-cr:hor20,o:hor20" -- Block in normal/visual, bar in insert, underline in replace and operator-pending
 opt.title = true -- Set the terminal window title to the current file
 opt.titlestring = "%{v:lua.require('utils').get_current_branch_name()} • %<%F %=%l/%L" -- Custom window title format: filepath and line/total
@@ -60,15 +61,15 @@ opt.laststatus = 3 -- Use a single global statusline shared across all windows
 opt.showtabline = 2 -- Always show the tabline, even when only one tab is open
 opt.tabclose:append({ "uselast" }) -- Jump to the last accessed tab when a tab is closed
 opt.ruler = false -- Hide the cursor position ruler (redundant with a statusline plugin)
-opt.showcmd = false -- Do not show partial commands in the last line of the screen
+opt.showcmd = true -- Show a pending count, register or operator (2d, "a) while it is typed
 opt.cmdheight = 0 -- Collapse the command line when not in use (maximises editing space)
-opt.showcmdloc = "statusline" -- Display partial commands in the statusline instead of the command line
+opt.showcmdloc = "statusline" -- Draw it in the statusline (lualine.lua places %S), since the command line is hidden
 opt.shortmess:append("sIc") -- Suppress search wrap, the intro screen, and insert-completion messages ("match 1 of 2")
 
 opt.pumblend = 5 -- Pseudo-transparency for the popup completion menu (0 = opaque, 100 = invisible)
 opt.winblend = 0 -- Pseudo-transparency for floating windows
-opt.winborder = "rounded" -- Default border for floats that don't set their own (lazy.nvim, neo-tree, LSP floats)
-opt.emoji = false -- Prevent Neovim from assuming emoji are double-width (fixes alignment)
+opt.winborder = "rounded" -- Default border for floats that don't set their own (lazy.nvim, neo-tree, LSP floats, blink)
+opt.pumborder = "rounded" -- Border for the built-in popup menu (0.12), which appears when blink is not loaded yet
 
 opt.smoothscroll = true -- Enable smooth scrolling with <C-d>/<C-u>
 opt.mousemodel = "popup" -- Right-click opens a popup menu instead of extending visual selection; see autocmds.lua's MenuPopup entry for what's in it
@@ -95,11 +96,12 @@ opt.fillchars = {
 opt.splitbelow = true -- Open horizontal splits below the current window
 opt.splitright = true -- Open vertical splits to the right of the current window
 opt.splitkeep = "screen" -- Keep the same text visible on screen when splitting
+opt.switchbuf = "useopen,uselast" -- Quickfix, Trouble and :sbuffer jumps reuse a window already showing the buffer
 opt.winminheight = 1 -- Minimum height for non-active windows
 opt.winheight = 1 -- Minimum height for the active window
 opt.winwidth = 30 -- Minimum width for the active window
 opt.winminwidth = 0 -- Minimum width for non-active windows (allows them to collapse fully)
-opt.helpheight = 0 -- Open help windows at a minimal height (resizes on demand)
+opt.helpheight = 0 -- No minimum height for :help windows; the split takes its usual half
 
 opt.number = true -- Show absolute line numbers
 opt.relativenumber = true -- Show relative line numbers for easy vertical motion
@@ -109,6 +111,7 @@ opt.cursorline = true -- Highlight the line the cursor is on
 opt.cursorlineopt = "number" -- Only highlight the line number, not the entire line
 opt.cursorcolumn = false -- Do not highlight the column the cursor is in
 opt.scrolloff = 15 -- Keep at least 15 lines visible above and below the cursor
+opt.sidescrolloff = 8 -- Keep 8 columns visible left and right of the cursor; 'wrap' is off, so long lines scroll sideways
 
 opt.expandtab = true -- Insert spaces when pressing Tab
 opt.shiftwidth = 2 -- Number of spaces used for each level of (auto-)indentation
@@ -128,7 +131,7 @@ opt.showbreak = "󱞩 " -- Prefix shown at the start of each wrapped line segmen
 opt.linebreak = true -- Wrap long lines at word boundaries rather than mid-word
 opt.shiftround = true -- Round indentation to the nearest multiple of 'shiftwidth'
 opt.virtualedit = "block" -- Allow the cursor to move freely within a visual block selection
-opt.matchpairs:append({ "<:>", "「:」", "『:』", "【:】", '":"', "':'", "《:》" }) -- Extend % to match these bracket pairs
+opt.matchpairs:append({ "<:>", "「:」", "『:』", "【:】", "《:》" }) -- Extend % to angle and CJK brackets; a pair must be two different characters
 
 opt.ignorecase = true -- Case-insensitive search by default
 opt.smartcase = true -- Switch to case-sensitive search when the pattern contains uppercase
@@ -168,6 +171,7 @@ opt.wildignore:append("*.bbl,*.blg,*.brf,*.fls,*.fdb_latexmk,*.synctex.gz,*.xdv"
 opt.wildignore:append({ "*.dylib", "*.bin", "*/build/**", "*.tiff", "*.svg" }) -- Misc binaries and assets
 
 local backup_dir = vim.fn.stdpath("data") .. "/backup//"
+utils.may_create_dir(backup_dir) -- Neovim does not create 'backupdir': without it every write succeeds and no backup is made
 
 opt.backup = true -- Keep a backup copy of files before overwriting
 opt.backupcopy = "yes" -- Overwrite the original backup file on each save (preserves inode)
@@ -176,7 +180,7 @@ opt.backupskip = vim.o.wildignore -- Skip backing up files that match the wildig
 opt.backupskip:append({ "/tmp/*", "/private/tmp/*" }) -- Never back up temporary files
 
 opt.undofile = true -- Persist undo history across sessions
-opt.undodir = vim.fn.stdpath("data") .. "/undo" -- Directory for persistent undo files
+opt.undodir = vim.fn.stdpath("data") .. "/undo" -- Directory for persistent undo files; Neovim creates it on the first write
 
 opt.swapfile = false -- Disable swap files (rely on undo + backup instead)
 opt.writebackup = false -- Disable the temporary pre-write backup (not needed with backup=true)

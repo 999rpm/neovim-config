@@ -19,6 +19,7 @@ return {
 			harpoon = true,
 			["grug-far"] = true,
 			yazi = true,
+			["nvim-undotree"] = true, -- mappings.lua <leader>uu
 		},
 	},
 	keys = {

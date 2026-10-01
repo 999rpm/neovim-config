@@ -22,8 +22,10 @@ end
 vim.opt.rtp:prepend(vim.env.LAZY or lazypath)
 
 local has_git = require("utils").executable("git") -- shared helper; see utils.lua
-local disabled_plugins = { -- names from 0.12's runtime/plugin; matchit stays on, so % also jumps between if/else/end words
+local disabled_plugins = { -- names from 0.12's runtime/plugin
 	"gzip",
+	"matchit", -- editor/matchup.lua replaces it
+	"matchparen", -- editor/matchup.lua replaces it
 	"netrwPlugin", -- oil.lua opens directories
 	"rplugin",
 	"tarPlugin",
@@ -57,6 +59,7 @@ require("lazy").setup({
 	install = { missing = has_git, colorscheme = {} },
 	checker = { enabled = has_git, notify = false }, -- lualine.lua shows the count; no startup notification
 	change_detection = { notify = false },
+	rocks = { enabled = false }, -- no plugin here ships luarocks dependencies; left on, :checkhealth lazy reports hererocks missing
 	ui = {
 		border = "rounded",
 		size = { width = 0.8, height = 0.85 },

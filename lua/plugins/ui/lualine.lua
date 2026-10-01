@@ -1,4 +1,5 @@
--- nvim-lualine/lualine.nvim: global statusline with slanted separators, the same family as barbar's tabline.
+-- nvim-lualine/lualine.nvim: global statusline with slanted separators, the same glyphs and edge colouring as barbar's tabline.
+-- Ahead/behind counts compare HEAD with its upstream as last fetched (lazygit or `git fetch` updates them).
 return {
 	"nvim-lualine/lualine.nvim",
 	event = "VeryLazy",
@@ -27,32 +28,19 @@ return {
 			return fn.winwidth(0) > 100
 		end
 
-		local git_status_cache = { fetch_success = false, behind_count = 0, ahead_count = 0 }
-
-		local function async_cmd(cmd_str, on_exit)
-			local cmd = vim.split(cmd_str, " ")
-			vim.system(cmd, { text = true }, on_exit)
-		end
-
-		local function handle_git_output(key)
-			return function(result)
-				if result.code == 0 then
-					git_status_cache[key] = tonumber(result.stdout:match("(%d+)")) or 0
-				else
-					git_status_cache[key] = 0
-				end
-			end
-		end
+		local git_status_cache = { behind_count = 0, ahead_count = 0 }
 
 		local update_git_status = utils.throttle(function()
-			async_cmd("git fetch origin", function(res)
-				if res.code == 0 then
-					git_status_cache.fetch_success = true
-					async_cmd("git rev-list --count HEAD..@{upstream}", handle_git_output("behind_count"))
-					async_cmd("git rev-list --count @{upstream}..HEAD", handle_git_output("ahead_count"))
-				end
+			local dir = fn.expand("%:p:h")
+			if fn.isdirectory(dir) == 0 then
+				return
+			end
+			local cmd = { "git", "-C", dir, "rev-list", "--left-right", "--count", "HEAD...@{upstream}" } -- local refs only: no fetch racing lazygit for git's lock files
+			vim.system(cmd, { text = true }, function(res)
+				local ahead, behind = (res.code == 0 and res.stdout or ""):match("(%d+)%s+(%d+)")
+				git_status_cache.ahead_count, git_status_cache.behind_count = tonumber(ahead) or 0, tonumber(behind) or 0
 			end)
-		end, 30000)
+		end, 5000)
 
 		vim.api.nvim_create_autocmd({ "BufEnter", "FocusGained" }, {
 			group = utils.augroup("lualine-git-status"),
@@ -123,9 +111,9 @@ return {
 		end
 
 		local function get_lsp_clients()
-			local clients = vim.lsp.get_clients()
+			local clients = vim.lsp.get_clients({ bufnr = 0 }) -- this buffer's servers, not every server in the session
 			if #clients == 0 then
-				return "No Active Lsp"
+				return ""
 			end
 			local names = {}
 			for _, client in ipairs(clients) do
@@ -152,7 +140,7 @@ return {
 			},
 			filename = {
 				"filename",
-				path = 1, -- 0 = just filename, 1 = relative path, 2 = absolute path
+				path = 1, -- 0 = file name only, 1 = relative path, 2 = absolute path
 				file_status = true, -- displays file status (readonly status, modified status)
 				newfile_status = false,
 				symbols = {
@@ -189,6 +177,9 @@ return {
 				lazy_status.updates,
 				cond = lazy_status.has_updates,
 			},
+			showcmd = {
+				"%S", -- 'showcmdloc' is statusline (options.lua): pending counts, registers and operators appear here
+			},
 		}
 
 		require("lualine").setup({
@@ -214,6 +205,7 @@ return {
 					components.python_env,
 				},
 				lualine_x = {
+					components.showcmd,
 					components.lazy,
 					components.spaces,
 					components.indent,

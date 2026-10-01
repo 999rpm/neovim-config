@@ -13,6 +13,7 @@ return {
 				mason = "",
 				trouble = "",
 				snacks_dashboard = "",
+				markdown = { "treesitter", "indent" }, -- treesitter first: after/queries/markdown/folds.scm folds a bullet with its children
 				["neo-tree"] = "",
 			}
 

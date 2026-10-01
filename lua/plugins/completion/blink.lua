@@ -37,7 +37,10 @@ return {
 		},
 
 		sources = {
-			default = { "lsp", "path", "snippets", "buffer", "lazydev" },
+			default = { "lsp", "path", "snippets", "buffer" },
+			per_filetype = {
+				lua = { inherit_defaults = true, "lazydev" }, -- in the default list it loaded lazydev in markdown buffers too
+			},
 			providers = {
 				lsp = {
 					score_offset = 10,
@@ -57,8 +60,8 @@ return {
 
 		completion = {
 			menu = {
-				border = "rounded",
 				draw = {
+					treesitter = { "lsp" }, -- LSP labels highlighted as code; the border follows 'winborder'
 					columns = {
 						{ "label", "label_description", gap = 1 },
 						{ "kind_icon", "kind", gap = 1 },

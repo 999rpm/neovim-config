@@ -2,10 +2,12 @@
 -- No key here takes a built-in away. Built-ins worth knowing: ; and , repeat f/t, q records a macro and @ replays it,
 -- x deletes a char, P pastes over a selection without yanking it, H/M/L jump to the window top/middle/bottom, s changes a char,
 -- ~ toggles case, gi resumes the last insert, gv reselects, g; and g, walk the change list, <C-o>/<C-i> walk the jump list,
--- zz/zt/zb scroll, gx opens a link, & repeats :s, @: repeats a command, ga shows character info, gq formats, . repeats,
--- <C-w>+ <C-w>- <C-w>< <C-w>> <C-w>= size windows, <C-v> starts blockwise visual, ZZ writes and quits, ZQ quits unsaved.
+-- zz/zt/zb scroll, gx opens a link, & repeats :s, @: repeats a command, ga shows character info, gq formats (gw keeps the
+-- cursor), . repeats, <C-w>+ <C-w>- <C-w>< <C-w>> <C-w>= size windows, <C-v> starts blockwise visual, ZZ writes and quits,
+-- ZQ quits unsaved, <C-t>/<C-d> indent/dedent the line in insert mode. vag selects the whole buffer (mini.lua's g object).
 -- 0.12 defaults left alone: ]d [d ]D [D diagnostics, <C-w>d diagnostic float, ]q [q ]l [l lists, ]b [b buffers, ]a [a args,
--- ]t [t tags, ]<Space> [<Space> blank lines, an/in parent/child node, K hover, <C-s> signature help (insert), gr* LSP keys.
+-- ]t [t tags, ]<Space> [<Space> blank lines, an/in parent/child node, K hover, <C-s> signature help (insert), gr* LSP keys,
+-- ZR restart Neovim, :Undotree (<leader>uu here). % g% [% ]% z% a% i% come from matchup.lua, gl/gL (align) from mini.lua.
 -- hardtime.lua owns h j k l J and the arrow keys (it wraps them to count repeats), so nothing here maps them.
 local map = vim.keymap.set
 
@@ -18,6 +20,26 @@ map("n", "<C-s>", "<Cmd>write<CR>", { desc = "Write file" }) -- normal-mode <C-s
 map("n", "<leader>qq", "<Cmd>quit<CR>", { desc = "Quit window" })
 map("n", "<leader>qa", "<Cmd>quitall<CR>", { desc = "Quit all" })
 map("n", "<leader>ph", "<Cmd>checkhealth<CR>", { desc = "Checkhealth" })
+map("n", "<leader>uu", function()
+	vim.cmd.packadd("nvim.undotree") -- 0.12 ships it as an opt package
+	vim.cmd.Undotree()
+end, { desc = "Undo tree" })
+
+map("n", "<leader>df", vim.diagnostic.open_float, { desc = "Line diagnostics (float)" }) -- shorter reach than the built-in <C-w>d
+map("n", "<leader>db", function()
+	vim.fn.setqflist({}, " ", { title = "Buffer diagnostics", items = vim.diagnostic.toqflist(vim.diagnostic.get(0)) })
+	vim.cmd.copen()
+end, { desc = "Buffer diagnostics to quickfix" })
+map("n", "<leader>dw", vim.diagnostic.setqflist, { desc = "All diagnostics to quickfix" }) -- every open buffer, and opens the list
+
+map("n", "dm", function()
+	local mark = vim.fn.getcharstr()
+	if mark == "!" then
+		vim.cmd("delmarks!") -- every lowercase mark of the buffer
+	elseif mark:match('^[%w"%^%.%[%]<>]$') then
+		pcall(vim.cmd.delmarks, mark)
+	end
+end, { desc = "Delete mark (next key names it, ! all lowercase)" }) -- dm has no built-in job: m is not a motion
 
 map("n", "<leader><leader>", "V", { desc = "Visual line" })
 map("x", "<leader><leader>", "<Esc>", { desc = "Leave visual" })
@@ -25,7 +47,7 @@ map("i", "<M-m>", "<Esc>", { desc = "Leave insert" })
 
 map("x", "<Tab>", ">gv", { desc = "Indent, keep selection" })
 map("x", "<S-Tab>", "<gv", { desc = "Dedent, keep selection" })
-map("n", "<M-j>", "<Cmd>move+<CR>==", { desc = "Move line down" })
+map("n", "<M-j>", "<Cmd>move+<CR>==", { desc = "Move line down" }) -- notes/logseq.lua moves a whole bullet in graph buffers
 map("n", "<M-k>", "<Cmd>move-2<CR>==", { desc = "Move line up" })
 map("x", "<M-j>", ":move '>+1<CR>gv=gv", { silent = true, desc = "Move selection down" }) -- ":" rather than <Cmd>, so the '< '> marks update first
 map("x", "<M-k>", ":move '<-2<CR>gv=gv", { silent = true, desc = "Move selection up" })
@@ -42,15 +64,14 @@ local function yank_path(modifier, title)
 	end
 end
 
-map("n", "<leader>na", "ggVG", { desc = "Select whole buffer" })
-map({ "n", "x" }, "<leader>np", '"0p', { desc = "Paste last yank (after)" })
-map("n", "<leader>nP", '"0P', { desc = "Paste last yank (before)" })
-map({ "n", "x" }, "<leader>nc", '"_c', { desc = "Change, no yank" })
-map({ "n", "x" }, "<leader>nC", '"_C', { desc = "Change to line end, no yank" })
-map({ "n", "x" }, "<leader>nd", '"_d', { desc = "Delete, no yank" })
-map({ "n", "x" }, "<leader>nD", '"_D', { desc = "Delete to line end, no yank" })
-map("n", "<leader>ny", yank_path(":~:.", "Yanked relative path"), { desc = "Yank relative path" })
-map("n", "<leader>nY", yank_path(":p", "Yanked absolute path"), { desc = "Yank absolute path" })
+map({ "n", "x" }, "<leader>yp", '"0p', { desc = "Paste last yank (after)" }) -- register 0 keeps the last yank through deletes
+map("n", "<leader>yP", '"0P', { desc = "Paste last yank (before)" })
+map({ "n", "x" }, "<leader>yc", '"_c', { desc = "Change, no yank" }) -- "_ is the black hole register
+map({ "n", "x" }, "<leader>yC", '"_C', { desc = "Change to line end, no yank" })
+map({ "n", "x" }, "<leader>yd", '"_d', { desc = "Delete, no yank" })
+map({ "n", "x" }, "<leader>yD", '"_D', { desc = "Delete to line end, no yank" })
+map("n", "<leader>yf", yank_path(":~:.", "Yanked relative path"), { desc = "Yank relative path" })
+map("n", "<leader>yF", yank_path(":p", "Yanked absolute path"), { desc = "Yank absolute path" })
 
 map("n", "gco", "o<Esc>Vcx<Esc><Cmd>normal gcc<CR>fxa<BS>", { desc = "Comment line below" }) -- placeholder x keeps gcc from skipping a blank line
 map("n", "gcO", "O<Esc>Vcx<Esc><Cmd>normal gcc<CR>fxa<BS>", { desc = "Comment line above" })

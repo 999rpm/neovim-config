@@ -3,121 +3,94 @@
 What changed, and the reason it changed. Newest first. Older passes are condensed to their conclusions once a later
 pass has confirmed them.
 
-## 2026-09-30 (tenth pass): laziness, snacks.words, one rule per prefix
+## 2026-10-01 (twelfth pass): three regressions, reference configs, fewer hand-written parts
 
-Method: Neovim 0.12.5 was built into a clean sandbox, the tree installed from the archive, and all 88 specs synced.
-Findings come from that running instance: a full keymap dump across eight modes (823 maps), `startuptime` averaged over
-three runs, `which-key.health.check()`, `checkhealth vim.deprecated`, `stylua --check` against `.stylua.toml`, and
-reading the installed source of every plugin whose behaviour was in question. `lazy-lock.json` is regenerated from this
-install.
+Method: Neovim 0.12.5 (the current stable), every plugin at its latest commit (only avante had moved), a pseudo-terminal
+set up like kitty (`COLORTERM=truecolor`, `TERM=xterm-kitty`, answering its startup queries) for the startup checks, and
+headless runs for the rest. The sixteen reference repos were cloned; plugin choices, options, autocommands and keymaps
+were extracted from all of them, and the files of folke/dot and linkarzu's neobean read in full. Every plugin added has
+commits within the last six months.
 
-### Startup
+### Regressions fixed
 
-21 plugins loaded at startup; 11 do now. Eight warm runs of `nvim --headless --startuptime` afterwards spread across
-48-71 ms, mean 60 ms, against 119 ms before; an earlier three-run sample read 42-47 ms, so the spread is wider than
-one sample suggests and the mean is the honest figure. Five of the ten plugins were loading for avoidable reasons:
+- **Theme switcher never ran.** `999rpm-themer` and `999rpm-notes` both had `dir = stdpath("config")`; lazy.nvim matches
+  local specs by directory, so it merged them into one plugin named `999rpm-notes` with the themer's `lazy = false` and
+  the notes spec's `config`. No colorscheme loaded, the `<leader>u` theme keys did not exist, and the notes layer loaded
+  at startup. Both are now `virtual = true` specs with a slash-less name (lazy.nvim rejects a spec with only `name`).
+- **Colorizer disabled itself.** 0.12 detects truecolor but applies `termguicolors` at `VimEnter`, after the
+  `BufReadPre` of a file named on the command line, where colorizer's setup found it off, printed the error and returned.
+  The ninth pass had removed the option as a default. It is set again; a side effect is that colorizer now switches off
+  0.12's own LSP colour highlighting in the buffers it paints, so colours are drawn once.
+- **DAP warned for every missing adapter on any debug key.** `utils.mason_adapter()` wraps each adapter so its Mason file
+  is checked when that adapter's session starts. haskell-debug-adapter installs only when `stack` is on `$PATH`: the
+  launch configuration runs `stack ghci`.
 
-- `harpoon` had no `keys`, `event` or `cmd`: its global maps were set inside `config`, so the whole plugin loaded to
-  create nine keymaps. The maps moved into a `keys` table built above the spec, and the `UI_CREATE` extension stayed in
-  `config`.
-- `mason-lspconfig` listed `nvim-lspconfig` in `dependencies`. Version 2 ships its own `mason-lspconfig.mappings` and
-  never requires lspconfig, so the entry did nothing except drag lspconfig, schemastore and blink into startup. Both
-  Mason bridges now wait for `VeryLazy`.
-- `nvim-lspconfig` itself had no load trigger. It takes `BufReadPre`/`BufNewFile` now, which still runs before the
-  first `FileType`, so servers attach exactly as before. `blink.cmp` and `schemastore` follow it off the startup path.
-- `barbar` listed `gitsigns.nvim`. barbar reads `b:gitsigns_status_dict` through a `pcall` and its `icons.gitsigns`
-  entries default to `enabled = false`, which this config never turns on, so the entry only cost gitsigns its own
-  `BufReadPre` trigger.
-- Seven files listed `nvim-mini/mini.nvim` for icons alone. mini is `lazy = false` at priority 1000 and is loaded
-  before anything that draws an icon, so the entries were noise. `blink.cmp` no longer lists `lazydev.nvim` either:
-  its provider is reached by module name, which lazy.nvim's loader resolves, so lazydev stays `ft = "lua"`.
+### Replaced or added
 
-### snacks.words replaces hand-written reference highlighting
+- tiny-inline-diagnostic.nvim replaces the 80-line rounded virtual-lines handler in `utils.lua`; its default already
+  draws only the cursor line.
+- vim-matchup replaces the bundled matchit and matchparen: `%` pairs `function`/`end` and HTML tags through treesitter.
+  Its offscreen popup is off, because treesitter-context shows the same line.
+- ts-comments.nvim: `gc` inside JSX writes `{/* */}`.
+- mini.align (already inside mini.nvim) on `gl`/`gL`; `ga` stays the built-in character info, `gA` coerce.
+- crates.nvim for `Cargo.toml`, through its in-process language server (`gra`, `K`, completion).
+- Snacks.rename is hooked into neo-tree and oil, so moving a file updates imports through the language servers.
+- Colorizer takes Tailwind colours from tailwindcss-language-server where it runs; blink drops a border it already takes
+  from `winborder` and highlights LSP labels with treesitter; pickers rank by frecency and the cwd.
+- Options: `shada` keeps 0.12's `/tmp/` and `/private/` exclusions it had overwritten, `sidescrolloff = 8`,
+  `switchbuf = useopen,uselast`, `pumborder = rounded`.
+- lualine no longer runs `git fetch origin` every 30 seconds: that raced lazygit and gitsigns for git's lock files and
+  could raise SSH prompts. Ahead/behind counts come from local refs.
+- A first run opens tokyonight moon (upstream's default) instead of the light day style.
 
-`lspconfig.lua` created a `CursorHold`/`CursorHoldI` pair calling `vim.lsp.buf.document_highlight`, a `CursorMoved`
-pair calling `clear_references`, a per-buffer guard variable and an `LspDetach` handler to tear all of it down.
-snacks.nvim already ships `words`, enabled on `LspAttach`, debounced at 200 ms, with a `jump(count, cycle)` API and no
-keymaps of its own. The module is on, roughly thirty lines went, and `]r`/`[r` now walk the occurrences — which the
-hand-written version could not do. `<leader>oR` toggles it. `]]`/`[[` stay the built-in section motions.
+### Keys
 
-### Key scheme
+- `<leader>x` merged into `<leader>d`: one group for every diagnostic view (`df` float, `db`/`dw` quickfix, Trouble on
+  `dd` `dD` `ds` `dl` `dq`). LSP workspace folders moved from `<leader>w*` to `<leader>lwa/lwr/lwl`.
+- New: `<leader>uu` 0.12's `:Undotree`, `dm` + mark deletes a mark (`dm` has no built-in job), `gl`/`gL` align.
+- which-key labels `ZZ`, `ZQ`, 0.12's `ZR` (restart) and matchup's `%` family. 458 global keymaps, none on kitty's
+  `ctrl+shift` or `alt+1`..`alt+9`.
 
-Instruction: one rule per prefix. `<leader>o` held nineteen keys mixing toggles with plugin managers and the theme
-switcher, and its mnemonics collided (`os` cycled a theme style while `oS` toggled spelling).
+### Declined
 
-- `<leader>o` is now toggles and nothing else, case-paired: `on`/`oN` numbers, `ow` wrap, `os` spelling, `oi` indent
-  guides, `od`/`oD` diagnostics and dimming, `oh` inlay hints, `oR` reference highlights, `oc` treesitter context,
-  `of`/`oF` format on save, `og`/`oG` git blame and line highlights, `ox` hex view, `oH` hardtime.
-- `<leader>u` is UI and theme: `ut`/`uT` next theme and transparency, `uc`/`uC` next style and the picker, then the
-  scratch, zen, zoom, breadcrumb, markdown, image and d2 keys it already had.
-- `<leader>p` is new, for the things that are not toggles: `pl` Lazy, `pm` Mason, `pc` ConformInfo, `ph` checkhealth.
-  `ph` fills a real gap — there was no key for `:checkhealth`.
-- `<leader>cf` carried `mode = ""`, which binds n, v *and* operator-pending; the dump showed `o  <Space>cf`. It is
-  `{ "n", "x" }` now.
-- Descriptions are sentence case throughout, with no trailing period and no repetition of the group name
-  ("Avante Ask" → "Avante: ask", "Run Nearest Test" → "Run nearest test").
-
-### Defects fixed
-
-- `jumpoptions` was assigned `stack,view`, dropping 0.12's `clean`. `options.txt` describes the three as independent,
-  so `stack,view,clean` keeps the tagstack behaviour and the mark-view restore without leaving unloaded buffers in the
-  jumplist.
-- `signs_staged` was left at gitsigns' defaults while `signs` was customised, so staged hunks drew `▁ ▔ ~` against the
-  unstaged `┃ │ ║`. Both sets match now; only the highlight differs.
-- Four executable checks used `vim.fn.executable(...) == 1` directly while six others went through `utils.executable`.
-  All ten go through the helper.
-
-### Structure
-
-`frontend/` (three small files) merged into `lang-tools/`, which became `lang/`: formatters, linters and per-language
-helpers in one folder, fourteen category folders down to thirteen. `loader.lua` names what each folder holds.
-
-### utils.lua
-
-Two helpers added, each replacing a duplicated block: `mason_path(unix, windows)` builds a path under Mason's data
-directory and picks the Windows layout where it differs (four call sites across `dap.lua` and `dap-python.lua`), and
-`map_close(buf, wipe)` binds `q` to close a throwaway window (`autocmds.lua` and `d2_text`). `augroup("virtual-lines")`
-replaces the one `nvim_create_augroup` call that bypassed the helper. Every entry still carries its "used by" line, and
-those lines were re-checked against a grep of the tree.
-
-### 999rpm naming
-
-Buffer-local variables were a mix of `b:user_*` and `b:_999rpm_*`; they are all `b:_999rpm_*` now
-(`_999rpm_last_loc`, `_999rpm_secure_tmp`, `_999rpm_backup_was_on`, alongside the existing cache, branch and
-virtual-lines flags). The theme state file moved from `theme_state.json` to `999rpm-theme.json`, the d2 cache to
-`999rpm-d2/`, and the d2 text buffer to `999rpm://d2-text`. The first theme switch after this pass starts from the
-defaults, since the old state file is not read.
+- kitty-scrollback.nvim: needs remote control in kitty.conf, and the TermOpen autocommand would put its view in insert
+  mode; not verifiable without kitty. smart-splits: it would change kitty's split keys.
+- quicker.nvim overlaps nvim-bqf, and its `<`/`>` collide with bqf's list history.
+- marks.nvim, nvim-treesitter-endwise, themery.nvim, virt-column.nvim: no commits for 9 to 23 months.
+- telescope, fzf-lua, bufferline, nvim-cmp, diffview, neogit, alpha, fidget: snacks, barbar, blink, codediff, lazygit
+  and noice cover them.
+- Reference keymaps such as `j`/`k` to `gj`/`gk`, `<C-d>zz`, `x` to `"_x`, `<C-c>` to `ciw`: each takes a built-in or one
+  of hardtime's keys.
+- mini.trailspace for the trim-on-write autocommand: no less code, and it would mark trailing spaces that 'listchars'
+  already shows.
 
 ### Checked and left as is
 
-- hardtime does map `h j k l J x X . c d y p P C Y ~` and the arrow keys. Its `M.setup` defers the real work by 500 ms,
-  so a check that does not wait will report the maps as absent. The notes in `mappings.lua` and the README are correct.
-- better-escape inserts the first key immediately through an `expr` map and backspaces it only when the pair completes,
-  so its cmdline-mode `j`/`k` maps cost no typing lag.
-- nvim-autopairs' global insert `<CR>` sits underneath blink's buffer-local `<CR>`, and blink's `fallback` reaches it.
-- 0.12.5's `_core/defaults.lua` does set `grepprg = "rg --vimgrep -uu "` when ripgrep is present, so the override in
-  `options.lua` is doing what its comment says.
-- which-key health reports only structural overlaps: `gc` against `gco`/`gcc`/`gcO`/`gcA`, and mini.ai's `a`/`i`
-  against `an`/`al`/`aN` and matchit's `a%`. `checkhealth vim.deprecated` is clean.
-- Quiet but working on 0.12.5: promise-async (2024-08, ufo's library), guess-indent (2025-03), nvim-dap-virtual-text
-  (2025-03), hex.nvim (2025-07), harpoon2 (2025-10). Several folke plugins also show 2025 dates, either because the
-  spec pins a tag or because the plugin is finished, not because it is abandoned.
-- Kitty: the archive's `kitty.conf` and the current one differ by a single commented `shell` line. kitty binds
-  `ctrl+shift+*` and `alt+1`..`alt+9`, none of which Neovim uses here, and nothing catches the Alt keys,
-  `<M-arrows>` or `<M-LeftMouse>`. No change needed.
-- Shells: every external call still passes an argument list to `vim.system`, so zsh and nushell behave the same. The
-  current `.zshrc` has no `unsetopt FLOW_CONTROL`, which the README now states rather than implies.
+- Four plugins have had no commits for over a year (promise-async, guess-indent, nvim-dap-virtual-text, hex.nvim). They
+  work, and no maintained alternative exists; vim-sleuth is older still.
+- `v:errmsg` still holds barbar's silent `dictwatcherdel` E116.
+- which-key's health lists prefix overlaps, all by design: Neovim's own `gc`/`gcc` beside `gco` `gcO` `gcA`, and
+  mini.ai's `a`/`i` beside 0.12's `an`/`in`, mini.ai's `al`/`aN` and matchup's `a%`/`i%`. No duplicate keymaps. The
+  eleventh pass's "no overlaps" line was wrong for the same reason.
+- `:grep` fills the quickfix list and `:!` runs under both nushell 0.116 and zsh.
 
-### Open for next pass
+## Earlier passes: conclusions only
 
-- Inline placement of images and d2 PNGs needs a real kitty window. The sandbox has no graphics protocol, so rendering,
-  file output and the split were verified, not the drawing.
-- Mason's registry was unreachable, so server and tool installs were not exercised; `cargo` is absent, so avante's
-  build step fails there as documented.
-- `VeryLazy` does not fire under `--headless`, so the two Mason bridges were verified by firing `User VeryLazy` by
-  hand.
+**Eleventh pass (2026-09-30).** The Logseq layer: markdown-oxide rooted at a `logseq/` graph with
+`moxide/settings.toml`, `notes/logseq.lua` with the `notes_*` helpers (journals, pages, references, tasks, agenda,
+templates, block moves, focus, link graph, git commit), markdown-plus, auto-save limited to the graph, graph highlights
+through mini.hipatterns, bullet folds in `after/queries/markdown/folds.scm`, Logseq snippets. Defects fixed then:
+`matchpairs` entries with one character, `emoji = false` against kitty's two-cell emoji, `showcmdloc` next to
+`showcmd = false`, a `backupdir` Neovim never created, `close_with_q` on a wiped buffer, a file-reload check on every
+`CursorHold`, lualine listing every session's servers, blink loading lazydev outside Lua. `<leader>n` became the notes
+graph and the no-yank edits moved to `<leader>y`.
 
-## Earlier passes (2026-09-24 and before): conclusions only
+**Tenth pass (2026-09-30).** Startup went from 21 plugins to 11 (119 ms to about 60 ms with a UI): harpoon's keys moved
+into `keys`, mason-lspconfig stopped naming nvim-lspconfig, lspconfig waits for `BufReadPre`, barbar stopped naming
+gitsigns, mini.icons left seven dependency lists. snacks.words replaced a hand-written `documentHighlight` pair and
+gave `]r`/`[r`. Key scheme: `<leader>o` holds toggles only, `<leader>u` UI and theme, `<leader>p` plugins and tools.
+`jumpoptions` keeps 0.12's `clean`; staged gitsigns glyphs match the unstaged ones; every executable check goes
+through `utils.executable`. `frontend/` merged into `lang/`. Buffer variables became `b:_999rpm_*`.
 
 **Ninth pass.** d2 replaced mermaid: mermaid-cli renders through a headless Chromium, d2 0.9.0 is one static binary
 that writes SVG, PNG and text itself. Added `tree-sitter-d2.lua`, `utils.d2_render()`, `utils.d2_text()`, the `d2`

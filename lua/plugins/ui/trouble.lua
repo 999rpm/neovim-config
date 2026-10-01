@@ -1,5 +1,6 @@
 -- folke/trouble.nvim: diagnostics, symbols and LSP locations in a list.
--- Keys: <leader>dd all diagnostics, dD this buffer, ds symbols, dl LSP locations, dq quickfix.
+-- Keys: <leader>dd all diagnostics, dD this buffer, ds symbols, dl LSP locations, dq quickfix. The same group holds
+-- mappings.lua's df (line float), db and dw (buffer and workspace to the plain quickfix list).
 -- In the list: <Tab>/<S-Tab> next/previous, <CR> jump, o jump and close, p preview, P auto preview, q close.
 return {
 	"folke/trouble.nvim",

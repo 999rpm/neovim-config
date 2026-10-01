@@ -1,5 +1,6 @@
 -- mfussenegger/nvim-dap: debugger client, adapters and launch configurations under <leader>D.
--- Adapters come from Mason: codelldb (C, C++, Rust), js-debug-adapter (JS, TS), haskell-debug-adapter; python is dap-python.lua.
+-- Adapters come from Mason: codelldb (C, C++, Rust), js-debug-adapter (JS, TS), haskell-debug-adapter (installed only
+-- when stack is on $PATH); python is dap-python.lua. Each adapter checks for its file when its session starts.
 -- Keys: <leader>D b breakpoint, B conditional, L log point, x clear all, p list, c continue, C run to cursor, l run last,
 -- i/o/O step into/over/out, P pause, t terminate, r REPL, h hover value, s scopes, e evaluate, u UI; F5/F10/F11/F12 as in most IDEs.
 return {
@@ -197,20 +198,12 @@ return {
 		end)
 
 		local js_debug_server = utils.mason_path("packages/js-debug-adapter/js-debug/src/dapDebugServer.js")
-		utils.warn_if_missing_mason_bin(js_debug_server, "js-debug-adapter")
-
-		dap.adapters["pwa-node"] = {
+		dap.adapters["pwa-node"] = utils.mason_adapter(js_debug_server, "js-debug-adapter", {
 			type = "server",
 			host = "localhost",
 			port = "${port}",
-			executable = {
-				command = "node",
-				args = {
-					js_debug_server,
-					"${port}",
-				},
-			},
-		}
+			executable = { command = "node", args = { js_debug_server, "${port}" } },
+		})
 
 		for _, ft in ipairs({
 			"javascript",
@@ -231,16 +224,11 @@ return {
 		end
 
 		local codelldb_bin = utils.mason_path("bin/codelldb", "bin/codelldb.cmd")
-		utils.warn_if_missing_mason_bin(codelldb_bin, "codelldb")
-
-		dap.adapters.codelldb = {
+		dap.adapters.codelldb = utils.mason_adapter(codelldb_bin, "codelldb", {
 			type = "server",
 			port = "${port}",
-			executable = {
-				command = codelldb_bin,
-				args = { "--port", "${port}" },
-			},
-		}
+			executable = { command = codelldb_bin, args = { "--port", "${port}" } },
+		})
 
 		dap.configurations.cpp = {
 			{
@@ -257,13 +245,11 @@ return {
 		dap.configurations.rust = vim.deepcopy(dap.configurations.cpp)
 
 		local haskell_debug_bin = utils.mason_path("bin/haskell-debug-adapter", "bin/haskell-debug-adapter.cmd")
-		utils.warn_if_missing_mason_bin(haskell_debug_bin, "haskell-debug-adapter")
-
-		dap.adapters.haskell = {
+		dap.adapters.haskell = utils.mason_adapter(haskell_debug_bin, "haskell-debug-adapter", {
 			type = "executable",
 			command = haskell_debug_bin,
 			args = { "--hackage-version=0.0.33.0" },
-		}
+		})
 		dap.configurations.haskell = {
 			{
 				type = "haskell",
