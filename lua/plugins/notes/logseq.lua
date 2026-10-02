@@ -163,6 +163,10 @@ return {
 		vim.api.nvim_create_user_command("Journal", function(o)
 			utils.notes_journal(o.args)
 		end, { nargs = "*", desc = "Open the journal for a date (today when empty)" })
-		vim.api.nvim_create_user_command("NotesInit", utils.notes_init, { desc = "Create journals/, pages/ and assets/" })
+		vim.api.nvim_create_user_command(
+			"NotesInit",
+			utils.notes_init,
+			{ desc = "Create journals/, pages/ and assets/" }
+		)
 	end,
 }

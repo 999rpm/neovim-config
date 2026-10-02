@@ -11,8 +11,6 @@ g.maplocalleader = "\\" -- markdown, review, grug-far and Octo buffers keep thei
 g.have_nerd_font = true -- plugins that check it draw icons
 g.markdown_recommended_style = 0 -- the markdown ftplugin leaves indentation alone
 g.yaml_indent_multiline_scalar = 1 -- indent continuation lines of a multi-line YAML string
-g.no_gitrebase_maps = 1 -- no ftplugin keys in git rebase buffers
-g.no_man_maps = 1 -- no ftplugin keys in man pages; autocmds.lua's close_with_q adds q
 g.notes_dir = vim.env.NOTES_DIR or "~/notes" -- notes graph (journals/, pages/, assets/); $NOTES_DIR overrides
 
 g.loaded_perl_provider = 0
@@ -175,8 +173,8 @@ utils.may_create_dir(backup_dir) -- Neovim does not create 'backupdir'; without 
 opt.backup = true -- keep the previous version of a file
 opt.backupcopy = "yes" -- copy, then overwrite the original, so its inode survives
 opt.backupdir = backup_dir
-opt.backupskip = vim.o.wildignore -- no backups of files 'wildignore' hides
-opt.backupskip:append({ "/tmp/*", "/private/tmp/*" })
+opt.backupskip:append(opt.wildignore:get()) -- no backups of files 'wildignore' hides; the default temp-folder patterns stay
+opt.backupskip:append({ "*/shm/*", "/private/tmp/*", "/private/var/*", "*.tmp", "*.bak", "COMMIT_EDITMSG", "MERGE_MSG" }) -- RAM disks, macOS temp, transient files
 
 opt.undofile = true -- undo history survives a restart
 opt.undolevels = 10000 -- 0.12 keeps 1000
@@ -186,6 +184,7 @@ opt.swapfile = false -- undo files and backups cover recovery
 opt.writebackup = false -- 'backup' already keeps the old version
 
 opt.sessionoptions:remove({ "blank", "buffers", "terminal" }) -- sessions keep no empty windows, hidden buffers or terminals
+opt.sessionoptions:append("globals") -- barbar.lua's buffer order and pins; persistence.lua fires SessionSavePre first
 
 opt.foldlevel = 99 -- folds start open
 opt.foldlevelstart = 99

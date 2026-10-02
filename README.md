@@ -1,4 +1,4 @@
-# Neovim config
+# 999rpm's Neovim config
 
 Personal Neovim configuration for Neovim 0.12 and later, managed by [lazy.nvim](https://github.com/folke/lazy.nvim).
 One plugin per file, almost all of them lazy-loaded. Besides code editing it covers two extra jobs: a Logseq-style notes
@@ -27,7 +27,8 @@ Written for Neovim 0.12.5 on Linux, with kitty as the terminal and zsh or nushel
   [markdown-oxide](https://github.com/Feel-ix-343/markdown-oxide), drawn by
   [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim)
 - Jupyter notebooks through [molten-nvim](https://github.com/benlubas/molten-nvim) and
-  [otter.nvim](https://github.com/jmbuhr/otter.nvim); `.ipynb` files open as markdown
+  [otter.nvim](https://github.com/jmbuhr/otter.nvim); `.ipynb` files open as markdown, and cells are added, cut, split
+  and joined with JupyterLab's letters
 - AI: [avante.nvim](https://github.com/avante-corp/avante.nvim), [opencode.nvim](https://github.com/NickvanDyke/opencode.nvim),
   [mcphub.nvim](https://github.com/ravitemer/mcphub.nvim)
 - Themes: tokyonight, catppuccin, kanagawa and monokai-pro, switched and remembered across restarts
@@ -42,16 +43,18 @@ Written for Neovim 0.12.5 on Linux, with kitty as the terminal and zsh or nushel
 
 ## Install
 
+The archive mirrors the home folder: `.config/nvim`, `.config/kitty/kitty.conf`, `.config/nushell`, `.config/moxide`,
+`.zshrc` and `.zshenv`.
+
 ```sh
 mv ~/.config/nvim ~/.config/nvim.bak
-unzip nvim-config.zip -d ~/.config   # nvim/, kitty/kitty.conf, moxide/settings.toml
+unzip -o 999rpm-dotfiles.zip -d ~
 nvim
 ```
 
-`unzip nvim-config.zip 'nvim/*' -d ~/.config` installs the Neovim part alone. The first start clones the plugins and
-Mason installs the servers, formatters and linters. `:checkhealth` reports
-anything missing. `:JupyterSetup` builds the Python environment the notebooks use, and `:NotesInit` creates the notes
-folders.
+`unzip -o 999rpm-dotfiles.zip '.config/nvim/*' -d ~` installs the Neovim part alone. The first start clones the plugins
+and Mason installs the servers, formatters and linters. `:checkhealth` reports anything missing. `:JupyterSetup` builds
+the Python environment the notebooks use, and `:NotesInit` creates the notes folders.
 
 ## Layout
 
@@ -78,7 +81,7 @@ to search every mapping. Built-in keys keep their jobs.
 | `<leader>d` | Diagnostics | `<leader>D` | Debug |
 | `<leader>g` | Git | `<leader>G` | Review (codediff) |
 | `<leader>t` | Terminals | `<leader>T` | Tests |
-| `<leader>n` | Notes graph | `<leader>k` | Jupyter kernel |
+| `<leader>n` | Notes graph | `<leader>k` | Jupyter kernel and cells |
 | `<leader>o` | Toggles | `<leader>u` | UI and themes |
 | `<leader>h` | Harpoon | `<leader>m` | Multicursor |
 | `<leader>r` | Replace across files | `<leader>y` | Yank and registers |
@@ -97,6 +100,9 @@ the Logseq app can open the same folder. `<leader>nn` opens today's journal, `<l
 
 `nvim file.ipynb` opens a notebook as markdown, starts its kernel and shows the saved outputs. `<S-CR>` runs a cell
 and moves to the next one, `<C-CR>` runs it in place, and `:w` writes a normal notebook back, outputs included.
+`<leader>ka`/`<leader>kb` add an empty cell above/below, `<leader>kd` cuts the cell (`p` pastes it elsewhere),
+`<leader>ks` splits it at the cursor and `<leader>kj` joins it with the next one; the same keys work in quarto
+documents and `# %%` scripts.
 
 ## Shell and terminal
 

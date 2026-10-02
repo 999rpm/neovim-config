@@ -3,11 +3,12 @@
 -- through kitty. The picker lists every installed kernelspec: a uv project joins it through <leader>kv, a micromamba or
 -- venv environment after `python -m ipykernel install --user --name <env>` inside it. Notebooks open through ipynb.lua.
 -- Keys (<leader>k): i start a kernel (the notebook's own, else a picker), r restart, x interrupt, q shut down, K info;
--- c run the cell (on a selection: run the selection), n run it and go to the next, a run every cell up to here, A run
+-- c run the cell (on a selection: run the selection), n run it and go to the next, u run every cell up to here, A run
 -- all, l run the line, o run a motion (ko then ij runs the cell's code); e enter the output window (:q leaves it),
--- h hide it, d delete the cell's output, p open its image, b open HTML output in the browser, E/I export/import outputs
--- to/from the .ipynb, N new notebook, v register the uv project as a kernel (:JupyterKernelAdd [name]). The statusline
--- names the buffer's kernel. :JupyterSetup builds the Python side, with uv when it is on $PATH, else venv and pip.
+-- h hide it, D delete the cell's output, p open its image, w open HTML output in the browser, E/I export/import outputs
+-- to/from the .ipynb, N new notebook, v register the uv project as a kernel (:JupyterKernelAdd [name]). In cell buffers
+-- ipynb.lua adds a/b/d/s/j: add above/below, delete, split, join. The statusline names the buffer's kernel.
+-- :JupyterSetup builds the Python side, with uv when it is on $PATH, else venv and pip.
 local function util(name, ...)
 	local args = { ... }
 	return function()
@@ -28,7 +29,11 @@ return {
 		g.molten_wrap_output = true
 		g.molten_output_win_max_height = 20
 		g.molten_output_win_border = "rounded" -- same border as 'winborder'
-		vim.api.nvim_create_user_command("JupyterSetup", util("jupyter_setup"), { desc = "Create or update the Jupyter environment" })
+		vim.api.nvim_create_user_command(
+			"JupyterSetup",
+			util("jupyter_setup"),
+			{ desc = "Create or update the Jupyter environment" }
+		)
 		vim.api.nvim_create_user_command("JupyterKernelAdd", function(o)
 			require("utils").jupyter_kernel_add(o.args)
 		end, { nargs = "?", desc = "Register the uv project as a Jupyter kernel" })
@@ -42,15 +47,15 @@ return {
 		{ "<leader>kc", util("notebook_run", "cell"), desc = "Run cell" },
 		{ "<leader>kc", ":<C-u>MoltenEvaluateVisual<CR>gv", mode = "x", silent = true, desc = "Run selection" }, -- ":" so '< and '> are set first
 		{ "<leader>kn", util("notebook_run", "next"), desc = "Run cell, go to next" },
-		{ "<leader>ka", util("notebook_run", "above"), desc = "Run cells up to here" },
+		{ "<leader>ku", util("notebook_run", "above"), desc = "Run cells up to here" },
 		{ "<leader>kA", util("notebook_run", "all"), desc = "Run all cells" },
 		{ "<leader>kl", "<Cmd>MoltenEvaluateLine<CR>", desc = "Run line" },
 		{ "<leader>ko", "<Cmd>MoltenEvaluateOperator<CR>", desc = "Run motion (then a motion)" },
 		{ "<leader>ke", "<Cmd>noautocmd MoltenEnterOutput<CR>", desc = "Enter output window" },
 		{ "<leader>kh", "<Cmd>MoltenHideOutput<CR>", desc = "Hide output window" },
-		{ "<leader>kd", "<Cmd>MoltenDelete<CR>", desc = "Delete cell output" },
+		{ "<leader>kD", "<Cmd>MoltenDelete<CR>", desc = "Delete cell output" },
 		{ "<leader>kp", "<Cmd>MoltenImagePopup<CR>", desc = "Open output image" },
-		{ "<leader>kb", "<Cmd>MoltenOpenInBrowser<CR>", desc = "Open HTML output in browser" },
+		{ "<leader>kw", "<Cmd>MoltenOpenInBrowser<CR>", desc = "Open HTML output in browser" },
 		{ "<leader>kE", "<Cmd>MoltenExportOutput!<CR>", desc = "Export outputs to the .ipynb" },
 		{ "<leader>kI", "<Cmd>MoltenImportOutput<CR>", desc = "Import outputs from the .ipynb" },
 		{ "<leader>kN", util("notebook_new"), desc = "New notebook" },

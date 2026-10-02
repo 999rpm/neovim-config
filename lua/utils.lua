@@ -58,7 +58,10 @@ end
 function M.mason_adapter(path, label, adapter) -- This util is used by dap.lua and dap-python.lua
 	return function(callback, config, parent)
 		if not vim.uv.fs_stat(path) then
-			return warn(("%s not found at %s. Check :Mason or :MasonLog, then run :MasonInstall %s."):format(label, path, label), "DAP")
+			return warn(
+				("%s not found at %s. Check :Mason or :MasonLog, then run :MasonInstall %s."):format(label, path, label),
+				"DAP"
+			)
 		end
 		if type(adapter) == "function" then
 			return adapter(callback, config, parent)
@@ -91,7 +94,7 @@ end
 ---@param name string
 ---@param clear? boolean defaults to true
 ---@return integer
-function M.augroup(name, clear) -- This util is used by autocmds.lua, ipynb.lua, lint.lua, logseq.lua, lspconfig.lua, lualine.lua, markdown-plus.lua, molten.lua, nvim-bqf.lua, oil.lua and treesitter.lua, and notebook_kernel below
+function M.augroup(name, clear) -- This util is used by autocmds.lua, ipynb.lua, lint.lua, logseq.lua, lspconfig.lua, lualine.lua, markdown-plus.lua, molten.lua, nvim-bqf.lua, oil.lua, persistence.lua and treesitter.lua, and notebook_kernel below
 	return api.nvim_create_augroup("999rpm-" .. name:gsub("_", "-"), { clear = clear ~= false })
 end
 
@@ -212,7 +215,8 @@ function M.get_current_branch_name() -- This util is used by options.lua
 	local cached = vim.b._999rpm_branch
 	if cached == nil then
 		local dir = fn.expand("%:p:h")
-		cached = fn.isdirectory(dir) == 1 and (run_git({ "git", "-C", dir, "rev-parse", "--abbrev-ref", "HEAD" }) or "") or ""
+		cached = fn.isdirectory(dir) == 1 and (run_git({ "git", "-C", dir, "rev-parse", "--abbrev-ref", "HEAD" }) or "")
+			or ""
 		if cached == "HEAD" then
 			cached = run_git({ "git", "-C", dir, "rev-parse", "--short", "HEAD" }) or cached
 		end
@@ -264,7 +268,7 @@ local function fenced_blocks(lines)
 		if open then
 			local close = line:match("^%s*([`~]+)%s*$")
 			if close and close:sub(1, 1) == open.fence:sub(1, 1) and #close >= #open.fence then
-				blocks[#blocks + 1] = { open = open.row, close = i, lang = open.lang }
+				blocks[#blocks + 1] = { open = open.row, close = i, lang = open.lang, fence = open.fence }
 				open = nil
 			end
 		else
@@ -319,15 +323,23 @@ local function d2_run(args, src, name, on_done)
 	for _, arg in ipairs(args) do
 		table.insert(cmd, (arg:gsub("{name}", name))) -- {name}: the output file stem
 	end
-	vim.system(cmd, { stdin = src, text = true }, function(res) -- argv, not a shell string, so zsh and nushell behave the same
-		vim.schedule(function()
-			if res.code ~= 0 then
-				vim.notify(vim.trim(res.stderr ~= "" and res.stderr or res.stdout), vim.log.levels.ERROR, { title = "d2" })
-				return
-			end
-			on_done(res.stdout, name)
-		end)
-	end)
+	vim.system(
+		cmd,
+		{ stdin = src, text = true },
+		function(res) -- argv, not a shell string, so zsh and nushell behave the same
+			vim.schedule(function()
+				if res.code ~= 0 then
+					vim.notify(
+						vim.trim(res.stderr ~= "" and res.stderr or res.stdout),
+						vim.log.levels.ERROR,
+						{ title = "d2" }
+					)
+					return
+				end
+				on_done(res.stdout, name)
+			end)
+		end
+	)
 end
 
 ---Renders a d2 diagram (the one under the cursor when src is nil) to PNG in a split, where snacks.image draws it.
@@ -460,7 +472,10 @@ end
 local function journal_title(time)
 	local t = os.date("*t", time)
 	local d = t.day
-	local suffix = (d % 10 == 1 and d ~= 11) and "st" or (d % 10 == 2 and d ~= 12) and "nd" or (d % 10 == 3 and d ~= 13) and "rd" or "th"
+	local suffix = (d % 10 == 1 and d ~= 11) and "st"
+		or (d % 10 == 2 and d ~= 12) and "nd"
+		or (d % 10 == 3 and d ~= 13) and "rd"
+		or "th"
 	return ("%s %d%s, %d"):format(MONTHS[t.month], d, suffix, t.year)
 end
 
@@ -536,7 +551,8 @@ local function notes_rg(args, every_match)
 		local key = file and (file .. ":" .. lnum)
 		if file and (every_match or not seen[key]) then
 			seen[key] = true
-			rows[#rows + 1] = { file = vim.fs.joinpath(root, file), lnum = tonumber(lnum), col = tonumber(col), text = text }
+			rows[#rows + 1] =
+				{ file = vim.fs.joinpath(root, file), lnum = tonumber(lnum), col = tonumber(col), text = text }
 		end
 	end
 	return rows
@@ -609,7 +625,9 @@ local function notes_pick(title, rows, opts)
 			row = row,
 		}
 	end
-	Snacks.picker.pick(vim.tbl_extend("force", { source = "999rpm_notes", title = title, items = items, format = "file" }, opts or {}))
+	Snacks.picker.pick(
+		vim.tbl_extend("force", { source = "999rpm_notes", title = title, items = items, format = "file" }, opts or {})
+	)
 end
 
 ---Opens a graph page; a page that does not exist yet starts as one empty bullet and stays unwritten until it gets text.
@@ -653,7 +671,13 @@ function M.notes_journals() -- This util is used by logseq.lua
 	table.sort(items, function(a, b)
 		return a.date > b.date
 	end)
-	Snacks.picker.pick({ source = "999rpm_journals", title = "Journals", items = items, format = "text", preview = "file" })
+	Snacks.picker.pick({
+		source = "999rpm_journals",
+		title = "Journals",
+		items = items,
+		format = "text",
+		preview = "file",
+	})
 end
 
 function M.notes_pages() -- This util is used by logseq.lua
@@ -726,7 +750,8 @@ function M.notes_tags() -- This util is used by logseq.lua
 	end
 	local items = {}
 	for _, entry in pairs(counts) do
-		items[#items + 1] = { text = ("%s  (%d)"):format(entry.name, entry.count), name = entry.name, count = entry.count }
+		items[#items + 1] =
+			{ text = ("%s  (%d)"):format(entry.name, entry.count), name = entry.name, count = entry.count }
 	end
 	if #items == 0 then
 		return info("No tags in the graph")
@@ -800,9 +825,14 @@ function M.notes_agenda() -- This util is used by logseq.lua
 	notes_pick("Agenda", rows, {
 		format = function(item)
 			local row = item.row
-			local time =
-				os.time({ year = tonumber(row.date:sub(1, 4)), month = tonumber(row.date:sub(6, 7)), day = tonumber(row.date:sub(9, 10)) })
-			local hl = row.date < today and "DiagnosticError" or row.date == today and "DiagnosticWarn" or "DiagnosticInfo"
+			local time = os.time({
+				year = tonumber(row.date:sub(1, 4)),
+				month = tonumber(row.date:sub(6, 7)),
+				day = tonumber(row.date:sub(9, 10)),
+			})
+			local hl = row.date < today and "DiagnosticError"
+				or row.date == today and "DiagnosticWarn"
+				or "DiagnosticInfo"
 			return {
 				{ ("%s %s  "):format(row.date, DAYS[os.date("*t", time).wday]), hl },
 				{ row.kind == "DEADLINE" and "deadline   " or "scheduled  ", "Comment" },
@@ -857,7 +887,12 @@ function M.notes_task_date(kind) -- This util is used by logseq.lua
 			block = block - 1
 		end
 		local indent = lines[block]:match("^%s*")
-		local stamp = ("%s  %s: <%s %s>"):format(indent, kind, os.date("%Y-%m-%d", time), DAYS[os.date("*t", time).wday])
+		local stamp = ("%s  %s: <%s %s>"):format(
+			indent,
+			kind,
+			os.date("%Y-%m-%d", time),
+			DAYS[os.date("*t", time).wday]
+		)
 		local l = block + 1
 		while lines[l] and not lines[l]:match("^%s*[-*+]%s") and #lines[l]:match("^%s*") > #indent do
 			if lines[l]:match("^%s*" .. kind .. ":") then
@@ -958,7 +993,11 @@ function M.notes_move_block(dir) -- This util is used by logseq.lua
 	local node
 	if ok and parser then
 		parser:parse()
-		node = vim.treesitter.get_node({ lang = "markdown", pos = { cursor[1] - 1, #line:match("^%s*") }, ignore_injections = true })
+		node = vim.treesitter.get_node({
+			lang = "markdown",
+			pos = { cursor[1] - 1, #line:match("^%s*") },
+			ignore_injections = true,
+		})
 		while node and node:type() ~= "list_item" do
 			node = node:parent()
 		end
@@ -1186,8 +1225,11 @@ function M.jupyter_setup() -- This util is used by molten.lua
 	local install = uv and { "uv", "pip", "install", "--quiet", "--upgrade", "--python", python }
 		or { python, "-m", "pip", "install", "--quiet", "--upgrade" }
 	steps[#steps + 1] = vim.list_extend(install, JUPYTER_PACKAGES)
-	steps[#steps + 1] =
-		{ python, "-c", "import os; from jupyter_core.paths import jupyter_runtime_dir as d; os.makedirs(d(), exist_ok=True)" } -- molten fails with ENOENT on a kernel-*.json while this folder is missing
+	steps[#steps + 1] = {
+		python,
+		"-c",
+		"import os; from jupyter_core.paths import jupyter_runtime_dir as d; os.makedirs(d(), exist_ok=True)",
+	} -- molten fails with ENOENT on a kernel-*.json while this folder is missing
 	vim.notify(
 		("Building the Jupyter environment in %s with %s"):format(dir, uv and "uv" or "pip"),
 		vim.log.levels.INFO,
@@ -1243,7 +1285,11 @@ function M.jupyter_kernel_add(name) -- This util is used by molten.lua
 		},
 		root,
 		function()
-			vim.notify(("Kernel %q registered; <leader>ki lists it"):format(kernel), vim.log.levels.INFO, { title = "Jupyter" })
+			vim.notify(
+				("Kernel %q registered; <leader>ki lists it"):format(kernel),
+				vim.log.levels.INFO,
+				{ title = "Jupyter" }
+			)
 		end
 	)
 end
@@ -1266,19 +1312,20 @@ local function run_jupytext(cmd)
 	return res.code == 0, res.code == 0 and res.stdout or vim.trim(res.stderr ~= "" and res.stderr or res.stdout)
 end
 
-local NOTEBOOK_TEMPLATE = { -- jupytext markdown for an empty Python notebook; the header carries the kernelspec into the .ipynb
-	"---",
-	"jupyter:",
-	"  kernelspec:",
-	"    display_name: Python 3",
-	"    language: python",
-	"    name: python3",
-	"---",
-	"",
-	"```python",
-	"",
-	"```",
-}
+local NOTEBOOK_TEMPLATE =
+	{ -- jupytext markdown for an empty Python notebook; the header carries the kernelspec into the .ipynb
+		"---",
+		"jupyter:",
+		"  kernelspec:",
+		"    display_name: Python 3",
+		"    language: python",
+		"    name: python3",
+		"---",
+		"",
+		"```python",
+		"",
+		"```",
+	}
 
 ---Opens an .ipynb as jupytext markdown and fires the read events an :edit fires, so plugins that load on them do. A
 ---notebook jupytext cannot read opens as JSON instead. A notebook with saved outputs starts its kernel to show them.
@@ -1294,7 +1341,11 @@ function M.notebook_read(ev) -- This util is used by ipynb.lua
 			lines = vim.split((out:gsub("\n$", "")), "\n")
 		else
 			converted, lines = false, fn.readfile(path)
-			warn("jupytext could not convert the notebook, so it opens as JSON. :JupyterSetup installs jupytext.\n" .. out, "Notebook")
+			warn(
+				"jupytext could not convert the notebook, so it opens as JSON. :JupyterSetup installs jupytext.\n"
+					.. out,
+				"Notebook"
+			)
 		end
 	end
 	vim.b[buf]._999rpm_notebook = converted
@@ -1414,24 +1465,41 @@ function M.notebook_kernel(buf, auto) -- This util is used by molten.lua, and no
 	return true
 end
 
+---How a buffer writes its cells: fenced blocks in markdown and quarto, "<comment> %%" lines elsewhere.
+---@param buf integer
+---@return boolean fenced
+---@return string marker cell line for a new cell, e.g. "# %%"
+---@return string pattern Lua pattern matching a cell line
+local function cell_style(buf)
+	local ft = vim.bo[buf].filetype
+	local leader = vim.trim(vim.bo[buf].commentstring:match("^(.-)%%s") or "")
+	leader = leader ~= "" and leader or "#"
+	return ft == "markdown" or ft == "quarto", leader .. " %%", "^%s*" .. vim.pesc(leader) .. "%s*%%%%"
+end
+
 ---Code cells in order: ```fences with a language in markdown and quarto, else the blocks between "<comment> %%" lines.
 ---Rows are 1-based; first > last marks an empty cell, stop is the last row the cell owns.
 ---@param buf integer
 ---@return { head: integer?, first: integer, last: integer, foot: integer?, stop: integer }[]
 local function notebook_cells(buf)
 	local lines, cells = api.nvim_buf_get_lines(buf, 0, -1, false), {}
-	local ft = vim.bo[buf].filetype
-	if ft == "markdown" or ft == "quarto" then
+	local fenced, _, marker = cell_style(buf)
+	if fenced then
 		for _, block in ipairs(fenced_blocks(lines)) do
 			if block.lang ~= "" then
-				cells[#cells + 1] =
-					{ head = block.open, first = block.open + 1, last = block.close - 1, foot = block.close, stop = block.close }
+				cells[#cells + 1] = {
+					head = block.open,
+					first = block.open + 1,
+					last = block.close - 1,
+					foot = block.close,
+					stop = block.close,
+					lang = block.lang,
+					fence = block.fence,
+				}
 			end
 		end
 		return cells
 	end
-	local leader = vim.trim(vim.bo[buf].commentstring:match("^(.-)%%s") or "")
-	local marker = "^%s*" .. vim.pesc(leader ~= "" and leader or "#") .. "%s*%%%%"
 	local heads = {}
 	for i, line in ipairs(lines) do
 		if line:match(marker) then
@@ -1555,13 +1623,137 @@ function M.notebook_cell_region(ai_type) -- This util is used by mini.lua
 	return { from = { line = first, col = 1 }, to = { line = last, col = math.max(#text, 1) }, vis_mode = "V" }
 end
 
----Cell keys for one buffer: ]j/[j wherever cells can exist; in notebooks and quarto documents also <S-CR>/<C-CR> to run
----cells, and otter's language servers inside the code fences.
+---Opening and closing fence of a new code cell: the given cell's language, else the kernel language in the jupytext
+---header, else python; quarto writes it as {lang}.
+---@param buf integer
+---@param cell? table
+---@return string open
+---@return string close
+local function cell_fence(buf, cell)
+	local lang = cell and cell.lang ~= "" and cell.lang or nil
+	for _, line in ipairs(lang and {} or api.nvim_buf_get_lines(buf, 0, 20, false)) do
+		lang = lang or line:match("^%s+language:%s*([%w_.+-]+)")
+	end
+	lang = lang or "python"
+	local fence = cell and cell.fence or "```"
+	return fence .. (vim.bo[buf].filetype == "quarto" and ("{" .. lang .. "}") or lang), fence
+end
+
+---Adds an empty code cell above (dir -1) or below (dir 1) the cell under the cursor, or at the cursor line outside a
+---cell, and starts insert mode in it (JupyterLab's a and b).
+---@param dir 1|-1
+function M.notebook_cell_add(dir) -- This util is used by notebook_attach below
+	local buf = api.nvim_get_current_buf()
+	local row = api.nvim_win_get_cursor(0)[1]
+	local lines, cells = api.nvim_buf_get_lines(buf, 0, -1, false), notebook_cells(buf)
+	local _, cell = cell_at(cells, row)
+	local fenced, marker, pattern = cell_style(buf)
+	local at = dir > 0 and row or row - 1 -- the new cell goes below this row
+	if cell then
+		at = dir > 0 and cell.stop or (cell.head or cell.first) - 1
+	end
+	local new
+	if fenced then
+		local open, close = cell_fence(buf, cell or cells[1])
+		new = { open, "", close }
+		if lines[at + 1] and not lines[at + 1]:match("^%s*$") then
+			new[#new + 1] = ""
+		end
+	else
+		new = { marker, "" }
+		if lines[at + 1] and not lines[at + 1]:match(pattern) then
+			new[#new + 1] = marker -- the code below keeps a cell of its own
+		end
+	end
+	local pad = at > 0 and not lines[at]:match("^%s*$")
+	if pad then
+		table.insert(new, 1, "")
+	end
+	api.nvim_buf_set_lines(buf, at, at, false, new)
+	api.nvim_win_set_cursor(0, { at + (pad and 3 or 2), 0 })
+	vim.cmd("startinsert")
+end
+
+---Deletes the cell under the cursor, fence or cell line included, into the registers like dd, so p pastes it elsewhere
+---(JupyterLab's x); molten's output for the cell goes with it.
+function M.notebook_cell_delete() -- This util is used by notebook_attach below
+	local buf = api.nvim_get_current_buf()
+	local _, cell = cell_at(notebook_cells(buf), api.nvim_win_get_cursor(0)[1])
+	if not cell then
+		return warn("The cursor is not in a code cell.", "Jupyter")
+	end
+	if vim.b[buf]._999rpm_kernel then
+		pcall(vim.cmd, "MoltenDelete") -- the output's extmarks would outlive the lines
+	end
+	local first, last = cell.head or cell.first, cell.stop
+	if cell.foot then -- one blank line around a fenced cell goes too, so separators do not pile up
+		local below = api.nvim_buf_get_lines(buf, last, last + 1, false)[1]
+		local above = first > 1 and api.nvim_buf_get_lines(buf, first - 2, first - 1, false)[1]
+		if below and below:match("^%s*$") then
+			last = last + 1
+		elseif above and above:match("^%s*$") then
+			first = first - 1
+		end
+	end
+	vim.cmd(("%d,%ddelete"):format(first, last))
+end
+
+---Splits the cell under the cursor in two; the cursor line starts the second cell.
+function M.notebook_cell_split() -- This util is used by notebook_attach below
+	local buf = api.nvim_get_current_buf()
+	local row = api.nvim_win_get_cursor(0)[1]
+	local _, cell = cell_at(notebook_cells(buf), row)
+	if not cell or row <= cell.first or row > cell.last then
+		return warn("A split needs the cursor on a code line below the first line of a cell.", "Jupyter")
+	end
+	local fenced, marker = cell_style(buf)
+	local insert = { "", marker }
+	if fenced then
+		local open, close = cell_fence(buf, cell)
+		insert = { close, "", open }
+	end
+	api.nvim_buf_set_lines(buf, row - 1, row - 1, false, insert)
+	api.nvim_win_set_cursor(0, { row + #insert, 0 })
+end
+
+---Joins the cell under the cursor with the next code cell (JupyterLab's Shift+M) when only blank lines part them.
+function M.notebook_cell_join() -- This util is used by notebook_attach below
+	local buf = api.nvim_get_current_buf()
+	local cells = notebook_cells(buf)
+	local i, cell = cell_at(cells, api.nvim_win_get_cursor(0)[1])
+	local next_cell = i and cells[i + 1]
+	if not next_cell then
+		return warn("No code cell below this one.", "Jupyter")
+	end
+	local lines = api.nvim_buf_get_lines(buf, 0, -1, false)
+	if not cell.foot then -- "# %%" cells: the next cell line goes
+		local head = lines[next_cell.head]:lower()
+		if head:find("[markdown]", 1, true) or head:find("[md]", 1, true) then
+			return warn("The next cell is a markdown cell.", "Jupyter")
+		end
+		return api.nvim_buf_set_lines(buf, next_cell.head - 1, next_cell.head, false, {})
+	elseif next_cell.lang ~= cell.lang then
+		return warn(("The next cell is %s, this one %s."):format(next_cell.lang, cell.lang), "Jupyter")
+	end
+	for r = cell.foot + 1, next_cell.head - 1 do
+		if not lines[r]:match("^%s*$") then
+			return warn("Markdown text sits between the two cells.", "Jupyter")
+		end
+	end
+	api.nvim_buf_set_lines(buf, cell.foot - 1, next_cell.head, false, {})
+end
+
+---Cell keys for one buffer: ]j/[j and the <leader>k cell edits wherever cells can exist; in notebooks and quarto
+---documents also <S-CR>/<C-CR> to run cells, and otter's language servers inside the code fences.
 ---@param buf integer
 function M.notebook_attach(buf) -- This util is used by ipynb.lua
 	local ft = vim.bo[buf].filetype
 	local notebook = vim.b[buf]._999rpm_notebook or ft == "quarto"
-	if vim.b[buf]._999rpm_cells or (ft == "markdown" and not notebook) or api.nvim_buf_get_name(buf):find("%.otter%.") then
+	if
+		vim.b[buf]._999rpm_cells
+		or (ft == "markdown" and not notebook)
+		or api.nvim_buf_get_name(buf):find("%.otter%.")
+	then
 		return -- plain markdown and the notes graph have no cells; otter's hidden buffers need no keys
 	end
 	vim.b[buf]._999rpm_cells = true
@@ -1574,6 +1766,15 @@ function M.notebook_attach(buf) -- This util is used by ipynb.lua
 	map({ "n", "x", "o" }, "[j", function()
 		M.notebook_goto(-1)
 	end, "Previous cell")
+	map("n", "<leader>ka", function()
+		M.notebook_cell_add(-1)
+	end, "Add cell above")
+	map("n", "<leader>kb", function()
+		M.notebook_cell_add(1)
+	end, "Add cell below")
+	map("n", "<leader>kd", M.notebook_cell_delete, "Delete cell (p pastes it)")
+	map("n", "<leader>ks", M.notebook_cell_split, "Split cell at cursor")
+	map("n", "<leader>kj", M.notebook_cell_join, "Join cell with next")
 	if not notebook then
 		return
 	end

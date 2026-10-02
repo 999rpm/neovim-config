@@ -65,7 +65,13 @@ return {
 			scope = { enabled = true },
 			chunk = {
 				enabled = true,
-				char = { corner_top = "╭", corner_bottom = "╰", horizontal = "─", vertical = "│", arrow = "╴" },
+				char = {
+					corner_top = "╭",
+					corner_bottom = "╰",
+					horizontal = "─",
+					vertical = "│",
+					arrow = "╴",
+				},
 			},
 		},
 		picker = {

@@ -3,7 +3,10 @@
 -- with --update, so outputs and metadata already in the file survive; outputs run in this session are exported into it.
 -- Opening a notebook starts the kernel named in its metadata and shows its saved outputs (molten.lua). :NotebookNew or
 -- <leader>kN creates one; `nvim new.ipynb` does too.
--- Cells: ]j/[j next/previous cell, ij/aj select a cell's code without/with its fence (mini.lua). This works in notebooks,
+-- Cells: ]j/[j next/previous cell, ij/aj select a cell's code without/with its fence (mini.lua), <leader>ka/<leader>kb add
+-- an empty cell above/below in the language of the cell under the cursor and start insert mode in it (JupyterLab's a and
+-- b), <leader>kd delete the cell into the registers like dd, so p pastes it elsewhere (JupyterLab's x), <leader>ks split
+-- the cell at the cursor line, <leader>kj join it with the next cell (JupyterLab's Shift+M). This works in notebooks,
 -- quarto documents and any file split into cells by "# %%" lines (jupytext's percent format, e.g. a plain .py script).
 -- Notebook buffers: <S-CR> run the cell and go to the next (JupyterLab's Shift+Enter), <C-CR> run it in place.
 -- Built-in keys that work inside code cells (otter.lua): K hover, gd definition, grr references, grn rename, gra code

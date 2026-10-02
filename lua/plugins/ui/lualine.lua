@@ -38,7 +38,8 @@ return {
 			local cmd = { "git", "-C", dir, "rev-list", "--left-right", "--count", "HEAD...@{upstream}" } -- local refs only: no fetch racing lazygit for git's lock files
 			vim.system(cmd, { text = true }, function(res)
 				local ahead, behind = (res.code == 0 and res.stdout or ""):match("(%d+)%s+(%d+)")
-				git_status_cache.ahead_count, git_status_cache.behind_count = tonumber(ahead) or 0, tonumber(behind) or 0
+				git_status_cache.ahead_count, git_status_cache.behind_count =
+					tonumber(ahead) or 0, tonumber(behind) or 0
 			end)
 		end, 5000)
 
@@ -71,10 +72,13 @@ return {
 			if not vim.bo.modifiable then
 				return ""
 			end
-			return utils.buf_cached("trailing_space", function() -- whole-buffer search: once per edit, not once per statusline redraw
-				local space = fn.search([[\s\+$]], "nwc")
-				return space ~= 0 and "TW:" .. space or ""
-			end)
+			return utils.buf_cached(
+				"trailing_space",
+				function() -- whole-buffer search: once per edit, not once per statusline redraw
+					local space = fn.search([[\s\+$]], "nwc")
+					return space ~= 0 and "TW:" .. space or ""
+				end
+			)
 		end
 
 		local function scan_mixed_indent()
@@ -197,7 +201,15 @@ return {
 				component_separators = { left = "\u{e0bb}", right = "\u{e0bb}" }, -- written as escapes: private-use glyphs do not survive every copy of this file
 				section_separators = { left = "\u{e0bc}", right = "\u{e0ba}" },
 				disabled_filetypes = {
-					statusline = { "snacks_dashboard", "neo-tree", "trouble", "lazy", "mason", "snacks_picker_list", "snacks_picker_input" },
+					statusline = {
+						"snacks_dashboard",
+						"neo-tree",
+						"trouble",
+						"lazy",
+						"mason",
+						"snacks_picker_list",
+						"snacks_picker_input",
+					},
 					winbar = {},
 				}, -- explicit shape: a bare list is copied into both by lualine's own normaliser, which is not what a global statusline wants
 			},

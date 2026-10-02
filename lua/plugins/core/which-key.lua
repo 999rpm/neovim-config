@@ -3,7 +3,8 @@
 -- Grouping: a prefix holds one kind of thing, and the lowercase key is the common action, its uppercase twin the wider
 -- or rarer one (d/D diagnostics/debug, t/T terminal/test, g/G hunks/review). Every on/off switch sits under <leader>o
 -- and nothing else does; the snacks toggles there show their current state. <leader>n is the notes graph, <leader>k
--- the Jupyter kernel, <leader>y yank and register helpers; markdown buffers add \m \l \t \h.
+-- the Jupyter kernel and, in notebook buffers, cell editing, <leader>y yank and register helpers; markdown buffers add
+-- \m \l \t \h.
 -- An entry with only a desc is a label, not a mapping: which-key sets a keymap only for entries with an rhs, so the g*
 -- and gr* labels below name built-in keys without taking them over.
 local function markdown()
@@ -54,7 +55,7 @@ return {
 			{ "<leader>T", group = "Test", icon = "󰙨 " },
 			{ "<leader>t", group = "Terminal", icon = "󰆍 " },
 			{ "<leader>i", group = "AI", icon = "󰧑 " },
-			{ "<leader>k", group = "Kernel & notebook (Jupyter)", icon = "󰘚 " }, -- notebook/molten.lua
+			{ "<leader>k", group = "Kernel & cells (Jupyter)", icon = "󰘚 " }, -- notebook/molten.lua
 
 			{ "<leader>u", group = "UI & theme", icon = "󰏘 " },
 			{ "<leader>o", group = "Toggles (on/off)", icon = "󰔡 " },

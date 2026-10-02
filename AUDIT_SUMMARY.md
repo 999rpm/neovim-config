@@ -3,68 +3,74 @@
 What changed, and the reason it changed. Newest first; older passes are condensed to their conclusions once a later
 pass has confirmed them.
 
-## 2026-10-02 (fifteenth pass)
+## 2026-10-02 (sixteenth pass)
 
-Method: Neovim 0.12.5, nushell 0.116, zsh 5.9, actionlint 1.7.12, the lockfile's commits; headless runs per filetype,
-keymap dumps (global and per buffer, every plugin loaded) and `:checkhealth`.
+Method: Neovim 0.12.5, nushell 0.116, zsh 5.9, every plugin at its newest commit or tag; a headless script of 47 checks
+that drives each change below (writes, failed writes, bufload(), tabs, resizes, cell edits, `:grep` under both shells),
+then every plugin loaded and the keymaps of all modes scanned.
 
 ### Fixed
 
-- Nushell: `shellpipe` used `tee`, whose closure runs in parallel; nu 0.116 exits before it writes the errorfile, so
-  `:grep` and `:make` ended in E40 (1 run in 30 wrote it). A `do` closure writes it every time, no-match runs included.
-  `--login` left `shellcmdflag`, as in nushell/integrations: `:!` no longer runs env.nu and config.nu, which failed
-  every command whenever a tool they call (zoxide) was missing.
-- A notebook opened with `:edit` inside a session got no filetype, so no cell keys or otter. Both read events replay
-  inside the BufReadCmd handler, and `vim.lsp.enable()` (lspconfig loading on BufReadPre) fires FileType for open
-  buffers, after which filetypedetect's `:setf` skips. The handler sets the filetype itself when it is still empty.
-- `gd` and normal-mode `<C-k>` are set only when an attached server answers definitions or signature help. In markdown
-  only render-markdown's in-process server attached, so `gd` went to a server that cannot answer it.
-- nvim-lint ran actionlint on every YAML file, and plain YAML got "on"/"jobs" errors; it now runs on
-  `.github/workflows/*.y(a)ml` only. The `yaml.github` entry never matched, since workflows open as `yaml`. Files are
-  also linted when opened.
-- `<leader>oN` was undone by the `number_toggle` autocommands on the next BufEnter or InsertLeave; both read
-  `vim.g._999rpm_relativenumber` now.
-- snacks' `indent()`, `dim()` and `words()` toggles take no options, so the names passed to them were dropped; the
-  labels are set on the toggles. Every `<leader>o` description reads "Toggle ...".
-- On/off switches moved under `<leader>o`: transparency `<leader>uT` to `ot`, markdown rendering `<leader>um` to `om`,
-  debug virtual text `<leader>Dv` to `ov`.
-- Copilot's panel key `<M-CR>` collided with markdown-plus's `<A-CR>` in markdown; the panel is off, suggestions cycle
-  with `<M-]>`/`<M-[>`. markdown-plus's insert `<A-h/j/k/l>` cell moves hid copilot's `<M-l>`; off as well.
-- Filetype rules 0.12.5 handles itself are gone (Brewfile, Jenkinsfile, justfile, yarn.lock, helmfile.yaml,
-  .kube/config, .jscsrc), and so is `todo.txt` as `todotxt`, a filetype with no runtime support.
-- `notes_root` named two callers that do not call it. kitty.conf named a config.nu setting that does not exist;
-  nushell 0.116 sends prompt and directory marks by default.
+- Backups could stay off for the rest of a session: two autocommands switched the global `'backup'` off before writing
+  a temporary or transient file and on again in BufWritePost, which a failed write never reaches. `'backupskip'` lists
+  those files now, and its default `/tmp`, `$TMPDIR`, `$TMP` and `$TEMP` patterns are back (`'wildignore'` had replaced
+  them). One autocommand still turns the undo file off for the same files.
+- Trailing whitespace was stripped from patches (the context line of a blank line), mail signatures, binary buffers and
+  files whose `.editorconfig` sets `trim_trailing_whitespace = false`; an unmodifiable buffer could not be written.
+- `auto_create_dir` made a folder out of URL-style names (`scheme://...`).
+- A file loaded unseen (pickers, grug-far, LSP renames) lost its last cursor position: bufload() fires BufWinEnter in
+  Neovim's hidden autocommand window and resets the `'"` mark when that window closes. The mark is read at load time
+  and applied in the first real window, with the exclusions of `:h last-position-jump` (commit messages, rebase todo
+  lists, xxd, diff mode).
+- With only quickfix, Trouble or neo-tree windows left in one tab, `qall` closed every other tab too. That tab closes
+  alone now, scheduled, since BufEnter may not change the layout (E1312).
+- A terminal resize equalized the splits of the current tab only; every tab now, through nvim_win_call.
+- The yank cursor restore could apply another window's view when code yanked in a different window.
+- `g:no_man_maps` and `g:no_gitrebase_maps` turned off built-in filetype keys: `gO` lists a man page's sections again,
+  and `<C-a>`/`<C-x>` cycle a rebase todo line's action instead of dial's number steps. q in man pages stays this
+  config's close, since man's own q quits Neovim from the last window.
+- grug-far's header named keys it does not have: `<localleader>c` closes, `<localleader>b` aborts.
 
 ### Added
 
-- neotest-python (pytest; `$VIRTUAL_ENV`, else a venv folder in the project, else python3) and rustaceanvim's own
-  neotest adapter; `<leader>Td` debugs the nearest test.
-- Parsers: kitty, zsh, diff, git_config, git_rebase, gitignore, luadoc, luap, printf, xml, ini, sql, dockerfile,
-  make, cmake, just. gitcommit stays out: its 3.3 MB parser ran the compiler out of memory on a 4 GB machine.
-- `moxide/settings.toml`: `excluded_folders = ["logseq"]` (markdown-oxide 0.25.12) keeps the copies in Logseq's
-  `bak/` and `version-files/` out of the index.
+- Notebook cell editing, buffer-local wherever cells exist (notebooks, quarto, `# %%` scripts): `<leader>ka`/`kb` add
+  an empty cell above/below in the language of the cell under the cursor and start insert mode, `<leader>kd` deletes
+  the cell into the registers like `dd` (molten's output with it), `<leader>ks` splits it at the cursor line,
+  `<leader>kj` joins it with the next cell when only blank lines part them. Molten's keys moved off those letters:
+  run up to here `ka` to `ku`, delete output `kd` to `kD`, HTML output in the browser `kb` to `kw`.
+- Sessions keep barbar's buffer order and pins, as barbar's README sets it up: `globals` in `'sessionoptions'`, and
+  persistence's PersistenceSavePre (fired before its exit save) fires SessionSavePre.
+- `.zshrc`: the fastfetch logo skips Neovim's `:terminal`, which inherits `KITTY_WINDOW_ID`; `MANPAGER` uses bat only
+  when bat is installed.
 
 ### Removed and tidied
 
-- nvim-treesitter left the dependency lists of neotest, render-markdown, treesj, rainbow-delimiters and hlargs; none
-  of them loads it on 0.12.
-- `options.lua` comments follow the lower-case end-of-line style of the other files. History notes and "see utils.lua"
-  pointers are gone, and every plugin header starts with the repository name.
-- README cut from 580 lines to an overview.
+- The TermOpen handler no longer turns line numbers off: 0.12's `nvim.terminal` group does, along with signs and folds.
+- Comments in `.zshrc`, `.zshenv`, `config.nu` and `env.nu` follow the neutral style of the rest; their code is
+  unchanged apart from the two `.zshrc` items above. Seven Lua files reformatted by StyLua's defaults.
+- The archive mirrors `$HOME`, so one `unzip -d ~` places every file.
+- Lockfile: avante.nvim, hardtime.nvim (1.3.0), nvim-lspconfig, nvim-treesitter, schemastore.nvim and yazi.nvim moved;
+  the plugins pinned to tags stay (blink.cmp 1.10.2, mini.nvim 0.18.0, nvim-surround 4.0.5, rustaceanvim 9.2.1,
+  tree-sitter-d2 0.7.2).
 
 ### Checked and left as is
 
-- nvim-treesitter was archived on 3 April 2026 and unarchived on 19 July, with commits through 30 September. Kept:
-  tree-sitter-manager.nvim (rafi, SeniorMars) only installs parsers, and textobjects and tree-sitter-d2 call into it.
-- TypeScript 7 serves LSP itself (`tsc --lsp`, lspconfig `tsc`) and has no Mason package; Mason pins ts_ls to
-  TypeScript 6.0.3. ts_ls kept.
-- noice kept over 0.12's `vim._core.ui2` (jdhao, rafi): ui2 is private and experimental.
-- The python and ruby ftplugins map `]m [m ]M [M` themselves and win in those buffers; they jump the same way.
-- No mapping uses `<C-S-...>` or `<M-1>`...`<M-9>`, the only keys kitty.conf binds.
-- `E31` in `v:errmsg` comes from which-key's own cleanup. snacks' health errors about `vim.ui.select` and the
-  dashboard appear only headless, where UIEnter never fires.
+- Treesitter indentation (`indentexpr`) stays off: nvim-treesitter's README calls it experimental.
+- blink.cmp's 240 commits after 1.10.2 are unreleased; `version = "*"` keeps the tag.
+- The options and plugins of the reference configs add nothing missing here; plugins two or more of them share are
+  alternatives already in place (telescope, nvim-cmp, bufferline, fidget) or declined below.
+- No mapping uses `<C-S-...>` or `<M-1>`...`<M-9>`, the keys kitty.conf takes, with every plugin loaded.
+- `E116 dictwatcherdel` (barbar) and `E31` (which-key) in `v:errmsg` remain silent and harmless.
 
 ## Earlier passes: conclusions only
+
+**Fifteenth pass (2026-10-02).** Nushell's `shellpipe` writes the errorfile through a `do` closure (tee's parallel
+closure lost it) and `:!` runs without `--login`. A notebook opened with `:edit` in a running session sets its own
+filetype. `gd` and normal-mode `<C-k>` only where a server answers them. actionlint only on `.github/workflows`.
+`<leader>oN` survives the number_toggle autocommands; every on/off switch under `<leader>o`. neotest-python and
+rustaceanvim's adapter added; parsers for kitty, zsh, diff, git files, luadoc, luap, printf, xml, ini, sql, dockerfile,
+make, cmake and just (gitcommit left out: its parser build exhausts 4 GB). `excluded_folders = ["logseq"]` in moxide.
+Kept: nvim-treesitter (unarchived July 2026), ts_ls (TypeScript 7 has no Mason package), noice over the private ui2.
 
 **Fourteenth pass (2026-10-01).** `:JupyterSetup` prefers uv (`uv venv`, then `uv pip install --python`), python3's
 venv and pip as the fallback, all from `stdpath("data")`. `<leader>kv` / `:JupyterKernelAdd` registers the uv project

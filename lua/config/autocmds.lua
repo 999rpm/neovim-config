@@ -13,14 +13,16 @@ api.nvim_create_autocmd("FileType", {
 	end,
 })
 
+local keep_trailing = { markdown = true, gitcommit = true, gitrebase = true, diff = true, mail = true } -- hard line breaks, patch context lines, the "-- " signature
 api.nvim_create_autocmd("BufWritePre", {
 	group = augroup("trim_whitespace"),
 	desc = "999rpm: strip trailing whitespace on write",
-	pattern = "*",
 	callback = function(ev)
-		local skip_fts = { markdown = true, gitcommit = true, gitrebase = true }
-		if skip_fts[vim.bo[ev.buf].filetype] then
+		local bo, ec = vim.bo[ev.buf], vim.b[ev.buf].editorconfig
+		if keep_trailing[bo.filetype] or bo.binary or not bo.modifiable or bo.buftype ~= "" then
 			return
+		elseif type(ec) == "table" and ec.trim_trailing_whitespace == "false" then
+			return -- the project's .editorconfig keeps it
 		end
 		local view = fn.winsaveview() -- the scroll offset is restored too, so the screen does not jump
 		vim.cmd([[keeppatterns %s/\s\+$//e]]) -- keeppatterns: the last search pattern survives the write
@@ -32,6 +34,9 @@ api.nvim_create_autocmd("BufWritePre", {
 	group = augroup("auto_create_dir"),
 	desc = "999rpm: create missing parent directories before writing a new file",
 	callback = function(ctx)
+		if ctx.match:match("^%w%w+:[\\/][\\/]") then
+			return -- a URL (oil://, scp://), not a path on disk
+		end
 		utils.may_create_dir(fn.fnamemodify(ctx.file, ":p:h"))
 	end,
 })
@@ -50,19 +55,28 @@ api.nvim_create_autocmd("BufRead", {
 
 api.nvim_create_autocmd("BufReadPost", {
 	group = augroup("last_loc"),
-	desc = "999rpm: restore the cursor to its last position in a reopened file",
-	callback = function(event)
-		local exclude = { "gitcommit", "commit", "gitrebase" }
-		local buf = event.buf
-		if vim.tbl_contains(exclude, vim.bo[buf].filetype) or vim.b[buf]._999rpm_last_loc then
-			return
+	desc = "999rpm: restore the last cursor position once the file shows in a window",
+	callback = function(ev)
+		if vim.b[ev.buf]._999rpm_last_loc then
+			return -- :edit! re-reads the file; the cursor stays where it is
 		end
-		vim.b[buf]._999rpm_last_loc = true
-		local mark = api.nvim_buf_get_mark(buf, '"')
-		local lcount = api.nvim_buf_line_count(buf)
-		if mark[1] > 0 and mark[1] <= lcount then
-			pcall(api.nvim_win_set_cursor, 0, mark)
-		end
+		vim.b[ev.buf]._999rpm_last_loc = true
+		local mark = api.nvim_buf_get_mark(ev.buf, '"') -- read now: closing the hidden window of a bufload() resets it
+		api.nvim_create_autocmd("BufWinEnter", {
+			buffer = ev.buf, -- a buffer loaded unseen (pickers, grug-far, LSP renames) waits for its first real window
+			desc = "999rpm: jump to the '\" mark",
+			callback = function()
+				if fn.win_gettype() == "autocmd" then
+					return -- bufload() shows the buffer in Neovim's hidden autocommand window first
+				end
+				local ft = vim.bo[ev.buf].filetype -- skipped as in :h last-position-jump
+				local skip = ft:find("commit") or ft == "gitrebase" or ft == "xxd" or vim.wo.diff
+				if not skip and mark[1] > 1 and mark[1] <= api.nvim_buf_line_count(ev.buf) then
+					pcall(api.nvim_win_set_cursor, 0, mark)
+				end
+				return true -- done: the autocommand deletes itself
+			end,
+		})
 	end,
 })
 
@@ -84,57 +98,24 @@ api.nvim_create_autocmd("FileChangedShellPost", {
 	end,
 })
 
-api.nvim_create_autocmd("BufWritePre", {
-	group = augroup("undo_disable"),
-	desc = "999rpm: no persistent undo/backup for transient files",
-	pattern = { "*.tmp", "*.bak", "COMMIT_EDITMSG", "MERGE_MSG" }, -- /tmp/* is left to secure_tmp below, which covers every tmp path
-	callback = function(event)
-		vim.opt_local.undofile = false
-
-		local backup_was_on = vim.o.backup
-		if backup_was_on then
-			vim.o.backup = false
-			api.nvim_create_autocmd("BufWritePost", {
-				buf = event.buf,
-				desc = "999rpm: restore the global backup flag after this write",
-				once = true,
-				callback = function()
-					vim.o.backup = true
-				end,
-			})
-		end
-	end,
-})
-
-local secure_tmp = augroup("secure_tmp")
 api.nvim_create_autocmd({ "BufNewFile", "BufReadPre" }, {
-	group = secure_tmp,
-	desc = "999rpm: no persistence at all for files under tmp/shm paths",
-	pattern = { "/tmp/*", "$TMPDIR/*", "$TMP/*", "$TEMP/*", "*/shm/*", "/private/var/*" },
-	callback = function(ev)
-		vim.opt_local.undofile = false
-		if vim.b[ev.buf]._999rpm_secure_tmp then
-			return -- already armed for this buffer; don't stack a second pair on re-read
-		end
-		vim.b[ev.buf]._999rpm_secure_tmp = true
-
-		api.nvim_create_autocmd("BufWritePre", {
-			buf = ev.buf,
-			group = secure_tmp,
-			desc = "999rpm: suspend the global backup flag around this write",
-			callback = function()
-				vim.b[ev.buf]._999rpm_backup_was_on = vim.o.backup -- read at write time: the global could have been toggled since BufReadPre
-				vim.o.backup = false
-			end,
-		})
-		api.nvim_create_autocmd("BufWritePost", {
-			buf = ev.buf,
-			group = secure_tmp,
-			desc = "999rpm: restore the global backup flag after this write",
-			callback = function()
-				vim.o.backup = vim.b[ev.buf]._999rpm_backup_was_on and true or false
-			end,
-		})
+	group = augroup("no_undofile"),
+	desc = "999rpm: no undo file for temporary and transient files",
+	pattern = {
+		"/tmp/*",
+		"$TMPDIR/*",
+		"$TMP/*",
+		"$TEMP/*",
+		"*/shm/*",
+		"/private/tmp/*",
+		"/private/var/*",
+		"*.tmp",
+		"*.bak",
+		"COMMIT_EDITMSG",
+		"MERGE_MSG",
+	},
+	callback = function()
+		vim.opt_local.undofile = false -- options.lua's 'backupskip' keeps their backups out
 	end,
 })
 
@@ -176,14 +157,14 @@ api.nvim_create_autocmd("BufWritePost", {
 })
 
 local yank_group = augroup("highlight_yank")
-local pre_yank_view -- an upvalue: a vim.g write would copy the table across the Vimscript boundary on every move
+local pre_yank = {} -- an upvalue: a vim.g write would copy the table across the Vimscript boundary on every move
 api.nvim_create_autocmd("CursorMoved", {
 	group = yank_group,
 	desc = "999rpm: track the pre-yank cursor position",
 	callback = function()
 		local mode = api.nvim_get_mode().mode
 		if mode == "n" or mode:find("^[vV\22]") then -- only normal and visual can begin a yank; skip the rest to keep CursorMoved cheap
-			pre_yank_view = fn.winsaveview()
+			pre_yank.win, pre_yank.view = api.nvim_get_current_win(), fn.winsaveview()
 		end
 	end,
 })
@@ -192,8 +173,8 @@ api.nvim_create_autocmd("TextYankPost", {
 	desc = "999rpm: flash yanked text, then restore the cursor",
 	callback = function()
 		vim.hl.on_yank({ higroup = "IncSearch", timeout = 150 })
-		if vim.v.event.operator == "y" and pre_yank_view then
-			fn.winrestview(pre_yank_view) -- y leaves the cursor where the yank started, with the same scroll offset
+		if vim.v.event.operator == "y" and pre_yank.win == api.nvim_get_current_win() then -- a yank run from code in another window keeps its cursor
+			fn.winrestview(pre_yank.view) -- y leaves the cursor where the yank started, with the same scroll offset
 		end
 	end,
 })
@@ -238,8 +219,14 @@ api.nvim_create_autocmd({ "BufLeave", "FocusLost", "InsertEnter", "WinLeave" }, 
 
 api.nvim_create_autocmd("VimResized", {
 	group = augroup("win_autoresize"),
-	desc = "999rpm: equalize splits when the terminal resizes",
-	command = "wincmd =",
+	desc = "999rpm: equalize splits in every tab when the terminal resizes",
+	callback = function()
+		for _, tab in ipairs(api.nvim_list_tabpages()) do
+			api.nvim_win_call(api.nvim_tabpage_get_win(tab), function()
+				vim.cmd("wincmd =") -- nvim_win_call visits the tab without firing TabEnter or BufEnter
+			end)
+		end
+	end,
 })
 
 api.nvim_create_autocmd("FileType", {
@@ -267,32 +254,35 @@ api.nvim_create_autocmd("ColorScheme", {
 	end,
 })
 
+local utility_fts = { qf = true, ["neo-tree"] = true, trouble = true } -- neo-tree.lua leaves close_if_last_window off, so this is the one place that decides
+local function only_utility_windows()
+	for _, win in ipairs(api.nvim_tabpage_list_wins(0)) do
+		if
+			api.nvim_win_get_config(win).relative == "" and not utility_fts[vim.bo[api.nvim_win_get_buf(win)].filetype]
+		then
+			return false -- floats (pickers, previews, notifications) do not keep a tab alive; one real window does
+		end
+	end
+	return fn.getcmdwintype() == "" -- the command-line window cannot be left with :qall
+end
 api.nvim_create_autocmd("BufEnter", {
 	group = augroup("auto_close_win"),
-	desc = "999rpm: quit if only utility windows remain",
+	desc = "999rpm: close the tab, or quit, when only utility windows remain",
 	callback = function()
-		if fn.getcmdwintype() ~= "" then
-			return -- the command-line window cannot be left with :qall
-		end
-		local utility_fts = { "qf", "neo-tree", "trouble" } -- neo-tree.lua leaves close_if_last_window off, so this is the one place that decides
-		for _, win in ipairs(api.nvim_tabpage_list_wins(0)) do
-			if api.nvim_win_get_config(win).relative == "" then -- floats (pickers, previews, notifications) are not what keeps a tab alive
-				local ft = vim.bo[api.nvim_win_get_buf(win)].filetype
-				if not vim.tbl_contains(utility_fts, ft) then
-					return -- at least one real window exists, don't quit
+		if only_utility_windows() then
+			vim.schedule(function() -- E1312: BufEnter may not change the window layout
+				if only_utility_windows() then
+					vim.cmd(#api.nvim_list_tabpages() > 1 and "tabclose" or "qall") -- other tabs keep their windows
 				end
-			end
+			end)
 		end
-		vim.cmd("qall")
 	end,
 })
 
 api.nvim_create_autocmd("TermOpen", {
 	group = augroup("term_start"),
-	desc = "999rpm: terminal buffers open without line numbers, in insert mode",
+	desc = "999rpm: terminal buffers open in insert mode",
 	callback = function(event)
-		vim.wo.relativenumber = false
-		vim.wo.number = false
 		if api.nvim_get_current_buf() == event.buf and vim.bo[event.buf].filetype ~= "snacks_terminal" then
 			vim.cmd("startinsert") -- snacks terminals handle their own insert mode; a background terminal must not steal it
 		end
@@ -382,7 +372,7 @@ api.nvim_create_autocmd("FileType", {
 api.nvim_create_autocmd("FileType", {
 	group = augroup("close_with_q"),
 	desc = "999rpm: close utility buffers with q",
-	pattern = { "checkhealth", "help", "man", "qf" }, -- man: options.lua sets no_man_maps, which drops man.lua's own q
+	pattern = { "checkhealth", "help", "man", "qf" }, -- man's own q runs <C-w>q, which quits Neovim from the last window
 	callback = function(event)
 		vim.bo[event.buf].buflisted = false
 		vim.schedule(function()

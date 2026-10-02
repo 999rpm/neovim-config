@@ -32,7 +32,10 @@ return {
 			callback = function(ev)
 				for _, action in ipairs(ev.data and ev.data.actions or {}) do
 					if action.type == "move" then
-						Snacks.rename.on_rename_file((action.src_url:gsub("^oil://", "")), (action.dest_url:gsub("^oil://", ""))) -- oil:// urls to paths
+						Snacks.rename.on_rename_file(
+							(action.src_url:gsub("^oil://", "")),
+							(action.dest_url:gsub("^oil://", ""))
+						) -- oil:// urls to paths
 					end
 				end
 			end,

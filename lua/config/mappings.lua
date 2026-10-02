@@ -8,6 +8,7 @@
 -- 0.12 defaults left alone: ]d [d ]D [D diagnostics, <C-w>d diagnostic float, ]q [q ]l [l lists, ]b [b buffers, ]a [a args,
 -- ]t [t tags, ]<Space> [<Space> blank lines, an/in parent/child node, K hover, <C-s> signature help (insert), gr* LSP keys,
 -- ZR restart Neovim, :Undotree (<leader>uu here). % g% [% ]% z% a% i% come from matchup.lua, gl/gL (align) from mini.lua.
+-- Filetype keys kept: <C-a>/<C-x> cycle the action of a git rebase todo line, gO lists a man page's sections.
 -- Added here: ]e/[e and ]w/[w jump to errors/warnings only; , . ; in insert mode each close an undo step.
 -- hardtime.lua owns h j k l J and the arrow keys (it wraps them to count repeats), so nothing here maps them.
 local map = vim.keymap.set
