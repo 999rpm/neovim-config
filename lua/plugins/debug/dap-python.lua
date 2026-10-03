@@ -3,15 +3,15 @@
 return {
 	"mfussenegger/nvim-dap-python",
 	lazy = true, -- loads with nvim-dap, which lists it as a dependency
-	dependencies = { "mfussenegger/nvim-dap" },
 	config = function()
-		local utils = require("utils")
-		local debugpy = utils.mason_path("packages/debugpy/venv/bin/python", "packages/debugpy/venv/Scripts/python.exe")
+		local debugger = require("utils.debugger")
+		local debugpy =
+			debugger.mason_path("packages/debugpy/venv/bin/python", "packages/debugpy/venv/Scripts/python.exe")
 		require("dap-python").setup(debugpy)
 		local dap = require("dap")
 		for _, name in ipairs({ "python", "debugpy" }) do
 			if dap.adapters[name] then
-				dap.adapters[name] = utils.mason_adapter(debugpy, "debugpy", dap.adapters[name]) -- checked when a Python session starts
+				dap.adapters[name] = debugger.mason_adapter(debugpy, "debugpy", dap.adapters[name]) -- checked when a Python session starts
 			end
 		end
 	end,

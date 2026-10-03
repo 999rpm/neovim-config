@@ -20,7 +20,7 @@ return {
 				f = false, -- af/if come from textobjects.lua (function definition)
 				g = require("mini.extra").gen_ai_spec.buffer(), -- whole buffer: vag selects it, yag yanks it
 				j = function(ai_type)
-					return require("utils").notebook_cell_region(ai_type)
+					return require("utils.notebook").cell_region(ai_type)
 				end, -- notebook cell: ij its code, aj the code with its fence or "# %%" line
 			},
 			mappings = {

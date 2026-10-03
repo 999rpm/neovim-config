@@ -6,7 +6,7 @@ return {
 	event = { "BufReadPre", "BufNewFile" },
 	config = function()
 		local lint = require("lint")
-		local utils = require("utils")
+		local core = require("utils.core")
 
 		lint.linters_by_ft = {
 			sql = { "sqlfluff" },
@@ -25,11 +25,11 @@ return {
 			if type(cmd) == "function" then
 				cmd = cmd()
 			end
-			return type(cmd) == "string" and utils.executable(cmd)
+			return type(cmd) == "string" and core.executable(cmd)
 		end
 
 		vim.api.nvim_create_autocmd({ "BufReadPost", "BufWritePost", "InsertLeave" }, {
-			group = utils.augroup("lint"),
+			group = core.augroup("lint"),
 			desc = "999rpm: run nvim-lint on open, on write and on leaving insert mode",
 			callback = function(ev)
 				if vim.b[ev.buf].disable_lint or ev.buf ~= vim.api.nvim_get_current_buf() then

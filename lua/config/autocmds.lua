@@ -1,8 +1,8 @@
--- Autocommands. Every group is named "999rpm-<name>" through utils.augroup, so :autocmd 999rpm-* lists them all.
+-- Autocommands. Every group is named "999rpm-<name>" through utils/core.lua's augroup, so :autocmd 999rpm-* lists them all.
 local api = vim.api
 local fn = vim.fn
-local utils = require("utils")
-local augroup = utils.augroup
+local core = require("utils.core")
+local augroup = core.augroup
 
 api.nvim_create_autocmd("FileType", {
 	group = augroup("format_options"),
@@ -37,7 +37,7 @@ api.nvim_create_autocmd("BufWritePre", {
 		if ctx.match:match("^%w%w+:[\\/][\\/]") then
 			return -- a URL (oil://, scp://), not a path on disk
 		end
-		utils.may_create_dir(fn.fnamemodify(ctx.file, ":p:h"))
+		core.may_create_dir(fn.fnamemodify(ctx.file, ":p:h"))
 	end,
 })
 
@@ -141,7 +141,7 @@ api.nvim_create_autocmd("BufWritePost", {
 		end
 
 		local cmd_base = ft_format_check[vim.bo[ev.buf].filetype]
-		if not cmd_base or not utils.executable(cmd_base[1]) then
+		if not cmd_base or not core.executable(cmd_base[1]) then
 			return
 		end
 
@@ -153,6 +153,15 @@ api.nvim_create_autocmd("BufWritePost", {
 				end)
 			end
 		end)
+	end,
+})
+
+api.nvim_create_autocmd("FileType", {
+	group = augroup("makeprg"),
+	pattern = { "c", "cpp" },
+	desc = "999rpm: :make builds a lone C or C++ file with clang when no build file is above it",
+	callback = function(ev)
+		require("utils.run").set_makeprg(ev.buf)
 	end,
 })
 
@@ -293,7 +302,7 @@ api.nvim_create_autocmd("OptionSet", {
 	group = augroup("shell_options"),
 	pattern = "shell",
 	desc = "999rpm: re-apply the shell* flags when 'shell' changes",
-	callback = utils.apply_shell_options,
+	callback = require("utils.shell").apply_shell_options,
 })
 
 api.nvim_create_autocmd("MenuPopup", {
@@ -376,7 +385,7 @@ api.nvim_create_autocmd("FileType", {
 	callback = function(event)
 		vim.bo[event.buf].buflisted = false
 		vim.schedule(function()
-			utils.map_close(event.buf, true)
+			core.map_close(event.buf, true)
 		end)
 	end,
 })

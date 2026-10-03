@@ -1,5 +1,6 @@
 -- saghen/blink.cmp: completion and signature help.
--- Keys: <Tab>/<S-Tab> next/previous item, <CR> accept, <C-Space> open menu, <C-e> hide, <C-k> documentation, <C-b>/<C-f> scroll docs.
+-- Keys: <Tab>/<S-Tab> next/previous item, <CR> accept, <C-Space> open menu, <C-e> hide, <C-k> documentation,
+-- <M-j>/<M-k> scroll it (<C-b> is tmux's prefix, and insert-mode <C-f> stays the built-in re-indent).
 -- Command line: <Tab>/<S-Tab> complete and cycle, <C-n>/<C-p> next/previous, <C-y> accept, <C-e> cancel; arrows stay built-in.
 return {
 	"saghen/blink.cmp",
@@ -17,8 +18,8 @@ return {
 			["<C-Space>"] = { "show", "hide", "fallback" },
 			["<C-e>"] = { "hide", "fallback" }, -- falls through to the native insert-mode "copy the char below" when no menu is open
 			["<C-k>"] = { "show_documentation", "hide_documentation", "fallback" }, -- falls through to the native digraph insert when no menu is open
-			["<C-b>"] = { "scroll_documentation_up", "fallback" },
-			["<C-f>"] = { "scroll_documentation_down", "fallback" },
+			["<M-k>"] = { "scroll_documentation_up", "fallback" },
+			["<M-j>"] = { "scroll_documentation_down", "fallback" },
 		},
 
 		appearance = {

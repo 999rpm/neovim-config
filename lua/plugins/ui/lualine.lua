@@ -5,7 +5,7 @@ return {
 	event = "VeryLazy",
 	config = function()
 		local lazy_status = require("lazy.status")
-		local utils = require("utils")
+		local status = require("utils.statusline")
 		local fn = vim.fn
 
 		local icons = {
@@ -30,7 +30,7 @@ return {
 
 		local git_status_cache = { behind_count = 0, ahead_count = 0 }
 
-		local update_git_status = utils.throttle(function()
+		local update_git_status = status.throttle(function()
 			local dir = fn.expand("%:p:h")
 			if fn.isdirectory(dir) == 0 then
 				return
@@ -44,7 +44,7 @@ return {
 		end, 5000)
 
 		vim.api.nvim_create_autocmd({ "BufEnter", "FocusGained" }, {
-			group = utils.augroup("lualine-git-status"),
+			group = require("utils.core").augroup("lualine-git-status"),
 			desc = "999rpm: refresh the statusline's ahead/behind counts (throttled)",
 			callback = update_git_status,
 		})
@@ -64,7 +64,7 @@ return {
 			if vim.bo.filetype ~= "python" then
 				return ""
 			end
-			local venv = utils.get_virtual_env()
+			local venv = status.virtual_env()
 			return venv ~= "" and ("󰌠 " .. venv) or ""
 		end
 
@@ -72,7 +72,7 @@ return {
 			if not vim.bo.modifiable then
 				return ""
 			end
-			return utils.buf_cached(
+			return status.buf_cached(
 				"trailing_space",
 				function() -- whole-buffer search: once per edit, not once per statusline redraw
 					local space = fn.search([[\s\+$]], "nwc")
@@ -111,7 +111,7 @@ return {
 			if not vim.bo.modifiable then
 				return ""
 			end
-			return utils.buf_cached("mixed_indent", scan_mixed_indent) -- up to four whole-buffer searches; cached like trailing_space above
+			return status.buf_cached("mixed_indent", scan_mixed_indent) -- up to four whole-buffer searches; cached like trailing_space above
 		end
 
 		local function kernel()

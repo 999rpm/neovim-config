@@ -3,8 +3,8 @@
 -- Grouping: a prefix holds one kind of thing, and the lowercase key is the common action, its uppercase twin the wider
 -- or rarer one (d/D diagnostics/debug, t/T terminal/test, g/G hunks/review). Every on/off switch sits under <leader>o
 -- and nothing else does; the snacks toggles there show their current state. <leader>n is the notes graph, <leader>k
--- the Jupyter kernel and, in notebook buffers, cell editing, <leader>y yank and register helpers; markdown buffers add
--- \m \l \t \h.
+-- the Jupyter kernel and, in notebook buffers, cell editing, <leader>w projects and build tasks, <leader>y yank and
+-- register helpers; markdown buffers add \m \l \t \h.
 -- An entry with only a desc is a label, not a mapping: which-key sets a keymap only for entries with an rhs, so the g*
 -- and gr* labels below name built-in keys without taking them over.
 local function markdown()
@@ -32,6 +32,7 @@ return {
 			{ "<leader>b", group = "Buffers", icon = "󱟱 " },
 			{ "<leader>h", group = "Harpoon", icon = "󱡀 " },
 			{ "<leader>q", group = "Sessions & quit", icon = "󰆓 " },
+			{ "<leader>w", group = "Workspace: projects & tasks", icon = "\u{f0645} " }, -- projects/new-project.lua, overseer.lua
 			{ "<leader><Tab>", group = "Tabs", icon = "󰓩 " }, -- mappings.lua
 
 			{ "<leader>n", group = "Notes (Logseq graph)", icon = "󰠮 " }, -- notes/logseq.lua
@@ -61,7 +62,11 @@ return {
 			{ "<leader>o", group = "Toggles (on/off)", icon = "󰔡 " },
 			{ "<leader>p", group = "Plugins & tools", icon = "󰏖 " },
 
-			{ "<localleader>", group = "Buffer-local (markdown, review, grug-far, Octo)", icon = "󰦒 " },
+			{
+				"<localleader>",
+				group = "Buffer-local (markdown, review, grug-far, Octo, package.json)",
+				icon = "󰦒 ",
+			},
 			{ "<localleader>m", group = "Markdown: format, links, checkbox", icon = "󰍔 ", cond = markdown }, -- markdown-plus.lua
 			{ "<localleader>l", group = "Markdown: list", icon = "󰉹 ", cond = markdown },
 			{ "<localleader>t", group = "Markdown: table", icon = "󰓫 ", cond = markdown },

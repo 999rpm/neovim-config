@@ -2,7 +2,9 @@
 -- configured anywhere else, so a plugin file stays readable without following a chain of imports.
 return {
 	{ "nvim-lua/plenary.nvim", lazy = true }, -- neo-tree, harpoon, todo-comments, neotest, octo, avante, mcphub, yazi
-	{ "MunifTanjim/nui.nvim", lazy = true }, -- neo-tree, noice, hardtime, avante
+	{ "MunifTanjim/nui.nvim", lazy = true }, -- neo-tree, noice, hardtime, avante, package-info
+	{ "ColinKennedy/mega.cmdparse", lazy = true, dependencies = { "ColinKennedy/mega.logging" } }, -- avante's commands
+	{ "ColinKennedy/mega.logging", lazy = true }, -- mega.cmdparse
 	{ "nvim-neotest/nvim-nio", lazy = true }, -- dap-ui, neotest
 	{ "gregorias/coop.nvim", lazy = true }, -- coerce
 	{ "kevinhwang91/promise-async", lazy = true }, -- ufo
@@ -15,7 +17,7 @@ return {
 		lazy = true,
 		build = "make",
 		cond = function()
-			return require("utils").executable("make")
+			return require("utils.core").executable("make")
 		end,
 	},
 }

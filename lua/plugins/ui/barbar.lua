@@ -108,6 +108,6 @@ return {
 	},
 	config = function(_, opts)
 		require("barbar").setup(opts)
-		require("utils").on_colorscheme("barbar-tabs", paint_tabs)
+		require("utils.core").on_colorscheme("barbar-tabs", paint_tabs)
 	end,
 }

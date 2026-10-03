@@ -2,10 +2,11 @@
 -- highlighting and the option toggles under <leader>o.
 -- Picker: opens in the result list (normal mode). <Tab>/<S-Tab> next/previous, <C-Space> mark for multi-select,
 -- <C-a> mark all, <CR> open, i or / type a query, <C-s>/<C-v>/<C-t> split/vsplit/tab, <C-q> to quickfix,
--- <A-h>/<A-i> hidden/ignored files, <A-p> preview, ? help, q or <Esc> close. Results rank by frecency.
+-- <A-j>/<A-k> scroll the preview (<C-f>/<C-b> too, outside tmux), <A-h>/<A-i> hidden/ignored files, <A-p> preview, ? help,
+-- q or <Esc> close. Results rank by frecency.
 -- Terminal: <Esc><Esc> normal mode, q (normal mode) hide, gf open file under cursor.
 -- Images: kitty draws markdown images and LaTeX math inline; <leader>ui opens the one under the cursor in a float.
--- d2 diagrams render through tree-sitter-d2.lua. Dashboard (bare `nvim`): f find, n new, g grep, r recent, c config,
+-- d2 diagrams render through lang/d2-diagrams.lua. Dashboard (bare `nvim`): f find, n new, g grep, r recent, c config,
 -- s restore session, L Lazy, q quit; digits open the recent files listed below the keys. <leader>ew picks a window by letter.
 -- snacks.words underlines every occurrence of the symbol under the cursor, and ]r/[r walk them.
 local function pick(source, opts) -- one wrapper instead of a closure per key
@@ -29,6 +30,8 @@ local menu_keys = {
 	["<Tab>"] = { "list_down", mode = { "i", "n" } },
 	["<S-Tab>"] = { "list_up", mode = { "i", "n" } },
 	["<C-Space>"] = { "select_and_next", mode = { "i", "n" } },
+	["<A-j>"] = { "preview_scroll_down", mode = { "i", "n" } }, -- <C-b>, the default scroll up, is tmux's prefix
+	["<A-k>"] = { "preview_scroll_up", mode = { "i", "n" } },
 }
 
 return {
@@ -60,7 +63,7 @@ return {
 		notifier = { enabled = true, timeout = 3000 },
 		indent = {
 			enabled = true,
-			indent = { char = "│", hl = require("utils").rainbow_delimiter_groups },
+			indent = { char = "│", hl = require("utils.core").rainbow_delimiter_groups },
 			animate = { enabled = true, style = "out" },
 			scope = { enabled = true },
 			chunk = {
@@ -108,7 +111,6 @@ return {
 			end,
 			desc = "Plugin sources",
 		},
-		{ "<leader>fP", pick("projects"), desc = "Projects" },
 
 		{
 			"<leader>ed",

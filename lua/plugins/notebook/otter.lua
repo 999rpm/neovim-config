@@ -3,7 +3,7 @@
 -- grn and diagnostics between the two. ipynb.lua activates it in notebook and quarto buffers.
 return {
 	"jmbuhr/otter.nvim",
-	lazy = true, -- loaded by the first require from utils.notebook_attach
+	lazy = true, -- loaded by the first require from utils/notebook.lua's attach
 	opts = {
 		lsp = { diagnostic_update_events = { "BufWritePost", "InsertLeave" } }, -- cell diagnostics refresh on leaving insert mode too
 		buffers = { set_filetype = true }, -- the hidden buffers get a real filetype, so vim.lsp.enable() attaches the usual servers

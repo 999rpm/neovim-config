@@ -66,7 +66,7 @@ return {
 			end)
 		end)
 
-		require("utils").on_colorscheme("multicursor-highlights", function()
+		require("utils.core").on_colorscheme("multicursor-highlights", function()
 			local hl = vim.api.nvim_set_hl
 			hl(0, "MultiCursorCursor", { reverse = true })
 			hl(0, "MultiCursorVisual", { link = "Visual" })

@@ -55,7 +55,7 @@ return {
 	},
 	config = function(_, opts)
 		require("render-markdown").setup(opts)
-		require("utils").on_colorscheme("render-markdown-highlights", function()
+		require("utils.core").on_colorscheme("render-markdown-highlights", function()
 			vim.api.nvim_set_hl(0, "RenderMarkdownInfo", { link = "DiagnosticInfo" })
 			vim.api.nvim_set_hl(0, "RenderMarkdownSuccess", { link = "DiagnosticOk" })
 			vim.api.nvim_set_hl(0, "RenderMarkdownWarn", { link = "DiagnosticWarn" })

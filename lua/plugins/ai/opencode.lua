@@ -5,7 +5,6 @@ local term_opts = { win = { position = "right", enter = false } }
 
 return {
 	"NickvanDyke/opencode.nvim",
-	dependencies = { "folke/snacks.nvim" },
 	init = function()
 		vim.g.opencode_opts = {
 			server = {

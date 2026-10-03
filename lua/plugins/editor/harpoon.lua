@@ -86,7 +86,7 @@ return {
 		})
 		harpoon:extend({
 			UI_CREATE = function(cx)
-				require("utils").menu_nav(cx.bufnr) -- <Tab>/<S-Tab>, as in the picker, quickfix and dropbar
+				require("utils.core").menu_nav(cx.bufnr) -- <Tab>/<S-Tab>, as in the picker, quickfix and dropbar
 				vim.keymap.set("n", "<C-v>", function()
 					harpoon.ui:select_menu_item({ vsplit = true })
 				end, { buf = cx.bufnr, desc = "Open in vsplit" })

@@ -6,11 +6,11 @@ return {
 	opts = {
 		options = {
 			parsers = {
-				names = { enable = false }, -- don't highlight bare CSS color names ("red", "blue", ...); too noisy outside actual CSS
+				names = { enable = false }, -- bare colour names ("red", "blue") stay plain: they fill prose and identifiers
 				tailwind = { -- Tailwind classes (text-red-500, bg-blue-200, ...) in jsx/tsx/html
 					enable = true,
 					lsp = { enable = true }, -- tailwindcss-language-server's colours win where it runs, so the project's theme applies
-					update_names = true, -- and feed back into the fast name lookup
+					update_names = true, -- the server's colours also refresh the name lookup
 				},
 			},
 		},

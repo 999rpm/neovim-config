@@ -26,7 +26,7 @@ return {
 	config = function(_, opts)
 		require("oil").setup(opts)
 		vim.api.nvim_create_autocmd("User", {
-			group = require("utils").augroup("oil-rename"),
+			group = require("utils.core").augroup("oil-rename"),
 			pattern = "OilActionsPost",
 			desc = "999rpm: language servers update imports after oil moves a file",
 			callback = function(ev)

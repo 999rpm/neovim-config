@@ -21,7 +21,7 @@ if not uv.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(vim.env.LAZY or lazypath)
 
-local has_git = require("utils").executable("git")
+local has_git = require("utils.core").executable("git")
 local disabled_plugins = { -- names from 0.12's runtime/plugin; rplugin stays on, it defines molten.lua's commands
 	"gzip",
 	"matchit", -- editor/matchup.lua replaces it

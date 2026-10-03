@@ -170,7 +170,8 @@ return {
 	},
 	config = function()
 		local dap = require("dap")
-		local utils = require("utils")
+		local core = require("utils.core")
+		local debugger = require("utils.debugger")
 
 		local signs = {
 			DapBreakpoint = { text = "󰝥", texthl = "DapBreakpoint" },
@@ -188,7 +189,7 @@ return {
 			vim.fn.sign_define(name, sign)
 		end
 
-		utils.on_colorscheme("dap-highlights", function()
+		core.on_colorscheme("dap-highlights", function()
 			vim.api.nvim_set_hl(0, "DapBreakpoint", { link = "DiagnosticError" })
 			vim.api.nvim_set_hl(0, "DapBreakpointCondition", { link = "DiagnosticWarn" })
 			vim.api.nvim_set_hl(0, "DapLogPoint", { link = "DiagnosticInfo" })
@@ -197,8 +198,8 @@ return {
 			vim.api.nvim_set_hl(0, "DapBreakpointRejected", { link = "DiagnosticHint" })
 		end)
 
-		local js_debug_server = utils.mason_path("packages/js-debug-adapter/js-debug/src/dapDebugServer.js")
-		dap.adapters["pwa-node"] = utils.mason_adapter(js_debug_server, "js-debug-adapter", {
+		local js_debug_server = debugger.mason_path("packages/js-debug-adapter/js-debug/src/dapDebugServer.js")
+		dap.adapters["pwa-node"] = debugger.mason_adapter(js_debug_server, "js-debug-adapter", {
 			type = "server",
 			host = "localhost",
 			port = "${port}",
@@ -223,8 +224,8 @@ return {
 			}
 		end
 
-		local codelldb_bin = utils.mason_path("bin/codelldb", "bin/codelldb.cmd")
-		dap.adapters.codelldb = utils.mason_adapter(codelldb_bin, "codelldb", {
+		local codelldb_bin = debugger.mason_path("bin/codelldb", "bin/codelldb.cmd")
+		dap.adapters.codelldb = debugger.mason_adapter(codelldb_bin, "codelldb", {
 			type = "server",
 			port = "${port}",
 			executable = { command = codelldb_bin, args = { "--port", "${port}" } },
@@ -244,8 +245,8 @@ return {
 		dap.configurations.c = vim.deepcopy(dap.configurations.cpp) -- deepcopy, not assignment: a shared table makes one language's discovered runnables appear in the other's picker
 		dap.configurations.rust = vim.deepcopy(dap.configurations.cpp)
 
-		local haskell_debug_bin = utils.mason_path("bin/haskell-debug-adapter", "bin/haskell-debug-adapter.cmd")
-		dap.adapters.haskell = utils.mason_adapter(haskell_debug_bin, "haskell-debug-adapter", {
+		local haskell_debug_bin = debugger.mason_path("bin/haskell-debug-adapter", "bin/haskell-debug-adapter.cmd")
+		dap.adapters.haskell = debugger.mason_adapter(haskell_debug_bin, "haskell-debug-adapter", {
 			type = "executable",
 			command = haskell_debug_bin,
 			args = { "--hackage-version=0.0.33.0" },

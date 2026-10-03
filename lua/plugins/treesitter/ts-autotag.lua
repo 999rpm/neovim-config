@@ -5,9 +5,9 @@ return {
 	config = function()
 		require("nvim-ts-autotag").setup({
 			opts = {
-				enable_close = false, -- Don't auto-insert a closing tag right after the opening tag
-				enable_rename = true, -- Renaming one side of a tag pair renames the other automatically
-				enable_close_on_slash = true, -- Complete the tag on a manually typed "</"
+				enable_close = false, -- no closing tag right after an opening one
+				enable_rename = true, -- renaming one tag of a pair renames the other
+				enable_close_on_slash = true, -- typing "</" completes the tag
 			},
 		})
 	end,

@@ -1,7 +1,6 @@
 -- theHamsta/nvim-dap-virtual-text: variable values inline while a session is stopped. <leader>ov toggles them.
 return {
 	"theHamsta/nvim-dap-virtual-text",
-	dependencies = { "mfussenegger/nvim-dap" },
 	cmd = { "DapVirtualTextToggle", "DapVirtualTextEnable", "DapVirtualTextDisable" },
 	keys = {
 		{

@@ -9,11 +9,11 @@ return {
 		{
 			"<leader>ey",
 			function()
-				local utils = require("utils")
-				if utils.executable("yazi") then
+				local core = require("utils.core")
+				if core.executable("yazi") then
 					require("yazi").yazi()
 				else
-					utils.warn_if_missing_exec("yazi", "yazi.nvim", "Install it from the yazi-rs project first.")
+					core.warn_if_missing_exec("yazi", "yazi.nvim", "Install it from the yazi-rs project first.")
 				end
 			end,
 			desc = "Open yazi at this file",

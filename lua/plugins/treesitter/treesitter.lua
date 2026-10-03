@@ -1,5 +1,7 @@
--- nvim-treesitter/nvim-treesitter (main branch): parser installs and highlighting through Neovim's own treesitter. Parsers build with the
--- tree-sitter CLI (mason.lua installs it); :TSUpdate refreshes them, :TSInstall {lang} adds one.
+-- nvim-treesitter/nvim-treesitter (main branch): parser installs and highlighting through Neovim's own treesitter.
+-- Parsers build with the tree-sitter CLI (mason.lua installs it); :TSUpdate refreshes them, :TSInstall {lang} adds one.
+-- d2, which nvim-treesitter does not ship, is registered from its own repository through nvim-treesitter's custom
+-- parser hook, so a missing parser never breaks a .d2 buffer: highlighting stays off until :TSUpdate builds it.
 return {
 	{
 		"nvim-treesitter/nvim-treesitter",
@@ -8,7 +10,7 @@ return {
 		cmd = { "TSUpdate", "TSInstall", "TSLog", "TSUninstall" },
 		build = ":TSUpdate",
 		config = function()
-			local utils = require("utils")
+			local core = require("utils.core")
 			local ensure_installed = {
 				"lua",
 				"luadoc",
@@ -43,6 +45,7 @@ return {
 				"zsh",
 				"nu",
 				"kitty", -- kitty.conf
+				"kdl", -- niri's config.kdl
 				"dockerfile",
 				"make",
 				"cmake",
@@ -51,14 +54,30 @@ return {
 				"git_rebase",
 				"git_config",
 				"gitignore",
+				"d2", -- registered below; lang/d2-diagrams.lua renders the diagrams
 			}
 
+			vim.api.nvim_create_autocmd("User", {
+				group = core.augroup("treesitter-parsers"),
+				pattern = "TSUpdate",
+				desc = "999rpm: register the d2 parser, which nvim-treesitter does not ship",
+				callback = function()
+					require("nvim-treesitter.parsers").d2 = {
+						install_info = {
+							url = "https://github.com/ravsii/tree-sitter-d2",
+							revision = "d552b17bf3e4c29b3f090a4a02f61ed2c4a67b3b", -- tag v0.7.2; upstream recommends tagged releases
+							queries = "queries", -- highlights, folds and injections from the same repository
+						},
+					}
+				end,
+			})
+
 			local ts = require("nvim-treesitter")
-			ts.setup({})
-			if utils.executable("tree-sitter") then
+			ts.setup({}) -- fires User TSUpdate, so the autocommand above comes first
+			if core.executable("tree-sitter") then
 				ts.install(ensure_installed)
 			else
-				utils.warn_if_missing_exec(
+				core.warn_if_missing_exec(
 					"tree-sitter",
 					"nvim-treesitter",
 					"Parsers install once Mason has tree-sitter-cli, or an OS package provides it; then run :TSUpdate."
@@ -75,7 +94,7 @@ return {
 			end
 
 			vim.api.nvim_create_autocmd("FileType", {
-				group = utils.augroup("treesitter-highlight"),
+				group = core.augroup("treesitter-highlight"),
 				desc = "999rpm: start the treesitter highlighter for each new filetype",
 				callback = function(ev)
 					start(ev.buf, ev.match)

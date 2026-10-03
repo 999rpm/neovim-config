@@ -1,7 +1,10 @@
 -- Editor options. Leader is Space, local leader is backslash. vim.g.notes_dir points the notes layer at a Logseq-style
--- graph folder. 'shell' follows the login shell from the passwd database; nushell gets its own shell* flags (utils.lua).
--- The Python 3 provider runs only when :JupyterSetup's environment exists (notebook/molten.lua needs it).
-local utils = require("utils")
+-- graph folder, vim.g.projects_dir the new-project wizard at the projects folder. 'shell' follows the login shell from
+-- the passwd database; nushell gets its own shell* flags (utils/shell.lua). The Python 3 provider runs only when
+-- :JupyterSetup's environment exists (molten.lua needs it).
+local core = require("utils.core")
+local shell = require("utils.shell")
+local jupyter_python = require("utils.jupyter").python()
 
 local g = vim.g
 local opt = vim.opt
@@ -12,12 +15,13 @@ g.have_nerd_font = true -- plugins that check it draw icons
 g.markdown_recommended_style = 0 -- the markdown ftplugin leaves indentation alone
 g.yaml_indent_multiline_scalar = 1 -- indent continuation lines of a multi-line YAML string
 g.notes_dir = vim.env.NOTES_DIR or "~/notes" -- notes graph (journals/, pages/, assets/); $NOTES_DIR overrides
+g.projects_dir = vim.env.PROJECTS_DIR or "~/Coding" -- new projects go here (utils/project.lua); $PROJECTS_DIR overrides
 
 g.loaded_perl_provider = 0
 g.loaded_ruby_provider = 0
 g.loaded_node_provider = 0
-if vim.uv.fs_stat(utils.jupyter_python()) then
-	g.python3_host_prog = utils.jupyter_python() -- :JupyterSetup's environment runs molten.lua's remote plugin
+if vim.uv.fs_stat(jupyter_python) then
+	g.python3_host_prog = jupyter_python -- :JupyterSetup's environment runs molten.lua's remote plugin
 else
 	g.loaded_python3_provider = 0 -- no environment yet, so no provider probe at startup; :JupyterSetup turns it on
 end
@@ -31,11 +35,11 @@ end)
 opt.mouse = "n" -- normal mode only; "a" would extend it to every mode
 opt.confirm = true -- ask before leaving a modified buffer instead of failing
 
-opt.shell = utils.login_shell() -- login shell from the passwd database, so chsh applies without a new login
-utils.apply_shell_options() -- nushell needs its own shell* flags; every other shell keeps Neovim's defaults
+opt.shell = shell.login_shell() -- login shell from the passwd database, so chsh applies without a new login
+shell.apply_shell_options() -- nushell needs its own shell* flags; every other shell keeps Neovim's defaults
 
 opt.shada = "!,'1000,<50,s10,h,r/tmp/,r/private/" -- marks for 1000 files (default 100); the rest is the default
-opt.secure = true -- no shell or write commands from local config files
+opt.exrc = true -- a project's .nvim.lua runs at startup once :trust approves it; :trust is the guard, Neovim has no 'secure'
 opt.modelines = 0 -- files cannot set options through modelines
 opt.iskeyword:append("-") -- kebab-case counts as one word for w, * and completion
 
@@ -44,7 +48,6 @@ opt.spellsuggest:append("9") -- at most 9 suggestions in z=
 opt.spelloptions:append("camel") -- camelCase parts are checked as separate words
 
 opt.autowrite = true -- write before :make, :next and similar commands
-opt.history = 500 -- command-line and search history entries
 opt.jumpoptions = "stack,view,clean" -- browser-style jump stack, saved views, no entries for unloaded buffers
 opt.isfname:remove({ "=", "," }) -- gf stops at = and ,
 
@@ -52,12 +55,12 @@ opt.timeoutlen = 500 -- ms to finish a mapped key sequence
 opt.ttimeoutlen = 0 -- ms to finish a terminal key code
 opt.updatetime = 100 -- ms of idle time before CursorHold
 opt.redrawtime = 1500 -- ms of syntax highlighting per redraw before it gives up
-opt.synmaxcol = 240 -- no syntax highlighting past column 240
+opt.synmaxcol = 240 -- regex syntax stops at column 240; treesitter highlighting ignores it
 
 opt.termguicolors = true -- 0.12 applies detected truecolor only at VimEnter; colorizer reads it on the first BufReadPre
 opt.guicursor = "n-v-c:block-Cursor/lCursor,i-ci-ve:ver25-Cursor2/lCursor2,r-cr:hor20,o:hor20" -- block, bar in insert, underline in replace
 opt.title = true -- terminal title shows the branch and the file
-opt.titlestring = "%{v:lua.require('utils').get_current_branch_name()} • %<%F %=%l/%L"
+opt.titlestring = "%{v:lua.require('utils.statusline').branch_name()} • %<%F %=%l/%L"
 
 opt.showmode = false -- lualine shows the mode
 opt.laststatus = 3 -- one global statusline
@@ -142,7 +145,7 @@ opt.showmatch = true -- a typed bracket briefly shows its partner
 opt.inccommand = "split" -- :s previews every change in a split
 opt.path:append("**") -- :find searches subdirectories
 
-if utils.executable("rg") then
+if core.executable("rg") then
 	opt.grepprg = "rg --vimgrep --no-heading --smart-case" -- 0.12's own rg default passes -uu, which searches ignored and hidden files
 	opt.grepformat = "%f:%l:%c:%m"
 end
@@ -168,7 +171,7 @@ opt.wildignore:append("*.swp,*.lock,.DS_Store,._*") -- swap files, lockfiles, ma
 opt.wildignore:append("*/__pycache__/*,*.pyc,*.pkl,*/build/**") -- Python caches, build output
 
 local backup_dir = vim.fn.stdpath("data") .. "/backup//"
-utils.may_create_dir(backup_dir) -- Neovim does not create 'backupdir'; without it no backup is written
+core.may_create_dir(backup_dir) -- Neovim does not create 'backupdir'; without it no backup is written
 
 opt.backup = true -- keep the previous version of a file
 opt.backupcopy = "yes" -- copy, then overwrite the original, so its inode survives
@@ -218,7 +221,11 @@ opt.diffopt = { -- assigned whole: 0.12 already carries linematch:40, and append
 vim.filetype.add({
 	extension = {
 		mdx = "mdx",
-		d2 = "d2", -- 0.12 does not detect it; tree-sitter-d2.lua loads on this filetype
+		d2 = function()
+			return "d2", function(buf)
+				vim.bo[buf].commentstring = "# %s"
+			end
+		end, -- 0.12 detects neither the filetype nor its comment leader
 		ipynb = function(_, buf)
 			return vim.b[buf]._999rpm_notebook and "markdown" or "json"
 		end, -- notebooks open as jupytext markdown (notebook/ipynb.lua), as JSON when the conversion fails

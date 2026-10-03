@@ -3,66 +3,64 @@
 What changed, and the reason it changed. Newest first; older passes are condensed to their conclusions once a later
 pass has confirmed them.
 
-## 2026-10-02 (sixteenth pass)
+## 2026-10-03 (twentieth pass)
 
-Method: Neovim 0.12.5, nushell 0.116, zsh 5.9, every plugin at its newest commit or tag; a headless script of 47 checks
-that drives each change below (writes, failed writes, bufload(), tabs, resizes, cell edits, `:grep` under both shells),
-then every plugin loaded and the keymaps of all modes scanned.
+Method: the nineteenth pass's headless setup; every theme and style loaded from a saved file, every switcher action
+driven, the state file fed broken input (`null`, a bare string, broken JSON, an unknown theme, a style index that is
+not a number or out of range, `[]`, no file), a theme made to fail on load, then the full harness, StyLua and the
+"This util is used by" check again.
+
+### Changed
+
+- The theme switcher moved out of `core/themes.lua` into `utils/themes.lua`, the way notes, notebooks and projects keep
+  their code in `utils/`. The spec file is now `core/colorschemes.lua`: the four colour schemes and the 999rpm-themer
+  spec, whose keys became lazy.nvim `keys` entries. `lang/d2.lua` became `lang/d2-diagrams.lua`: no plugin file shares
+  a basename with a `utils/` module, the rule that once renamed `plugins/init.lua`.
+- A theme that fails to load (a plugin missing where no git installed it) no longer stops startup or a switch: startup
+  warns and keeps Neovim's default colours, a switch warns and returns to the last theme, and the saved choice stays.
+- The state file is read defensively: anything but a JSON object keeps the defaults, an unknown theme is ignored and
+  the style index is clamped. `null`, a bare string or a style index that was not a number stopped the switcher before
+  it set any colours or keys, and an unknown theme left no colour scheme at all.
+
+### Removed
+
+- `lualine.refresh()` after a switch: lualine reloads itself on `ColorScheme` and on a `'background'` change.
+- kanagawa's own `package.loaded` reset, which repeated the one every theme gets.
 
 ### Fixed
 
-- Backups could stay off for the rest of a session: two autocommands switched the global `'backup'` off before writing
-  a temporary or transient file and on again in BufWritePost, which a failed write never reaches. `'backupskip'` lists
-  those files now, and its default `/tmp`, `$TMPDIR`, `$TMP` and `$TEMP` patterns are back (`'wildignore'` had replaced
-  them). One autocommand still turns the undo file off for the same files.
-- Trailing whitespace was stripped from patches (the context line of a blank line), mail signatures, binary buffers and
-  files whose `.editorconfig` sets `trim_trailing_whitespace = false`; an unmodifiable buffer could not be written.
-- `auto_create_dir` made a folder out of URL-style names (`scheme://...`).
-- A file loaded unseen (pickers, grug-far, LSP renames) lost its last cursor position: bufload() fires BufWinEnter in
-  Neovim's hidden autocommand window and resets the `'"` mark when that window closes. The mark is read at load time
-  and applied in the first real window, with the exclusions of `:h last-position-jump` (commit messages, rebase todo
-  lists, xxd, diff mode).
-- With only quickfix, Trouble or neo-tree windows left in one tab, `qall` closed every other tab too. That tab closes
-  alone now, scheduled, since BufEnter may not change the layout (E1312).
-- A terminal resize equalized the splits of the current tab only; every tab now, through nvim_win_call.
-- The yank cursor restore could apply another window's view when code yanked in a different window.
-- `g:no_man_maps` and `g:no_gitrebase_maps` turned off built-in filetype keys: `gO` lists a man page's sections again,
-  and `<C-a>`/`<C-x>` cycle a rebase todo line's action instead of dial's number steps. q in man pages stays this
-  config's close, since man's own q quits Neovim from the last window.
-- grug-far's header named keys it does not have: `<localleader>c` closes, `<localleader>b` aborts.
-
-### Added
-
-- Notebook cell editing, buffer-local wherever cells exist (notebooks, quarto, `# %%` scripts): `<leader>ka`/`kb` add
-  an empty cell above/below in the language of the cell under the cursor and start insert mode, `<leader>kd` deletes
-  the cell into the registers like `dd` (molten's output with it), `<leader>ks` splits it at the cursor line,
-  `<leader>kj` joins it with the next cell when only blank lines part them. Molten's keys moved off those letters:
-  run up to here `ka` to `ku`, delete output `kd` to `kD`, HTML output in the browser `kb` to `kw`.
-- Sessions keep barbar's buffer order and pins, as barbar's README sets it up: `globals` in `'sessionoptions'`, and
-  persistence's PersistenceSavePre (fired before its exit save) fires SessionSavePre.
-- `.zshrc`: the fastfetch logo skips Neovim's `:terminal`, which inherits `KITTY_WINDOW_ID`; `MANPAGER` uses bat only
-  when bat is installed.
-
-### Removed and tidied
-
-- The TermOpen handler no longer turns line numbers off: 0.12's `nvim.terminal` group does, along with signs and folds.
-- Comments in `.zshrc`, `.zshenv`, `config.nu` and `env.nu` follow the neutral style of the rest; their code is
-  unchanged apart from the two `.zshrc` items above. Seven Lua files reformatted by StyLua's defaults.
-- The archive mirrors `$HOME`, so one `unzip -d ~` places every file.
-- Lockfile: avante.nvim, hardtime.nvim (1.3.0), nvim-lspconfig, nvim-treesitter, schemastore.nvim and yazi.nvim moved;
-  the plugins pinned to tags stay (blink.cmp 1.10.2, mini.nvim 0.18.0, nvim-surround 4.0.5, rustaceanvim 9.2.1,
-  tree-sitter-d2 0.7.2).
-
-### Checked and left as is
-
-- Treesitter indentation (`indentexpr`) stays off: nvim-treesitter's README calls it experimental.
-- blink.cmp's 240 commits after 1.10.2 are unreleased; `version = "*"` keeps the tag.
-- The options and plugins of the reference configs add nothing missing here; plugins two or more of them share are
-  alternatives already in place (telescope, nvim-cmp, bufferline, fidget) or declined below.
-- No mapping uses `<C-S-...>` or `<M-1>`...`<M-9>`, the keys kitty.conf takes, with every plugin loaded.
-- `E116 dictwatcherdel` (barbar) and `E31` (which-key) in `v:errmsg` remain silent and harmless.
+- snacks.lua's header still sent d2 rendering to the removed tree-sitter-d2.lua, and `core.warn`'s note now names
+  `utils/themes.lua`.
 
 ## Earlier passes: conclusions only
+
+**Nineteenth pass (2026-10-03).** nvim-treesitter's custom-parser hook builds the d2 parser (ravsii/tree-sitter-d2
+at v0.7.2): the plugin started treesitter unguarded on every `.d2` buffer and had no commit in a year. `'secure'` went
+(Neovim removed it; `:trust` guards `'exrc'`). One `vim.lsp.enable()` call for every server, since each call re-ran
+FileType over every open buffer. nvim-dap alone names its panels and Python adapter; `utils/run.lua` owns the compiler
+flags (`-W`, the old name of `-Wextra`, dropped); tmux takes truecolour from `terminal-features RGB`. Under nushell
+`:%!sort` runs nu's own `sort`: `:sort` or `:%!^sort` instead. Declined: nvim-lightbulb (no room in the sign column or
+at the end of the line), ui2 (still experimental in 0.12.5).
+
+**Eighteenth pass (2026-10-03).** The projects layer under `<leader>w`: the `utils/project.lua` wizard (C and C++
+with a Makefile and `compile_flags.txt`, Rust, Python, JavaScript), overseer.nvim with a provider that tags make and
+lone-file clang builds, `utils/run.lua` (`<leader>cr`, and clang as `'makeprg'` quoted with `:S`), `'exrc'` and the
+`kdl` parser. Terminal mode maps no Alt keys; octo's Ctrl keys moved to `<localleader>` and `<A-...>`; `run_chain()`
+moved to `utils/core.lua`. Kept: nvim-treesitter's curated queries over tree-sitter-manager.nvim; no cmake-tools or
+vim-dadbod.
+
+**Seventeenth pass (2026-10-03).** `utils.lua` became `lua/utils/` (one module per subject, no `init.lua`).
+`get_lsp_capabilities` gave way to 0.12's own folding capabilities and blink's merge into `vim.lsp.config("*")`.
+blink, the pickers and nvim-bqf scroll documentation and previews with `<M-j>`/`<M-k>` instead of tmux's `<C-b>`.
+tmux.conf gained extended keys, passthrough and undercurl. better-escape stopped mapping visual `j`; notebooks in the
+graph stopped getting Logseq keys and auto-save; impossible journal dates are refused; `history` keeps 10000.
+package-info.nvim and vim-suda were added.
+
+**Sixteenth pass (2026-10-02).** Backups survive a failed write (`'backupskip'` lists temporary files instead of
+toggling `'backup'`); trailing whitespace stays in patches, mail, binary buffers and where `.editorconfig` keeps it; the
+last cursor position survives bufload(); a tab left with only quickfix, Trouble or neo-tree closes alone; a resize
+equalizes every tab; `gO` in man pages and `<C-a>`/`<C-x>` in rebase todo lists are back. Notebook cell editing under
+`<leader>k` and barbar's order and pins in sessions were added; the archive mirrors `$HOME`.
 
 **Fifteenth pass (2026-10-02).** Nushell's `shellpipe` writes the errorfile through a `do` closure (tee's parallel
 closure lost it) and `:!` runs without `--login`. A notebook opened with `:edit` in a running session sets its own
@@ -110,7 +108,7 @@ gave `]r`/`[r`. Key scheme: `<leader>o` holds toggles only, `<leader>u` UI and t
 through `utils.executable`. `frontend/` merged into `lang/`. Buffer variables became `b:_999rpm_*`.
 
 **Ninth pass.** d2 replaced mermaid: mermaid-cli renders through a headless Chromium, d2 0.9.0 is one static binary
-that writes SVG, PNG and text itself. Added `tree-sitter-d2.lua`, `utils.d2_render()`, `utils.d2_text()`, the `d2`
+that writes SVG, PNG and text itself. Added `tree-sitter-d2.lua` (replaced by nvim-treesitter's parser hook in the nineteenth pass), `utils.d2_render()`, `utils.d2_text()`, the `d2`
 filetype and conform's `d2` formatter; removed the mermaid parser and pointed snacks.image's markdown query at
 ` ```math ` blocks only. Fourteen built-in keys were returned, each personal action moved to a free key: `;` `,` `q`
 `x` `X`, visual `p`, `<C-q>`, `H` `L`, `f` `F`, `s` and visual `S`, visual `R`, `g]`, `<C-LeftMouse>`, `]f` `[f`, `zr`

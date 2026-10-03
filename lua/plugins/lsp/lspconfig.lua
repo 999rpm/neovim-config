@@ -11,7 +11,7 @@ return {
 	event = { "BufReadPre", "BufNewFile" }, -- off the startup path; the servers still attach before the first FileType
 	dependencies = { "b0o/schemastore.nvim" }, -- JSON/YAML schema catalog for jsonls and yamlls
 	config = function()
-		local utils = require("utils")
+		local core = require("utils.core")
 
 		vim.diagnostic.config({
 			update_in_insert = false,
@@ -36,12 +36,10 @@ return {
 			virtual_text = false, -- the same; left on, both would draw
 		})
 
-		vim.lsp.config("*", {
-			capabilities = utils.get_lsp_capabilities(),
-		}) -- no debounce_text_changes override: anything above the default delays every server's view of an edit, rustaceanvim included
+		pcall(require, "blink.cmp") -- loads blink, whose plugin file merges its completion capabilities into vim.lsp.config("*")
 
 		vim.api.nvim_create_autocmd("LspAttach", {
-			group = utils.augroup("lsp-attach"),
+			group = core.augroup("lsp-attach"),
 			nested = true,
 			desc = "999rpm: configure buffer keymaps and behaviour on LSP attach",
 			callback = function(event)
@@ -238,10 +236,9 @@ return {
 			mdx_analyzer = {},
 		}
 
-		local external_servers = {
+		local external_servers = { -- toolchain-managed binaries Mason does not install: each starts once it is on $PATH
 			gopls = {
 				_exec = "gopls",
-				_optional = true, -- starts once gopls is on $PATH; no warning on machines without Go
 				settings = {
 					gopls = {
 						usePlaceholders = true,
@@ -252,11 +249,10 @@ return {
 					},
 				},
 			},
-			golangci_lint_ls = { _exec = "golangci-lint-langserver", _optional = true },
-			clangd = { _exec = "clangd", _optional = true },
+			golangci_lint_ls = { _exec = "golangci-lint-langserver" },
+			clangd = { _exec = "clangd" },
 			hls = {
-				_exec = "haskell-language-server-wrapper",
-				_optional = true, -- ghcup manages hls against the installed GHC, so Mason does not install it
+				_exec = "haskell-language-server-wrapper", -- ghcup builds hls against the installed GHC
 				settings = {
 					haskell = {
 						formattingProvider = "ormolu",
@@ -264,27 +260,23 @@ return {
 					},
 				},
 			},
-			sqls = { _exec = "sqls", _optional = true },
-			vimls = { _exec = "vim-language-server", _optional = true },
+			sqls = { _exec = "sqls" },
+			vimls = { _exec = "vim-language-server" },
 		}
 
+		local enabled = {}
 		for name, opts in pairs(servers) do
 			vim.lsp.config(name, opts)
-			vim.lsp.enable(name)
+			enabled[#enabled + 1] = name
 		end
-
 		for name, opts in pairs(external_servers) do
-			local exec, optional = opts._exec, opts._optional
-			opts._exec, opts._optional = nil, nil
-			if utils.executable(exec) then
+			local exec = opts._exec
+			opts._exec = nil
+			if core.executable(exec) then
 				vim.lsp.config(name, opts)
-				vim.lsp.enable(name)
-			elseif not optional then
-				vim.schedule(function()
-					local msg = string.format("Executable '%s' not found, so server '%s' will not start", exec, name)
-					vim.notify(msg, vim.log.levels.WARN, { title = "LSP" })
-				end)
+				enabled[#enabled + 1] = name
 			end
 		end
+		vim.lsp.enable(enabled) -- one call: each vim.lsp.enable() re-runs FileType over every open buffer
 	end,
 }

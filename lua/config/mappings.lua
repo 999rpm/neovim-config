@@ -5,11 +5,16 @@
 -- zz/zt/zb scroll, gx opens a link, & repeats :s, @: repeats a command, ga shows character info, gq formats (gw keeps the
 -- cursor), . repeats, <C-w>+ <C-w>- <C-w>< <C-w>> <C-w>= size windows, <C-v> starts blockwise visual, ZZ writes and quits,
 -- ZQ quits unsaved, <C-t>/<C-d> indent/dedent the line in insert mode. vag selects the whole buffer (mini.lua's g object).
+-- :sort sorts lines without a shell; under nushell :%!sort runs nu's own sort, which rejects text, and :%!^sort the program.
 -- 0.12 defaults left alone: ]d [d ]D [D diagnostics, <C-w>d diagnostic float, ]q [q ]l [l lists, ]b [b buffers, ]a [a args,
--- ]t [t tags, ]<Space> [<Space> blank lines, an/in parent/child node, K hover, <C-s> signature help (insert), gr* LSP keys,
--- ZR restart Neovim, :Undotree (<leader>uu here). % g% [% ]% z% a% i% come from matchup.lua, gl/gL (align) from mini.lua.
+-- ]t [t tags, ]<Space> [<Space> blank lines, an/in parent/child node and visual ]n [n ]N [N next/previous node or sibling,
+-- K hover, <C-s> signature help (insert), gr* LSP keys, [[ ]] shell prompts in a terminal buffer, ZR restart Neovim,
+-- :Undotree (<leader>uu here). % g% [% ]% z% a% i% come from matchup.lua, gl/gL (align) from mini.lua.
+-- Inside tmux, C-b C-b sends <C-b> (page up). Terminal mode maps nothing here: zsh's vi mode reads Alt+key as <Esc> and
+-- the key, and nushell binds Alt keys too, so <C-\><C-n> leaves terminal mode and the window keys below follow.
 -- Filetype keys kept: <C-a>/<C-x> cycle the action of a git rebase todo line, gO lists a man page's sections.
--- Added here: ]e/[e and ]w/[w jump to errors/warnings only; , . ; in insert mode each close an undo step.
+-- Added here: ]e/[e and ]w/[w jump to errors/warnings only; , . ; in insert mode each close an undo step; <leader>cr
+-- builds and runs the file (a lone C or C++ file through clang; :make runs the same build, autocmds.lua).
 -- hardtime.lua owns h j k l J and the arrow keys (it wraps them to count repeats), so nothing here maps them.
 local map = vim.keymap.set
 
@@ -26,6 +31,10 @@ map("n", "<leader>uu", function()
 	vim.cmd.packadd("nvim.undotree") -- 0.12 ships it as an opt package
 	vim.cmd.Undotree()
 end, { desc = "Undo tree" })
+
+map("n", "<leader>cr", function()
+	require("utils.run").run()
+end, { desc = "Build and run file" }) -- C and C++ through clang; a failed build fills the quickfix list
 
 map("n", "<leader>df", vim.diagnostic.open_float, { desc = "Line diagnostics (float)" }) -- shorter reach than the built-in <C-w>d
 map("n", "<leader>db", function()
@@ -117,12 +126,6 @@ map("n", "<M-Up>", "<Cmd>resize +2<CR>", { desc = "Taller window" }) -- hardtime
 map("n", "<M-Down>", "<Cmd>resize -2<CR>", { desc = "Shorter window" })
 map("n", "<M-Left>", "<Cmd>vertical resize -2<CR>", { desc = "Narrower window" })
 map("n", "<M-Right>", "<Cmd>vertical resize +2<CR>", { desc = "Wider window" })
-
-local term_wincmd = require("utils").term_wincmd
-map("t", "<M-w>", term_wincmd("k", "<M-w>"), { expr = true, desc = "Window up (floats get the key)" })
-map("t", "<M-s>", term_wincmd("j", "<M-s>"), { expr = true, desc = "Window down (floats get the key)" })
-map("t", "<M-a>", term_wincmd("h", "<M-a>"), { expr = true, desc = "Window left (floats get the key)" })
-map("t", "<M-d>", term_wincmd("l", "<M-d>"), { expr = true, desc = "Window right (floats get the key)" })
 
 map("n", "<leader><Tab>e", "<Cmd>tabedit<CR>", { desc = "New tab" })
 map("n", "<leader><Tab>n", "<Cmd>tabnext<CR>", { desc = "Next tab (also gt)" })

@@ -9,17 +9,17 @@
 -- to/from the .ipynb, N new notebook, v register the uv project as a kernel (:JupyterKernelAdd [name]). In cell buffers
 -- ipynb.lua adds a/b/d/s/j: add above/below, delete, split, join. The statusline names the buffer's kernel.
 -- :JupyterSetup builds the Python side, with uv when it is on $PATH, else venv and pip.
-local function util(name, ...)
+local function call(module, name, ...)
 	local args = { ... }
 	return function()
-		require("utils")[name](unpack(args))
+		require("utils." .. module)[name](unpack(args))
 	end
 end
 
 return {
 	"benlubas/molten-nvim", -- main, not a tag: v1.9.2 (Jan 2025) predates the snacks.nvim image provider
 	event = "VeryLazy", -- the remote-plugin manifest defines the commands at startup; the Lua half must be on 'rtp' by the first run
-	build = util("jupyter_setup"), -- creates the Python environment once, then registers the remote plugin
+	build = call("jupyter", "setup"), -- creates the Python environment once, then registers the remote plugin
 	init = function()
 		local g = vim.g
 		g.molten_image_provider = "snacks.nvim" -- snacks.lua's image module; no image.nvim or ImageMagick binding needed
@@ -31,24 +31,24 @@ return {
 		g.molten_output_win_border = "rounded" -- same border as 'winborder'
 		vim.api.nvim_create_user_command(
 			"JupyterSetup",
-			util("jupyter_setup"),
+			call("jupyter", "setup"),
 			{ desc = "Create or update the Jupyter environment" }
 		)
 		vim.api.nvim_create_user_command("JupyterKernelAdd", function(o)
-			require("utils").jupyter_kernel_add(o.args)
+			require("utils.jupyter").kernel_add(o.args)
 		end, { nargs = "?", desc = "Register the uv project as a Jupyter kernel" })
 	end,
 	keys = {
-		{ "<leader>ki", util("notebook_kernel"), desc = "Start kernel" },
+		{ "<leader>ki", call("notebook", "kernel"), desc = "Start kernel" },
 		{ "<leader>kr", "<Cmd>MoltenRestart!<CR>", desc = "Restart kernel, clear outputs" },
 		{ "<leader>kx", "<Cmd>MoltenInterrupt<CR>", desc = "Interrupt kernel" },
 		{ "<leader>kq", "<Cmd>MoltenDeinit<CR>", desc = "Shut down kernel" },
 		{ "<leader>kK", "<Cmd>MoltenInfo<CR>", desc = "Kernel info" },
-		{ "<leader>kc", util("notebook_run", "cell"), desc = "Run cell" },
+		{ "<leader>kc", call("notebook", "run", "cell"), desc = "Run cell" },
 		{ "<leader>kc", ":<C-u>MoltenEvaluateVisual<CR>gv", mode = "x", silent = true, desc = "Run selection" }, -- ":" so '< and '> are set first
-		{ "<leader>kn", util("notebook_run", "next"), desc = "Run cell, go to next" },
-		{ "<leader>ku", util("notebook_run", "above"), desc = "Run cells up to here" },
-		{ "<leader>kA", util("notebook_run", "all"), desc = "Run all cells" },
+		{ "<leader>kn", call("notebook", "run", "next"), desc = "Run cell, go to next" },
+		{ "<leader>ku", call("notebook", "run", "above"), desc = "Run cells up to here" },
+		{ "<leader>kA", call("notebook", "run", "all"), desc = "Run all cells" },
 		{ "<leader>kl", "<Cmd>MoltenEvaluateLine<CR>", desc = "Run line" },
 		{ "<leader>ko", "<Cmd>MoltenEvaluateOperator<CR>", desc = "Run motion (then a motion)" },
 		{ "<leader>ke", "<Cmd>noautocmd MoltenEnterOutput<CR>", desc = "Enter output window" },
@@ -58,11 +58,11 @@ return {
 		{ "<leader>kw", "<Cmd>MoltenOpenInBrowser<CR>", desc = "Open HTML output in browser" },
 		{ "<leader>kE", "<Cmd>MoltenExportOutput!<CR>", desc = "Export outputs to the .ipynb" },
 		{ "<leader>kI", "<Cmd>MoltenImportOutput<CR>", desc = "Import outputs from the .ipynb" },
-		{ "<leader>kN", util("notebook_new"), desc = "New notebook" },
-		{ "<leader>kv", util("jupyter_kernel_add"), desc = "Register uv project as kernel" }, -- uv add --dev ipykernel, then the kernelspec
+		{ "<leader>kN", call("notebook", "new"), desc = "New notebook" },
+		{ "<leader>kv", call("jupyter", "kernel_add"), desc = "Register uv project as kernel" }, -- uv add --dev ipykernel, then the kernelspec
 	},
 	config = function()
-		local group = require("utils").augroup("molten-kernel")
+		local group = require("utils.core").augroup("molten-kernel")
 		vim.api.nvim_create_autocmd("User", {
 			group = group,
 			pattern = "MoltenInitPost",

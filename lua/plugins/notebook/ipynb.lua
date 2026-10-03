@@ -13,33 +13,36 @@
 -- action, <C-s> signature help in insert mode; gO lists the headings, zc/zo close/open a fold.
 return {
 	"999rpm-ipynb", -- a name with no slash: lazy.nvim looks for no repository
-	virtual = true, -- and adds no rtp entry; the code is utils.lua's notebook_* helpers
+	virtual = true, -- and adds no rtp entry; the code is utils/notebook.lua
 	lazy = true,
 	init = function() -- init, not config: the BufReadCmd must exist before `nvim file.ipynb` reads the file
-		local utils = require("utils")
-		local group = utils.augroup("ipynb")
+		local group = require("utils.core").augroup("ipynb") -- utils/notebook.lua itself loads on the first notebook
 		vim.api.nvim_create_autocmd("BufReadCmd", {
 			group = group,
 			pattern = "*.ipynb",
 			desc = "999rpm: open a notebook as markdown through jupytext",
-			callback = utils.notebook_read,
+			callback = function(ev)
+				require("utils.notebook").read(ev)
+			end,
 		})
 		vim.api.nvim_create_autocmd("BufWriteCmd", {
 			group = group,
 			pattern = "*.ipynb",
 			desc = "999rpm: write a notebook back through jupytext, outputs kept",
-			callback = utils.notebook_write,
+			callback = function(ev)
+				require("utils.notebook").write(ev)
+			end,
 		})
 		vim.api.nvim_create_autocmd("FileType", {
 			group = group,
 			pattern = { "markdown", "quarto", "python" },
 			desc = "999rpm: cell motions, and run keys in notebooks",
 			callback = function(ev)
-				utils.notebook_attach(ev.buf)
+				require("utils.notebook").attach(ev.buf)
 			end,
 		})
 		vim.api.nvim_create_user_command("NotebookNew", function(o)
-			utils.notebook_new(o.args)
+			require("utils.notebook").new(o.args)
 		end, { nargs = "?", complete = "file", desc = "Create and open a Python notebook" })
 	end,
 }

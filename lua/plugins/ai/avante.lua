@@ -1,13 +1,14 @@
--- avante-corp/avante.nvim: Claude sidebar with diff-based edits. Needs ANTHROPIC_API_KEY, and cargo for the build step.
+-- avante-corp/avante.nvim: Claude sidebar with diff-based edits. Needs ANTHROPIC_API_KEY. The build step fetches the
+-- prebuilt libraries with curl and tar; upstream's Makefile would compile them with cargo instead.
 -- Keys: <leader>ia toggle, ie edit selection, iA ask, in new chat, is stop, ir refresh, if focus, im model, ih history,
 -- ib add open buffers, iF add current file, iz zen mode, iR repo map.
 -- In the sidebar: A apply all, a apply at cursor, r retry, e edit request, @ add file, d remove file, <Tab>/<S-Tab> switch panes, q close.
 return {
 	"avante-corp/avante.nvim",
-	build = "make",
+	build = "bash build.sh",
 	cmd = { "AvanteAsk", "AvanteChat", "AvanteEdit", "AvanteToggle" }, -- with the keys below; nothing loads at startup
 	version = false, -- avante's own docs: never pin this to "*", the plugin tracks Nvim API changes closely
-	dependencies = { "nvim-lua/plenary.nvim", "MunifTanjim/nui.nvim" }, -- mini.icons is already loaded at priority 1000
+	dependencies = { "nvim-lua/plenary.nvim", "MunifTanjim/nui.nvim", "ColinKennedy/mega.cmdparse" }, -- mini.icons is already loaded at priority 1000
 	opts = {
 		provider = "claude",
 		providers = {
@@ -17,8 +18,8 @@ return {
 			},
 		},
 		behaviour = {
-			auto_suggestions = false, -- don't compete with copilot.lua's own ghost text
-			auto_apply_diff_after_generation = false, -- review before applying, not automatic
+			auto_suggestions = false, -- copilot.lua already draws the ghost text
+			auto_apply_diff_after_generation = false, -- a diff waits for review before it applies
 			auto_set_keymaps = false,
 		},
 	},
@@ -121,7 +122,7 @@ return {
 		},
 	},
 	config = function(_, opts)
-		require("utils").warn_if_missing_env("ANTHROPIC_API_KEY", "avante.nvim")
+		require("utils.core").warn_if_missing_env("ANTHROPIC_API_KEY", "avante.nvim")
 		require("avante").setup(opts)
 	end,
 }

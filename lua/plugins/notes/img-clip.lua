@@ -10,7 +10,7 @@ return {
 	opts = {
 		default = {
 			dir_path = "assets", -- written relative to the CWD, not the buffer, until relative_to_current_file flips
-			file_name = "%Y-%m-%d-%H-%M-%S", -- strftime; timestamped so two pastes can't collide
+			file_name = "%Y-%m-%d-%H-%M-%S", -- strftime; a timestamp keeps two pastes apart
 			prompt_for_file_name = true, -- upstream default: ask, with the timestamp above pre-filled
 			drag_and_drop = { enabled = true }, -- dropping a file onto the terminal window inserts it too
 		},
@@ -23,10 +23,10 @@ return {
 		custom = {
 			{
 				trigger = function()
-					return require("utils").notes_in_vault(0)
+					return require("utils.notes").is_page(0)
 				end,
 				dir_path = function()
-					return require("utils").notes_root() .. "/assets"
+					return require("utils.notes").root() .. "/assets"
 				end,
 				file_name = "image_%Y%m%d%H%M%S", -- Logseq's own prefix for pasted images
 				prompt_for_file_name = false,

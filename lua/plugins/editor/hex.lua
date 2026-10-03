@@ -9,7 +9,7 @@ return {
 	opts = {},
 	config = function(_, opts)
 		if
-			require("utils").warn_if_missing_exec(
+			require("utils.core").warn_if_missing_exec(
 				"xxd",
 				"hex.nvim",
 				"Install xxd (vim-common on most distros, or xxd-standalone)."

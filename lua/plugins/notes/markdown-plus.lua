@@ -31,7 +31,7 @@ return {
 	config = function(_, opts)
 		require("markdown-plus").setup(opts)
 		vim.api.nvim_create_autocmd("FileType", {
-			group = require("utils").augroup("markdown-plus-keys"),
+			group = require("utils.core").augroup("markdown-plus-keys"),
 			pattern = "markdown",
 			desc = "999rpm: hand insert <C-t> and ]b/[b back to Neovim in markdown buffers",
 			callback = function(ev)

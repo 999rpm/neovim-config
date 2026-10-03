@@ -40,7 +40,7 @@ return {
 	config = function(_, opts)
 		require("persistence").setup(opts)
 		vim.api.nvim_create_autocmd("User", {
-			group = require("utils").augroup("session-save"),
+			group = require("utils.core").augroup("session-save"),
 			pattern = "PersistenceSavePre",
 			desc = "999rpm: let barbar store buffer order and pins before the session is written",
 			callback = function()
