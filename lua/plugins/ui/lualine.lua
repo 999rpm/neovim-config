@@ -149,8 +149,8 @@ return {
 			},
 			filename = {
 				"filename",
-				path = 1, -- 0 = file name only, 1 = relative path, 2 = absolute path
-				file_status = true, -- displays file status (readonly status, modified status)
+				path = 1, -- relative to the working directory
+				file_status = true,
 				newfile_status = false,
 				symbols = {
 					modified = " ●",

@@ -1,12 +1,11 @@
 -- stevearc/overseer.nvim: build and task runner, the build and output side of a Visual Studio project. Tasks come from
 -- the project: make targets, cargo, npm scripts, just recipes, .vscode/tasks.json and more; a lone C or C++ file builds
--- with clang and the flags in utils/run.lua. A failed build fills the quickfix list and opens it. nvim-dap runs a
--- launch.json's preLaunchTask through it.
+-- with clang, the flags in utils/run.lua and the file's own "// 999rpm-flags:" lines. A failed build fills the quickfix
+-- list and opens it. nvim-dap runs a launch.json's preLaunchTask through it.
 -- Keys: <leader>wb build (the project's build task: make, cargo build, npm run build), wr run a task, wt task list,
 -- wl restart the last task, wa act on a task (restart, stop, watch, open output).
 -- Task list: <CR> actions, o open output, p preview, <C-v>/<C-s>/<C-t>/<C-f> output in vsplit/split/tab/float,
 -- <C-k>/<C-j> scroll the output, {/} previous/next task, dd dispose, <C-e> edit, ? help, q close.
-local MAKEFILES = { "Makefile", "makefile", "GNUmakefile" }
 
 ---Runs the build task; without one (a plain folder) the template picker opens instead.
 local function build()
@@ -51,7 +50,7 @@ return {
 			name = "999rpm builds",
 			generator = function(search, cb)
 				local templates = {}
-				local makefile = vim.fs.find(MAKEFILES, { upward = true, type = "file", path = search.dir })[1]
+				local makefile = run.makefile(search.dir)
 				if makefile then
 					templates[#templates + 1] = {
 						name = "make: build",
@@ -70,7 +69,7 @@ return {
 				if (search.filetype == "c" or search.filetype == "cpp") and file ~= "" and run.is_lone(file) then
 					templates[#templates + 1] = {
 						name = "clang: build file",
-						desc = "the current file with clang and utils/run.lua's flags",
+						desc = "the current file with clang, utils/run.lua's flags and its 999rpm-flags lines",
 						tags = { overseer.TAG.BUILD },
 						builder = function()
 							return {

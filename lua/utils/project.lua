@@ -1,8 +1,10 @@
 -- New-project wizard, Visual Studio's "Create a new project": pick a template, type the folder, and the project is
 -- created there, put under git and opened, with the working directory moved into it. Rust, Python and JavaScript
 -- projects come from their own tools (cargo, uv, npm); C and C++ get a Makefile with build, release, run and clean
--- targets (overseer.lua lists them as tasks) and a compile_flags.txt, so clangd checks the flags the build uses. Every
--- command is an argument list, so zsh and nushell behave the same.
+-- targets (overseer.lua lists them as tasks). The Makefile is the project's property pages: compiler flags in
+-- CXXFLAGS (CFLAGS in C), linker options in LDFLAGS, libraries in LDLIBS, and make rewrites compile_flags.txt from the
+-- compiler flags, so clangd checks what the build uses. Every command is an argument list, so zsh and nushell behave
+-- the same.
 local fn = vim.fn
 local core = require("utils.core")
 
@@ -10,14 +12,15 @@ local M = {}
 
 local FLAGS = require("utils.run").flags
 
----Makefile, sources and clangd flags of a C or C++ project.
+---Makefile, sources and clangd flags of a C or C++ project. The program depends on the Makefile and the headers too,
+---so an edited flag or header rebuilds it at the next make.
 ---@param lang "c"|"cpp"
 ---@param name string
 ---@return table<string, string[]>
 local function native_files(lang, name)
 	local cpp = lang == "cpp"
 	local cc, flags_var = cpp and "CXX := clang++" or "CC := clang", cpp and "CXXFLAGS" or "CFLAGS"
-	local compile = cpp and "$(CXX) $(CXXFLAGS)" or "$(CC) $(CFLAGS)"
+	local compiler = cpp and "$(CXX)" or "$(CC)"
 	local std = cpp and "-std=c++20" or "-std=c17"
 	local flags = table.concat(FLAGS, " ") .. " " .. std
 	local main = cpp
@@ -39,25 +42,37 @@ local function native_files(lang, name)
 		}
 	return {
 		["Makefile"] = { -- recipe lines start with a tab, as make requires
+			("# %s: compiler flags for every file; make copies them into compile_flags.txt for clangd."):format(
+				flags_var
+			),
+			"# LDFLAGS: linker options such as -L folders; LDLIBS: libraries such as -lm or $(shell pkg-config --libs <name>).",
+			"# Editing this file rebuilds the program at the next make.",
 			cc,
 			("%s := %s"):format(flags_var, flags),
+			"LDFLAGS :=",
+			"LDLIBS :=",
 			"RELEASE := -O2 -DNDEBUG",
 			"NAME := " .. name,
 			("SRC := $(wildcard src/*.%s)"):format(lang),
+			"HDR := " .. (cpp and "$(wildcard src/*.h src/*.hpp)" or "$(wildcard src/*.h)"),
 			"",
 			".PHONY: build release run clean",
 			"",
-			"build: build/debug/$(NAME)",
+			"build: compile_flags.txt build/debug/$(NAME)",
 			"",
-			"build/debug/$(NAME): $(SRC)",
+			"build/debug/$(NAME): $(SRC) $(HDR) Makefile",
 			"\t@mkdir -p $(@D)",
-			"\t" .. compile .. " $^ -o $@",
+			("\t%s $(%s) $(LDFLAGS) $(SRC) -o $@ $(LDLIBS)"):format(compiler, flags_var), -- libraries after the code
 			"",
 			"release: $(SRC)",
 			"\t@mkdir -p build/release",
-			("\t%s $(RELEASE) $^ -o build/release/$(NAME)"):format(
-				(compile:gsub("%$%((%u+)%)$", "$(filter-out -g,$(%1))"))
+			("\t%s $(filter-out -g,$(%s)) $(RELEASE) $(LDFLAGS) $(SRC) -o build/release/$(NAME) $(LDLIBS)"):format(
+				compiler,
+				flags_var
 			),
+			"",
+			"compile_flags.txt: Makefile",
+			"\t@printf '%s\\n' $(" .. flags_var .. ") > $@", -- clangd reads one flag per line
 			"",
 			"run: build",
 			"\t./build/debug/$(NAME)",
@@ -66,7 +81,7 @@ local function native_files(lang, name)
 			"\trm -rf build",
 		},
 		["src/main." .. lang] = main,
-		["compile_flags.txt"] = vim.list_extend(vim.deepcopy(FLAGS), { std }), -- clangd reads one flag per line
+		["compile_flags.txt"] = vim.list_extend(vim.deepcopy(FLAGS), { std }), -- clangd reads it before the first build
 		[".gitignore"] = { "build/" },
 	}
 end
@@ -215,9 +230,16 @@ function M.new_project(tpl_name, path) -- This util is used by new-project.lua
 	end
 	local list = M.templates()
 	if tpl_name then
-		return with_template(vim.iter(list):find(function(tpl)
-			return tpl.name:lower():find(tpl_name:lower(), 1, true) ~= nil
-		end))
+		local tpl = vim.iter(list):find(function(t)
+			return t.name:lower():find(tpl_name:lower(), 1, true) ~= nil
+		end)
+		if not tpl then
+			return core.warn(
+				("No template matches %q among those whose tool is on $PATH."):format(tpl_name),
+				"New project"
+			)
+		end
+		return with_template(tpl)
 	end
 	vim.ui.select(list, {
 		prompt = "New project",

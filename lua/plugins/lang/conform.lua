@@ -62,15 +62,15 @@ return {
 			bash = { "shfmt" },
 			sh = { "shfmt" },
 			zsh = { "shfmt" },
-			c = { "clang-format" }, -- hyphenated: the live formatter name in conform's registry; "clang_format" (underscored) is an explicit deprecated alias, the reverse of the usual convention
+			c = { "clang-format" }, -- conform's own name; clang_format is a deprecated alias
 			cpp = { "clang-format" },
 			haskell = { "ormolu" },
 			sql = { "sqlfluff" },
 			go = { "gofumpt" },
 			cmake = { "cmake_format" },
 			d2 = { "d2" }, -- d2 fmt
-			rust = { lsp_format = "fallback" }, -- an option key, not a formatter name; conform's own allowed_default_opts is { timeout_ms, lsp_format, quiet, stop_after_first }
-			toml = { lsp_format = "fallback" },
+			rust = { lsp_format = "fallback" }, -- no formatter listed: rust-analyzer runs rustfmt
+			toml = { lsp_format = "fallback" }, -- taplo
 		},
 	},
 }

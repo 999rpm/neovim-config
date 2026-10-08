@@ -74,15 +74,17 @@ function M.read(ev) -- This util is used by ipynb.lua
 	end
 end
 
----Writes the buffer into the .ipynb through jupytext --update (inputs replaced, outputs and metadata kept), then exports
----the outputs molten produced in this session into the same file.
+---Writes the buffer into the .ipynb through jupytext --update (inputs replaced, outputs and metadata kept), exports the
+---outputs molten produced in this session into the same file and fires BufWritePost, which a :w would fire.
 ---@param ev vim.api.keyset.create_autocmd.callback_args
 function M.write(ev) -- This util is used by ipynb.lua
 	local buf, path = ev.buf, fn.fnamemodify(ev.match, ":p")
 	local lines = api.nvim_buf_get_lines(buf, 0, -1, false)
+	core.may_create_dir(vim.fs.dirname(path)) -- BufWriteCmd skips BufWritePre, where autocmds.lua creates missing folders
 	if not vim.b[buf]._999rpm_notebook then -- opened as JSON: written back unchanged
 		if fn.writefile(lines, path) == 0 then
 			vim.bo[buf].modified = false
+			api.nvim_exec_autocmds("BufWritePost", { buffer = buf, modeline = false })
 		end
 		return
 	end
@@ -101,6 +103,7 @@ function M.write(ev) -- This util is used by ipynb.lua
 	if vim.b[buf]._999rpm_kernel then
 		pcall(vim.cmd, "MoltenExportOutput!") -- ! replaces the outputs jupytext kept with the ones run here
 	end
+	api.nvim_exec_autocmds("BufWritePost", { buffer = buf, modeline = false }) -- otter.lua refreshes cell diagnostics on it
 end
 
 local queue = {} -- buffer -> cells pressed while its kernel was still starting
@@ -110,7 +113,7 @@ local queue = {} -- buffer -> cells pressed while its kernel was still starting
 ---@param buf? integer
 ---@param auto? boolean
 ---@return boolean running
-function M.kernel(buf, auto) -- This util is used by molten.lua, and read and run in this file
+function M.kernel(buf, auto) -- This util is used by molten.lua, read above and run below
 	buf = buf or api.nvim_get_current_buf()
 	if vim.b[buf]._999rpm_kernel then
 		return true

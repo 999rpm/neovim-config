@@ -156,10 +156,9 @@ api.nvim_create_autocmd("BufWritePost", {
 	end,
 })
 
-api.nvim_create_autocmd("FileType", {
+api.nvim_create_autocmd({ "FileType", "BufWritePost" }, { -- no pattern: set_makeprg skips every filetype but C and C++
 	group = augroup("makeprg"),
-	pattern = { "c", "cpp" },
-	desc = "999rpm: :make builds a lone C or C++ file with clang when no build file is above it",
+	desc = "999rpm: :make builds a lone C or C++ file with clang and its 999rpm-flags lines when no build file is above it",
 	callback = function(ev)
 		require("utils.run").set_makeprg(ev.buf)
 	end,

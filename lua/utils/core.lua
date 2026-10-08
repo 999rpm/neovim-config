@@ -11,7 +11,7 @@ function M.executable(name) -- This util is used by autocmds.lua, lazy.lua, lint
 end
 
 ---@param dir string
-function M.may_create_dir(dir) -- This util is used by autocmds.lua, options.lua, utils/d2.lua, utils/notes.lua and utils/project.lua
+function M.may_create_dir(dir) -- This util is used by autocmds.lua, options.lua, utils/d2.lua, utils/notebook.lua, utils/notes.lua and utils/project.lua
 	if fn.isdirectory(dir) == 0 then
 		fn.mkdir(dir, "p")
 	end

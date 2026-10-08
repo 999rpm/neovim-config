@@ -38,7 +38,7 @@ Written for Neovim 0.12.5 on Linux, with kitty as the terminal, zsh or nushell a
 - Projects: a new-project wizard (C and C++ with a Makefile, Rust, Python through uv, JavaScript through npm), a project
   list from [snacks.nvim](https://github.com/folke/snacks.nvim), builds and tasks through
   [overseer.nvim](https://github.com/stevearc/overseer.nvim) (make, cargo, npm scripts, `.vscode/tasks.json`), and
-  `<leader>cr` to build and run the current file
+  `<leader>cr` to build and run the project or the current file
 - AI: [avante.nvim](https://github.com/avante-corp/avante.nvim), [opencode.nvim](https://github.com/NickvanDyke/opencode.nvim),
   [mcphub.nvim](https://github.com/ravitemer/mcphub.nvim)
 - Themes: tokyonight, catppuccin, kanagawa and monokai-pro, switched and remembered across restarts
@@ -53,8 +53,8 @@ Written for Neovim 0.12.5 on Linux, with kitty as the terminal, zsh or nushell a
 
 ## Install
 
-The archive mirrors the home folder: `.config/nvim`, `.config/kitty/kitty.conf`, `.config/tmux/tmux.conf`,
-`.config/nushell`, `.config/moxide`, `.zshrc` and `.zshenv`.
+The archive mirrors the home folder: `.config/nvim`, `.config/kitty/kitty.conf`, `.config/nushell`,
+`.config/moxide/settings.toml`, `.config/matugen/templates/tmux.conf`, `.zshrc` and `.zshenv`.
 
 ```sh
 mv ~/.config/nvim ~/.config/nvim.bak
@@ -65,6 +65,9 @@ nvim
 `unzip -o 999rpm-dotfiles.zip '.config/nvim/*' -d ~` installs the Neovim part alone. The first start clones the plugins
 and Mason installs the servers, formatters and linters. `:checkhealth` reports anything missing. `:JupyterSetup` builds
 the Python environment the notebooks use, and `:NotesInit` creates the notes folders.
+
+`tmux.conf` is a matugen template: DankMaterialShell fills in the colours and writes `~/.config/tmux/tmux.conf` once a
+`[templates.tmux]` entry in `~/.config/matugen/config.toml` names the template as input and that file as output.
 
 ## Layout
 
@@ -120,12 +123,15 @@ documents and `# %%` scripts.
 ## Projects
 
 `<leader>wn` asks for a template and a folder (under `~/Coding`, or `$PROJECTS_DIR`), creates the project, puts it under
-git and opens it. C and C++ projects get a Makefile with `build`, `release`, `run` and `clean` targets and a
-`compile_flags.txt`, so clangd checks the same warnings the build uses. `<leader>wp` lists projects and restores a
-project's session on opening it. `<leader>wb` runs the project's build task and opens the quickfix list on errors,
-`<leader>wr` picks any task (make targets, cargo, npm scripts, `.vscode/tasks.json`), `<leader>wt` shows the task list.
-A lone C or C++ file builds with clang through `:make` or `<leader>wb`, and `<leader>cr` builds and runs it in a split.
-A `.nvim.lua` at a project's root holds its own settings once `:trust` approves it.
+git and opens it. C and C++ projects get a Makefile with `build`, `release`, `run` and `clean` targets; its
+`CXXFLAGS` (`CFLAGS` in C), `LDFLAGS` and `LDLIBS` lines hold that project's compiler flags, linker options and
+libraries, and `make` copies the compiler flags into `compile_flags.txt`, so clangd checks what the build uses.
+`<leader>wp` lists projects and restores a project's session on opening it. `<leader>wb` runs the project's build task
+and opens the quickfix list on errors, `<leader>wr` picks any task (make targets, cargo, npm scripts,
+`.vscode/tasks.json`), `<leader>wt` shows the task list. `<leader>cr` builds and runs: in a Makefile project, `make` and
+then the `run` target, whichever file is open; a lone C or C++ file builds with clang, as `:make` and `<leader>wb` do,
+plus any flags its `// 999rpm-flags:` lines name near the top (`// 999rpm-flags: -lncurses`). A `.nvim.lua` at a
+project's root holds its own settings once `:trust` approves it.
 
 ## Shell and terminal
 
@@ -133,6 +139,8 @@ A `.nvim.lua` at a project's root holds its own settings once `:trust` approves 
 resolve kitty first, then the shell, then tmux, then Neovim: `kitty.conf` binds only `ctrl+shift` combinations and
 `alt+1` to `alt+9`, none of which Neovim uses here; tmux keeps its default prefix `C-b` (`C-b C-b` sends it on), so no
 Neovim mapping sits on `<C-b>`; and a terminal buffer maps no Alt keys, which zsh's vi mode and nushell both use.
+
+starship, zoxide, fzf and broot are optional in both shells: a tool that is not installed is skipped at startup.
 
 Under nushell a `:%!` filter runs nushell's own command of that name: `:%!sort` is nu's `sort`, which rejects plain
 text, while `:%!^sort` runs the external program and `:sort` needs no shell at all.

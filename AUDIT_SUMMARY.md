@@ -3,36 +3,91 @@
 What changed, and the reason it changed. Newest first; older passes are condensed to their conclusions once a later
 pass has confirmed them.
 
-## 2026-10-03 (twentieth pass)
+## 2026-10-06 (twenty-second pass)
 
-Method: the nineteenth pass's headless setup; every theme and style loaded from a saved file, every switcher action
-driven, the state file fed broken input (`null`, a bare string, broken JSON, an unknown theme, a style index that is
-not a number or out of range, `[]`, no file), a theme made to fail on load, then the full harness, StyLua and the
-"This util is used by" check again.
-
-### Changed
-
-- The theme switcher moved out of `core/themes.lua` into `utils/themes.lua`, the way notes, notebooks and projects keep
-  their code in `utils/`. The spec file is now `core/colorschemes.lua`: the four colour schemes and the 999rpm-themer
-  spec, whose keys became lazy.nvim `keys` entries. `lang/d2.lua` became `lang/d2-diagrams.lua`: no plugin file shares
-  a basename with a `utils/` module, the rule that once renamed `plugins/init.lua`.
-- A theme that fails to load (a plugin missing where no git installed it) no longer stops startup or a switch: startup
-  warns and keeps Neovim's default colours, a switch warns and returns to the last theme, and the saved choice stays.
-- The state file is read defensively: anything but a JSON object keeps the defaults, an unknown theme is ignored and
-  the style index is clamped. `null`, a bare string or a style index that was not a number stopped the switcher before
-  it set any colours or keys, and an unknown theme left no colour scheme at all.
-
-### Removed
-
-- `lualine.refresh()` after a switch: lualine reloads itself on `ColorScheme` and on a `'background'` change.
-- kanagawa's own `package.loaded` reset, which repeated the one every theme gets.
+Method: Neovim 0.12.5 headless (`-u NONE` with the config's `lua/` on the runtime path, options.lua and autocmds.lua
+loaded, overseer.nvim at its locked commit), clang 18.1 and GNU make 4.3. A 39-step harness: the wizard's C and C++
+projects built, rebuilt after a flag edit and after a header edit, linked against a static library through `LDFLAGS`
+and `LDLIBS`, built for release and run; `<leader>cr` in a project with Neovim's working directory elsewhere and a
+header left unsaved, then with a compile error; a Makefile without a `run` target; a CMake folder; lone files in a folder
+with a space (a library, `-Wno-error`, a flag line below line ten, a missing file); `:make` under sh, zsh 5.9 and
+nushell 0.116.1; overseer's build task in a project and on a lone file. StyLua clean.
 
 ### Fixed
 
-- snacks.lua's header still sent d2 rendering to the removed tree-sitter-d2.lua, and `core.warn`'s note now names
-  `utils/themes.lua`.
+- `<leader>cr` ignored a project's Makefile: it compiled the open file alone with the default flags, so a project with
+  more than one source file or a library failed to link, and the binary landed in `src/`. Under a Makefile it now runs
+  `make`, then the `run` target in the split (Visual Studio's Ctrl+F5), after writing the project's modified file
+  buffers, as 'autowrite' does for `:make`. A directory line leads the quickfix list, so a make error opens the right
+  file when the working directory is elsewhere. A file under CMake or meson warns instead of building alone.
+- A generated Makefile did nothing after its own flags or a header changed, since the program depended on the sources
+  only; it depends on the Makefile and the headers in `src/` too.
+
+### Changed
+
+- Generated Makefiles keep linker options in `LDFLAGS` and libraries in `LDLIBS`, after the sources, as GNU ld needs;
+  a three-line header names the variables. `make` rewrites `compile_flags.txt` from `CXXFLAGS` (`CFLAGS` in C) whenever
+  the Makefile changes, so clangd follows a project's flags; the wizard still writes the first copy.
+- A lone C or C++ file names extra flags on `// 999rpm-flags:` lines among its first ten lines. They follow the file on
+  the command line, so a library links and a later flag overrides a default (`-Wno-error`). `<leader>cr`, overseer's
+  `clang: build file` task and `:make` read them; `'makeprg'` is set again after each write, each flag quoted for the
+  shell.
+- `utils/run.lua` owns the Makefile lookup overseer.lua's make task uses (`run.makefile()`). `M.flags` seeds new
+  Makefiles only: an existing project keeps the flags its Makefile holds.
+
+## 2026-10-03 (twenty-first pass)
+
+Method: Neovim 0.12.5 headless with every plugin at its newest commit (nine moved: avante, gitlinker, hardtime, lazy.nvim,
+nvim-lspconfig, nvim-treesitter, nvim-ts-autotag, schemastore, yazi; lazy-lock.json records them). A 63-step harness:
+startup, every theme and style, every plugin loaded, a key audit (no global key set twice with different jobs, no global
+map on a protected built-in, nothing on tmux's prefix, kitty's alt+digit or ctrl+shift keys, or Alt in terminal mode),
+each filetype opened, the notes layer on a scratch graph (dates, journals, task cycle, block moves, links, pickers,
+templates, logseq/ left out), a notebook written and reopened, `:grep`, `:%!` filters and `:make` under zsh 5.9 and
+nushell 0.116 in a folder with a space, the project wizard and `<leader>cr`. The shell files ran in real zsh and nu with
+and without starship, zoxide and broot; the tmux template, rendered with sample colours, loaded in tmux 3.4. StyLua clean.
+
+### Fixed
+
+- A notebook saved into a folder that did not exist was never written: BufWriteCmd skips BufWritePre, where autocmds.lua
+  creates missing folders. `utils/notebook.lua` creates the folder itself and fires BufWritePost after a write, so
+  otter.lua's cell diagnostics refresh as they do after any `:w`.
+- nushell stopped reading config.nu when broot's launcher was missing (`use` resolves at parse time) and stopped env.nu
+  when zoxide was missing. starship and zoxide now write their init scripts into the vendor autoload folder only when
+  installed, the broot module becomes `null` when its file is absent, and PATH drops duplicate entries.
+- zsh printed errors at every start without fzf, zoxide, starship or broot; each now loads only when present, and the
+  broot launcher path no longer spells out a home folder.
+- `:ProjectNew <template>` naming no template did nothing; it warns now.
+- `<leader>cv` (tw-values) answered in every buffer; it is limited to jsx, tsx, html and css.
+
+### Changed
+
+- tmux.conf ships as the matugen template, `.config/matugen/templates/tmux.conf`, and the generated
+  `~/.config/tmux/tmux.conf` stays out of the archive, so extracting it never replaces live colours with template fields.
+  Truecolour comes from `terminal-features RGB`, as the nineteenth pass intended. `.config/moxide/settings.toml` is back.
+- Comment trims: lualine's `path` and `file_status`, conform's `clang-format`, `rust` and `toml` notes. `is_lone` names its
+  argument a path, which is what its callers pass.
+
+### Checked and kept
+
+- The sixteen reference configs hold nothing new beyond what earlier passes took or declined: the options they set and
+  this config does not are 0.12 defaults (autoread, hidden, hlsearch, incsearch, wildmenu, history) or plugin territory
+  (statuscolumn, folds), and the plugins three or more of them share have replacements here (telescope, bufferline,
+  nvim-cmp, LuaSnip, diffview, fidget, vim-illuminate) or were declined before.
+- hardtime's `which_key_ignore` maps on `.`, `p`, `x`, `J`, `~` and the `g` operators count the key and pass it through;
+  multicursor's insert `<Left>`/`<Right>` exist only while cursors are active.
+- snacks.lua's markdown `images` query replaces only the fenced-block part (math kept, mermaid dropped); `![]()` images
+  come from the plugin's markdown_inline query. mason-tool-installer checks installs through `vim.defer_fn`, so loading
+  on VeryLazy still installs. blink's cmdline preset maps `<Left>`, `<Right>` and `<End>`, which the `false` entries drop.
+  avante's README lists mega.cmdparse. rustaceanvim v9.2.1 is the newest major and multicursor's 1.0 branch is current.
+  guess-indent, hex.nvim, nvim-dap-virtual-text, promise-async and mega.logging have had no commit in over a year; kept.
 
 ## Earlier passes: conclusions only
+
+**Twentieth pass (2026-10-03).** The theme switcher moved to `utils/themes.lua`; `core/colorschemes.lua` holds the
+four schemes and the 999rpm-themer spec, and `lang/d2.lua` became `lang/d2-diagrams.lua`, so no plugin file shares a
+basename with a `utils/` module. A theme that fails to load warns and keeps the last one; the state file is read
+defensively (anything but a JSON object keeps the defaults, the style index is clamped). `lualine.refresh()` after a
+switch and kanagawa's own `package.loaded` reset went.
 
 **Nineteenth pass (2026-10-03).** nvim-treesitter's custom-parser hook builds the d2 parser (ravsii/tree-sitter-d2
 at v0.7.2): the plugin started treesitter unguarded on every `.d2` buffer and had no commit in a year. `'secure'` went

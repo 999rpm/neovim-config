@@ -14,7 +14,8 @@
 -- the key, and nushell binds Alt keys too, so <C-\><C-n> leaves terminal mode and the window keys below follow.
 -- Filetype keys kept: <C-a>/<C-x> cycle the action of a git rebase todo line, gO lists a man page's sections.
 -- Added here: ]e/[e and ]w/[w jump to errors/warnings only; , . ; in insert mode each close an undo step; <leader>cr
--- builds and runs the file (a lone C or C++ file through clang; :make runs the same build, autocmds.lua).
+-- builds and runs: a Makefile project through make and its run target, a lone C or C++ file through clang and its own
+-- "// 999rpm-flags:" lines (:make runs the same lone-file build, autocmds.lua).
 -- hardtime.lua owns h j k l J and the arrow keys (it wraps them to count repeats), so nothing here maps them.
 local map = vim.keymap.set
 
@@ -34,7 +35,7 @@ end, { desc = "Undo tree" })
 
 map("n", "<leader>cr", function()
 	require("utils.run").run()
-end, { desc = "Build and run file" }) -- C and C++ through clang; a failed build fills the quickfix list
+end, { desc = "Build and run (project or file)" }) -- utils/run.lua; a failed build fills the quickfix list
 
 map("n", "<leader>df", vim.diagnostic.open_float, { desc = "Line diagnostics (float)" }) -- shorter reach than the built-in <C-w>d
 map("n", "<leader>db", function()

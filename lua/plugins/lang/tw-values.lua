@@ -1,9 +1,15 @@
--- MaximilianLloyd/tw-values.nvim: shows the CSS behind the Tailwind classes under the cursor (<leader>cv).
+-- MaximilianLloyd/tw-values.nvim: shows the CSS behind the Tailwind classes under the cursor (<leader>cv in jsx, tsx,
+-- html and css buffers; elsewhere the key does nothing).
 return {
 	"MaximilianLloyd/tw-values.nvim",
-	ft = { "typescriptreact", "javascriptreact", "html", "css" },
+	cmd = "TWValues",
 	keys = {
-		{ "<leader>cv", "<cmd>TWValues<cr>", desc = "Show Tailwind values" },
+		{
+			"<leader>cv",
+			"<cmd>TWValues<cr>",
+			ft = { "typescriptreact", "javascriptreact", "html", "css" },
+			desc = "Show Tailwind values",
+		},
 	},
 	opts = {
 		border = "rounded",

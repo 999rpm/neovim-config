@@ -5,6 +5,7 @@ return {
 	"rachartier/tiny-inline-diagnostic.nvim",
 	event = "VeryLazy",
 	opts = {
+		preset = "simple",
 		options = {
 			show_source = { enabled = true, if_many = true }, -- the source only when several tools report on one line, as in the float
 		},
