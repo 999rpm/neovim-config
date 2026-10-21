@@ -1,10 +1,9 @@
--- romgrk/barbar.nvim: buffer tabline. Mouse: click to open, click the button to close, drag to reorder.
--- Keys: <M-h>/<M-l> previous/next buffer in tabline order (H and L stay the built-in window top/bottom; ]b/[b also
--- cycle buffers), <leader>b* pick, pin, move, close and reopen. Sessions keep the buffer order and pins ('globals' in
--- 'sessionoptions', options.lua; SessionSavePre from persistence.lua).
--- Slanted tabs: every buffer sits between U+E0BC and U+E0BA, so both edges lean the same way (the "slanted" preset pairs
--- U+E0BC with U+E0BE, a trapezoid). The corner triangles take the tabline fill colour and the glyph background the tab's
--- own colour, derived from the active theme after every switch, the way lualine colours its section edges.
+-- romgrk/barbar.nvim: buffer tabline. Mouse: click to open, click the button to close, drag to reorder. Sessions keep
+-- the buffer order and pins ('globals' in 'sessionoptions', options.lua; SessionSavePre from persistence.lua). Owns
+-- <M-h>/<M-l> and <leader>b.
+-- Slanted tabs: every buffer sits between U+E0BC and U+E0BA, so both edges lean the same way (the "slanted" preset
+-- pairs U+E0BC with U+E0BE, a trapezoid). The corner triangles take the tabline fill colour and the glyph background
+-- the tab's own colour, derived from the active theme after every switch, the way lualine colours its section edges.
 -- Themes that bring no barbar colours of their own (kanagawa: lotus, wave, dragon) underline the current tab instead,
 -- edge to edge in the tab's text colour; tokyonight, catppuccin and monokai-pro keep their own current-tab colours.
 local slant = { left = "\u{e0bc}", right = "\u{e0ba}" } -- escapes: private-use glyphs do not survive every copy of this file
@@ -68,27 +67,23 @@ return {
 		vim.g.barbar_auto_setup = false
 	end,
 	keys = {
-		{ "<M-h>", "<Cmd>BufferPrevious<CR>", desc = "Previous buffer" },
-		{ "<M-l>", "<Cmd>BufferNext<CR>", desc = "Next buffer" },
-		{ "<leader>bH", "<Cmd>BufferMovePrevious<CR>", desc = "Move buffer left" },
-		{ "<leader>bL", "<Cmd>BufferMoveNext<CR>", desc = "Move buffer right" },
-		{ "<leader>bp", "<Cmd>BufferPin<CR>", desc = "Toggle pin" },
-		{ "<leader>bg", "<Cmd>BufferPick<CR>", desc = "Pick buffer" },
-		{ "<leader>bx", "<Cmd>BufferPickDelete<CR>", desc = "Pick buffer to close" },
-		{ "<leader>bd", "<Cmd>BufferClose<CR>", desc = "Close buffer" },
-		{ "<leader>bo", "<Cmd>BufferCloseAllButCurrentOrPinned<CR>", desc = "Close other buffers" },
-		{ "<leader>bh", "<Cmd>BufferCloseBuffersLeft<CR>", desc = "Close buffers to the left" },
-		{ "<leader>bl", "<Cmd>BufferCloseBuffersRight<CR>", desc = "Close buffers to the right" },
-		{ "<leader>br", "<Cmd>BufferRestore<CR>", desc = "Reopen closed buffer" },
-		{ "<leader>bs", "<Cmd>BufferOrderByDirectory<CR>", desc = "Sort by directory" },
+		{ "<M-h>", "<Cmd>BufferPrevious<CR>", desc = "Previous buffer" }, -- n: Alt+h, the tab to the left; H stays the built-in window top, [b the previous buffer by number
+		{ "<M-l>", "<Cmd>BufferNext<CR>", desc = "Next buffer" }, -- n: Alt+l, the tab to the right; L stays the built-in window bottom
+		{ "<leader>bH", "<Cmd>BufferMovePrevious<CR>", desc = "Move buffer left" }, -- n: this buffer's tab one place to the left
+		{ "<leader>bL", "<Cmd>BufferMoveNext<CR>", desc = "Move buffer right" }, -- n: one place to the right
+		{ "<leader>bp", "<Cmd>BufferPin<CR>", desc = "Toggle pin" }, -- n: a pinned tab stays at the left and survives bo
+		{ "<leader>bg", "<Cmd>BufferPick<CR>", desc = "Pick buffer" }, -- n: each tab shows a letter; typing it opens that buffer (g for go)
+		{ "<leader>bx", "<Cmd>BufferPickDelete<CR>", desc = "Pick buffer to close" }, -- n: the same letters, closing the buffer instead
+		{ "<leader>bd", "<Cmd>BufferClose<CR>", desc = "Close buffer" }, -- n: this buffer goes, the window stays
+		{ "<leader>bo", "<Cmd>BufferCloseAllButCurrentOrPinned<CR>", desc = "Close other buffers" }, -- n: every buffer but this one and the pinned ones
+		{ "<leader>bh", "<Cmd>BufferCloseBuffersLeft<CR>", desc = "Close buffers to the left" }, -- n: every tab left of this one
+		{ "<leader>bl", "<Cmd>BufferCloseBuffersRight<CR>", desc = "Close buffers to the right" }, -- n: every tab right of this one
+		{ "<leader>br", "<Cmd>BufferRestore<CR>", desc = "Reopen closed buffer" }, -- n: the buffer closed last comes back
+		{ "<leader>bs", "<Cmd>BufferOrderByDirectory<CR>", desc = "Sort by directory" }, -- n: the tabs ordered by folder, then name
 	},
 	opts = {
 		animation = false,
-		auto_hide = false,
-		focus_on_close = "previous",
-		insert_at_end = false, -- new buffers open next to the current one
 		maximum_padding = 1,
-		minimum_padding = 1,
 		no_name_title = "[No Name]",
 		sidebar_filetypes = {
 			["neo-tree"] = { event = "BufWipeout", text = "󰙅 Explorer", align = "center" },
@@ -98,7 +93,6 @@ return {
 			inactive = { separator = slant }, -- barbar's defaults give inactive buffers a separator of their own
 			separator_at_end = false,
 			button = "󰅖",
-			modified = { button = "●" },
 			pinned = { button = "󰐃", filename = true },
 			diagnostics = {
 				[vim.diagnostic.severity.ERROR] = { enabled = true, icon = "󰃤 " },
@@ -107,6 +101,7 @@ return {
 		},
 	},
 	config = function(_, opts)
+		opts.icons.filetype = { enabled = (pcall(require, "nvim-web-devicons")) } -- mini.lua's mini.icons stands in for it; without either, plain names rather than barbar's startup warning
 		require("barbar").setup(opts)
 		require("utils.core").on_colorscheme("barbar-tabs", paint_tabs)
 	end,

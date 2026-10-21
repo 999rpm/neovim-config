@@ -1,9 +1,10 @@
--- rcarriga/nvim-dap-ui: scopes, breakpoints, stacks and REPL panels that open and close with the session.
--- In a panel: <CR> expand or edit, o step into value, d remove, e edit, r send to REPL.
+-- rcarriga/nvim-dap-ui: scopes, breakpoints, stacks and REPL panels that open and close with the session. dap.lua's
+-- <leader>De and <leader>Du reach it; it owns no prefix.
 return {
 	"rcarriga/nvim-dap-ui",
 	lazy = true, -- loads with nvim-dap, which lists it as a dependency
-	dependencies = { "nvim-neotest/nvim-nio" },
+	-- dap-ui's own keys, inside its panels: (n) <CR> or double click expand, o open the value's source, d remove, e edit,
+	-- r send to the REPL, t toggle.
 	config = function()
 		local dap = require("dap")
 		local dapui = require("dapui")

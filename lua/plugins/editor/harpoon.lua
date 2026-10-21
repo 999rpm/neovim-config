@@ -1,6 +1,4 @@
--- ThePrimeagen/harpoon (harpoon2): pin a few files and jump between them.
--- Keys: <leader>ha add, hd remove, hh menu, h1..h4 jump to a pinned file, hn/hp next/previous pinned file.
--- Menu: <Tab>/<S-Tab> down/up, <CR> open, <C-v>/<C-s> vsplit/split, q or <Esc> close; editing lines reorders or removes entries.
+-- ThePrimeagen/harpoon: pin a few files and jump between them (harpoon2 branch). Owns <leader>h.
 local function list()
 	return require("harpoon"):list()
 end
@@ -29,14 +27,14 @@ local keys = {
 			list():add()
 		end,
 		desc = "Add file",
-	},
+	}, -- n: pin the current file at the end of the list
 	{
 		"<leader>hd",
 		function()
 			list():remove()
 		end,
 		desc = "Remove file",
-	},
+	}, -- n: unpin the current file
 	{
 		"<leader>hh",
 		function()
@@ -44,21 +42,21 @@ local keys = {
 			harpoon.ui:toggle_quick_menu(harpoon:list())
 		end,
 		desc = "Menu",
-	},
+	}, -- n: the pinned list; editing its lines reorders or removes pins
 	{
 		"<leader>hn",
 		function()
 			cycle(1)
 		end,
 		desc = "Next file",
-	},
+	}, -- n: the pin after the current file, wrapping at the end
 	{
 		"<leader>hp",
 		function()
 			cycle(-1)
 		end,
 		desc = "Previous file",
-	},
+	}, -- n: the pin before it, wrapping at the start
 }
 
 for i = 1, 4 do
@@ -68,13 +66,13 @@ for i = 1, 4 do
 			list():select(i)
 		end,
 		desc = "File " .. i,
-	})
+	}) -- n: <leader>h1 to <leader>h4 jump straight to that pin
 end
 
 return {
 	"ThePrimeagen/harpoon",
 	branch = "harpoon2",
-	dependencies = { "nvim-lua/plenary.nvim" },
+	-- harpoon's own keys in its menu: <CR> open, q or <Esc> close.
 	keys = keys, -- lazy-loaded: the spec above is the only place the keys are declared
 	config = function()
 		local harpoon = require("harpoon")
@@ -86,13 +84,13 @@ return {
 		})
 		harpoon:extend({
 			UI_CREATE = function(cx)
-				require("utils.core").menu_nav(cx.bufnr) -- <Tab>/<S-Tab>, as in the picker, quickfix and dropbar
+				require("utils.core").menu_nav(cx.bufnr) -- menu: <Tab>/<S-Tab> down and up, as in the picker, quickfix and dropbar
 				vim.keymap.set("n", "<C-v>", function()
 					harpoon.ui:select_menu_item({ vsplit = true })
-				end, { buf = cx.bufnr, desc = "Open in vsplit" })
+				end, { buf = cx.bufnr, desc = "Open in vsplit" }) -- menu: the entry in a vertical split, as in the picker
 				vim.keymap.set("n", "<C-s>", function()
 					harpoon.ui:select_menu_item({ split = true })
-				end, { buf = cx.bufnr, desc = "Open in split" })
+				end, { buf = cx.bufnr, desc = "Open in split" }) -- menu: in a horizontal split
 			end,
 		})
 	end,

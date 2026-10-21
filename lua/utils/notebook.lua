@@ -42,7 +42,7 @@ local TEMPLATE = { -- jupytext markdown for an empty Python notebook; the header
 ---@param ev vim.api.keyset.create_autocmd.callback_args
 function M.read(ev) -- This util is used by ipynb.lua
 	local buf, path = ev.buf, fn.fnamemodify(ev.match, ":p")
-	api.nvim_exec_autocmds("BufReadPre", { buffer = buf, modeline = false })
+	api.nvim_exec_autocmds("BufReadPre", { buf = buf, modeline = false })
 	local exists = vim.uv.fs_stat(path) ~= nil
 	local lines, converted = TEMPLATE, true
 	if exists then
@@ -63,7 +63,7 @@ function M.read(ev) -- This util is used by ipynb.lua
 	api.nvim_buf_set_lines(buf, 0, -1, false, lines)
 	vim.bo[buf].undolevels = undolevels
 	vim.bo[buf].modified = false
-	api.nvim_exec_autocmds("BufReadPost", { buffer = buf, modeline = false }) -- filetype detection (options.lua) and lazy loading
+	api.nvim_exec_autocmds("BufReadPost", { buf = buf, modeline = false }) -- filetype detection (options.lua) and lazy loading
 	if vim.bo[buf].filetype == "" then -- vim.lsp.enable() fires FileType when lspconfig loads on BufReadPre, so :setf skips this nested read
 		vim.bo[buf].filetype = vim.filetype.match({ buf = buf, filename = path }) or ""
 	end
@@ -74,28 +74,50 @@ function M.read(ev) -- This util is used by ipynb.lua
 	end
 end
 
+---Filetype of a notebook that read above converted, for options.lua's filetype table: markdown, or bigfile when the
+---markdown itself is over snacks.bigfile's limits. snacks' own check divides the size of the file on disk by the
+---buffer's line count, and the .ipynb also holds the saved outputs, metadata and JSON escapes the markdown leaves out,
+---so a notebook with sizeable outputs opened as ft=bigfile: no render-markdown, treesitter, completion or cell keys.
+---@param buf integer
+---@return "markdown"|"bigfile"
+function M.filetype(buf) -- This util is used by options.lua
+	local defaults = { size = 1.5 * 1024 * 1024, line_length = 1000 } -- snacks.bigfile's own; snacks.lua's opts win
+	local limits = _G.Snacks and Snacks.config.get("bigfile", defaults)
+	if limits and limits.enabled and vim.bo[buf].filetype ~= "bigfile" then -- on bigfile snacks asks for 'syntax'
+		local lines = api.nvim_buf_line_count(buf)
+		local bytes = api.nvim_buf_get_offset(buf, lines)
+		if bytes > limits.size or (bytes - lines) / lines > limits.line_length then
+			return "bigfile"
+		end
+	end
+	return "markdown"
+end
+
 ---Writes the buffer into the .ipynb through jupytext --update (inputs replaced, outputs and metadata kept), exports the
----outputs molten produced in this session into the same file and fires BufWritePost, which a :w would fire.
+---outputs molten produced in this session into the same file, and fires the BufWritePre and BufWritePost a :w would
+---fire, which BufWriteCmd skips: conform.lua formats the code cells on the first, otter.lua refreshes diagnostics on
+---the second.
 ---@param ev vim.api.keyset.create_autocmd.callback_args
 function M.write(ev) -- This util is used by ipynb.lua
 	local buf, path = ev.buf, fn.fnamemodify(ev.match, ":p")
-	local lines = api.nvim_buf_get_lines(buf, 0, -1, false)
-	core.may_create_dir(vim.fs.dirname(path)) -- BufWriteCmd skips BufWritePre, where autocmds.lua creates missing folders
-	if not vim.b[buf]._999rpm_notebook then -- opened as JSON: written back unchanged
-		if fn.writefile(lines, path) == 0 then
+	if not vim.b[buf]._999rpm_notebook then -- opened as JSON: written back unchanged, so no formatter runs
+		core.may_create_dir(vim.fs.dirname(path))
+		if fn.writefile(api.nvim_buf_get_lines(buf, 0, -1, false), path) == 0 then
 			vim.bo[buf].modified = false
-			api.nvim_exec_autocmds("BufWritePost", { buffer = buf, modeline = false })
+			api.nvim_exec_autocmds("BufWritePost", { buf = buf, modeline = false })
 		end
 		return
 	end
-	local tmp = fn.tempname() .. ".md"
-	fn.writefile(lines, tmp)
-	local cmd = { require("utils.jupyter").jupytext(), "--to", "ipynb", "--output", path, tmp }
+	api.nvim_exec_autocmds("BufWritePre", { buf = buf, modeline = false }) -- autocmds.lua also creates missing folders here
+	local lines = api.nvim_buf_get_lines(buf, 0, -1, false)
+	local markdown = fn.tempname() .. ".md"
+	fn.writefile(lines, markdown)
+	local cmd = { require("utils.jupyter").jupytext(), "--to", "ipynb", "--output", path, markdown }
 	if vim.uv.fs_stat(path) then
 		table.insert(cmd, 4, "--update") -- keeps the outputs and metadata already in the notebook
 	end
 	local ok, out = run_jupytext(cmd)
-	os.remove(tmp)
+	os.remove(markdown)
 	if not ok then
 		return vim.notify("Notebook not written: " .. out, vim.log.levels.ERROR, { title = "Notebook" })
 	end
@@ -103,7 +125,7 @@ function M.write(ev) -- This util is used by ipynb.lua
 	if vim.b[buf]._999rpm_kernel then
 		pcall(vim.cmd, "MoltenExportOutput!") -- ! replaces the outputs jupytext kept with the ones run here
 	end
-	api.nvim_exec_autocmds("BufWritePost", { buffer = buf, modeline = false }) -- otter.lua refreshes cell diagnostics on it
+	api.nvim_exec_autocmds("BufWritePost", { buf = buf, modeline = false })
 end
 
 local queue = {} -- buffer -> cells pressed while its kernel was still starting
@@ -456,7 +478,8 @@ function M.cell_join() -- This util is used by attach below
 end
 
 ---Cell keys for one buffer: ]j/[j and the <leader>k cell edits wherever cells can exist; in notebooks and quarto
----documents also <S-CR>/<C-CR> to run cells, and otter's language servers inside the code fences.
+---documents also <C-CR> (normal and insert) and insert-mode <S-CR> to run cells, and otter's language servers inside
+---the code fences.
 ---@param buf integer
 function M.attach(buf) -- This util is used by ipynb.lua
 	local ft = vim.bo[buf].filetype
@@ -474,32 +497,28 @@ function M.attach(buf) -- This util is used by ipynb.lua
 	end
 	map({ "n", "x", "o" }, "]j", function()
 		M.jump(1)
-	end, "Next cell") -- buffer-local: elsewhere ]j/[j are textobjects.lua's JSX moves
+	end, "Next cell") -- n/x/o: first code line of the next cell, with a count; elsewhere ]j/[j are textobjects.lua's JSX moves
 	map({ "n", "x", "o" }, "[j", function()
 		M.jump(-1)
-	end, "Previous cell")
+	end, "Previous cell") -- n/x/o: the previous cell the same way
 	map("n", "<leader>ka", function()
 		M.cell_add(-1)
-	end, "Add cell above")
+	end, "Add cell above") -- n: JupyterLab's a, then insert mode in the new cell
 	map("n", "<leader>kb", function()
 		M.cell_add(1)
-	end, "Add cell below")
-	map("n", "<leader>kd", M.cell_delete, "Delete cell (p pastes it)")
-	map("n", "<leader>ks", M.cell_split, "Split cell at cursor")
-	map("n", "<leader>kj", M.cell_join, "Join cell with next")
+	end, "Add cell below") -- n: JupyterLab's b
+	map("n", "<leader>kd", M.cell_delete, "Delete cell (p pastes it)") -- n: JupyterLab's x: the cell goes to the registers like dd
+	map("n", "<leader>ks", M.cell_split, "Split cell at cursor") -- n: the cursor line starts a new cell
+	map("n", "<leader>kj", M.cell_join, "Join cell with next") -- n: JupyterLab's Shift+M
 	if not notebook then
 		return
 	end
-	map("n", "<S-CR>", function()
-		M.run("next")
-	end, "Run cell, go to next")
 	map("n", "<C-CR>", function()
 		M.run("cell")
-	end, "Run cell")
-	map("i", "<S-CR>", "<Esc><Cmd>lua require('utils.notebook').run('next')<CR>", "Run cell, go to next")
-	map("i", "<C-CR>", "<Esc><Cmd>lua require('utils.notebook').run('cell')<CR>", "Run cell")
-	vim.b[buf].disable_autoformat = true -- conform: prettier would reflow the jupytext markdown
-	vim.b[buf].disable_lint = true -- lint.lua: markdownlint flags the jupytext header
+	end, "Run cell") -- n: JupyterLab's Ctrl+Enter; normal-mode <S-CR> stays the built-in page down, <leader>kn runs and moves on
+	map("i", "<S-CR>", "<Esc><Cmd>lua require('utils.notebook').run('next')<CR>", "Run cell, go to next") -- i: JupyterLab's Shift+Enter, which insert mode leaves free
+	map("i", "<C-CR>", "<Esc><Cmd>lua require('utils.notebook').run('cell')<CR>", "Run cell") -- i: Ctrl+Enter from insert mode, ending it
+	vim.b[buf].disable_lint = true -- lint.lua: markdownlint flags the jupytext header; the cells' servers lint the code
 	vim.schedule(function()
 		if api.nvim_get_current_buf() == buf then
 			pcall(function()

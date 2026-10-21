@@ -1,9 +1,11 @@
--- Library and adapter plugins with no setup of their own. Consumers name them in `dependencies`; nothing here is
--- configured anywhere else, so a plugin file stays readable without following a chain of imports.
+-- Library and adapter plugins with no setup of their own, each loaded on the first require of one of its modules
+-- (lazy.nvim loads a lazy plugin when its Lua module is required), so no consumer names them in `dependencies`. The
+-- two `dependencies` lists left in this config, in blink.lua and dap.lua, name plugins nothing requires. The comment
+-- on each entry names its consumers.
 return {
 	{ "nvim-lua/plenary.nvim", lazy = true }, -- neo-tree, harpoon, todo-comments, neotest, octo, avante, mcphub, yazi
 	{ "MunifTanjim/nui.nvim", lazy = true }, -- neo-tree, noice, hardtime, avante, package-info
-	{ "ColinKennedy/mega.cmdparse", lazy = true, dependencies = { "ColinKennedy/mega.logging" } }, -- avante's commands
+	{ "ColinKennedy/mega.cmdparse", lazy = true }, -- avante's commands
 	{ "ColinKennedy/mega.logging", lazy = true }, -- mega.cmdparse
 	{ "nvim-neotest/nvim-nio", lazy = true }, -- dap-ui, neotest
 	{ "gregorias/coop.nvim", lazy = true }, -- coerce

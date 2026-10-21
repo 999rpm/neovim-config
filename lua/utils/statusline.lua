@@ -1,6 +1,7 @@
 -- Statusline and title helpers: throttling, per-edit caching, the git branch and the active Python environment.
 local fn = vim.fn
 local api = vim.api
+local core = require("utils.core")
 
 local M = {}
 
@@ -42,6 +43,9 @@ end
 ---@param cmd string[]
 ---@return string?
 local function run_git(cmd)
+	if not core.executable("git") then
+		return nil -- fn.system raises on a missing executable, and this runs on every redraw of a new buffer
+	end
 	local out = fn.system(cmd)
 	if vim.v.shell_error ~= 0 then
 		return nil

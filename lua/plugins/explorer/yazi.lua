@@ -1,10 +1,10 @@
--- mikavilpas/yazi.nvim: the yazi file manager in a float (<leader>ey). Needs yazi on $PATH.
--- In the float: <F1> help, <C-v>/<C-x>/<C-t> open in vsplit/split/tab, <C-s> grep and <C-g> replace in the directory,
--- <C-y> copy relative paths, <C-q> selection to quickfix, <Tab> cycle open buffers.
+-- mikavilpas/yazi.nvim: the yazi file manager in a float. Needs yazi on $PATH. Owns <leader>ey.
 return {
 	"mikavilpas/yazi.nvim",
-	dependencies = { "nvim-lua/plenary.nvim" },
 	cmd = { "Yazi" },
+	-- yazi.nvim's own keys in the float: <F1> help, <C-v>/<C-x>/<C-t> open in vsplit/split/tab, <C-o> open in a picked
+	-- window, <C-s> grep and <C-g> replace in the folder, <C-y> copy relative paths, <C-q> selection to quickfix,
+	-- <C-\> make the folder the working directory, <Tab> cycle open buffers.
 	keys = {
 		{
 			"<leader>ey",
@@ -17,11 +17,7 @@ return {
 				end
 			end,
 			desc = "Open yazi at this file",
-		},
+		}, -- n: the file manager in a float, on the current file (y for yazi)
 	},
-	opts = {
-		open_for_directories = false, -- oil.nvim opens directories
-		floating_window_scaling_factor = 0.9,
-		yazi_floating_window_border = "rounded",
-	},
+	opts = {},
 }

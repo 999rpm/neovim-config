@@ -1,14 +1,9 @@
--- folke/snacks.nvim: picker, terminals, notifier, indent guides, scratch, zen, lazygit, git browse, reference
--- highlighting and the option toggles under <leader>o.
--- Picker: opens in the result list (normal mode). <Tab>/<S-Tab> next/previous, <C-Space> mark for multi-select,
--- <C-a> mark all, <CR> open, i or / type a query, <C-s>/<C-v>/<C-t> split/vsplit/tab, <C-q> to quickfix,
--- <A-j>/<A-k> scroll the preview (<C-f>/<C-b> too, outside tmux), <A-h>/<A-i> hidden/ignored files, <A-p> preview, ? help,
--- q or <Esc> close. Results rank by frecency.
--- Terminal: <Esc><Esc> normal mode, q (normal mode) hide, gf open file under cursor.
--- Images: kitty draws markdown images and LaTeX math inline; <leader>ui opens the one under the cursor in a float.
--- d2 diagrams render through lang/d2-diagrams.lua. Dashboard (bare `nvim`): f find, n new, g grep, r recent, c config,
--- s restore session, L Lazy, q quit; digits open the recent files listed below the keys. <leader>ew picks a window by letter.
--- snacks.words underlines every occurrence of the symbol under the cursor, and ]r/[r walk them.
+-- folke/snacks.nvim: picker, terminals, notifier, indent guides, dashboard, scratch buffers, zen, lazygit, git browse,
+-- reference highlighting, inline images and the on/off switches. Pickers open in the result list (normal mode) and
+-- rank by frecency; terminals run the login shell (utils/shell.lua) while 'shell' stays sh. kitty draws markdown images
+-- and ```math blocks inline; d2 diagrams come from lang/d2-diagrams.lua.
+-- Prefixes: <leader>f find files, <leader>s search contents, <leader>l LSP lists (lspconfig.lua adds lw), <leader>t
+-- terminals, and parts of <leader>e explore, <leader>g git, <leader>u UI and <leader>o switches; ]r/[r references.
 local function pick(source, opts) -- one wrapper instead of a closure per key
 	return function()
 		Snacks.picker[source](opts)
@@ -27,11 +22,11 @@ local function term(layout)
 end
 
 local menu_keys = {
-	["<Tab>"] = { "list_down", mode = { "i", "n" } },
-	["<S-Tab>"] = { "list_up", mode = { "i", "n" } },
-	["<C-Space>"] = { "select_and_next", mode = { "i", "n" } },
-	["<A-j>"] = { "preview_scroll_down", mode = { "i", "n" } }, -- <C-b>, the default scroll up, is tmux's prefix
-	["<A-k>"] = { "preview_scroll_up", mode = { "i", "n" } },
+	["<Tab>"] = { "list_down", mode = { "i", "n" } }, -- i/n: next result; upstream marks with it, <C-Space> marks here
+	["<S-Tab>"] = { "list_up", mode = { "i", "n" } }, -- i/n: previous result
+	["<C-Space>"] = { "select_and_next", mode = { "i", "n" } }, -- i/n: mark for multi-select, then move on
+	["<A-j>"] = { "preview_scroll_down", mode = { "i", "n" } }, -- i/n: scroll the preview; <C-b>, upstream's scroll up, is tmux's prefix
+	["<A-k>"] = { "preview_scroll_up", mode = { "i", "n" } }, -- i/n: scroll the preview back
 }
 
 return {
@@ -55,31 +50,26 @@ return {
 		statuscolumn = { enabled = false }, -- statuscol.lua
 		quickfile = { enabled = true },
 		scroll = { enabled = true },
-		words = { enabled = true, debounce = 200 }, -- underlines the symbol under the cursor where it recurs; ]r/[r walk them
+		words = { enabled = true }, -- underlines the symbol under the cursor where it recurs; ]r/[r walk them
 		image = {
 			enabled = true, -- markdown images and ```math blocks render inline through kitty's graphics protocol
 			convert = { notify = true }, -- a failed conversion reports instead of leaving a blank
 		},
-		notifier = { enabled = true, timeout = 3000 },
+		notifier = { enabled = true },
 		indent = {
 			enabled = true,
-			indent = { char = "│", hl = require("utils.core").rainbow_delimiter_groups },
-			animate = { enabled = true, style = "out" },
-			scope = { enabled = true },
+			indent = { hl = require("utils.core").rainbow_delimiter_groups },
 			chunk = {
 				enabled = true,
 				char = {
 					corner_top = "╭",
 					corner_bottom = "╰",
-					horizontal = "─",
-					vertical = "│",
 					arrow = "╴",
 				},
 			},
 		},
 		picker = {
 			enabled = true,
-			ui_select = true,
 			focus = "list",
 			matcher = { frecency = true, cwd_bonus = true }, -- files opened often and recently, and files under the cwd, rank first
 			sources = {
@@ -95,22 +85,32 @@ return {
 			},
 		},
 		terminal = {
+			shell = require("utils.shell").login_shell(), -- 'shell' is sh (options.lua); a terminal is where the login shell belongs
 			win = { border = "rounded" },
 		},
 	},
+	-- Keys inside snacks windows that come from snacks itself:
+	--   picker (i/n): <CR> open, <S-CR> open in a picked window, <C-s>/<C-v>/<C-t> split/vsplit/tab, <C-q> results to
+	--     quickfix, <C-a> mark all, <C-n>/<C-p> or <C-j>/<C-k> next/previous, <C-d>/<C-u> scroll the list, <C-f> scroll
+	--     the preview, <C-g> live grep on/off, <A-h>/<A-i> hidden/ignored files, <A-p> preview, <A-m> maximize,
+	--     <A-w> cycle windows, <C-Up>/<C-Down> query history; (n) i or / type a query, j/k move, gg/G top/bottom, ? help,
+	--     q or <Esc> close; (i) <C-r><C-w> insert the word under the cursor, <C-c> close
+	--   terminal: (t) <Esc><Esc> normal mode, a single <Esc> reaches the shell; (n) q hide, gf open the file under the cursor
+	--   dashboard: f find file, n new file, g grep, r recent files, c config files, s restore session, L Lazy, q quit,
+	--     digits open the recent file with that number
 	keys = {
-		{ "<leader>ff", pick("files"), desc = "Files" },
-		{ "<leader>fg", pick("git_files"), desc = "Git files" },
-		{ "<leader>fb", pick("buffers"), desc = "Buffers" },
-		{ "<leader>fr", pick("recent"), desc = "Recent files" },
-		{ "<leader>fc", pick("files", { cwd = vim.fn.stdpath("config") }), desc = "Config files" },
+		{ "<leader>ff", pick("files"), desc = "Files" }, -- n: fuzzy-find a file under the working directory
+		{ "<leader>fg", pick("git_files"), desc = "Git files" }, -- n: only files git tracks
+		{ "<leader>fb", pick("buffers"), desc = "Buffers" }, -- n: switch to an open buffer
+		{ "<leader>fr", pick("recent"), desc = "Recent files" }, -- n: files opened lately, any project
+		{ "<leader>fc", pick("files", { cwd = vim.fn.stdpath("config") }), desc = "Config files" }, -- n: files of this Neovim config
 		{
 			"<leader>fp",
 			function()
 				Snacks.picker.files({ cwd = require("lazy.core.config").options.root })
 			end,
 			desc = "Plugin sources",
-		},
+		}, -- n: files inside the installed plugins, to read their code or docs
 
 		{
 			"<leader>ed",
@@ -118,7 +118,7 @@ return {
 				Snacks.picker.files({ cwd = vim.fn.expand("%:p:h") })
 			end,
 			desc = "Files in buffer directory",
-		},
+		}, -- n: like <leader>ff, rooted at the current file's folder
 		{
 			"<leader>ew",
 			function()
@@ -128,51 +128,50 @@ return {
 				end
 			end,
 			desc = "Pick window",
-		},
+		}, -- n: each window shows a letter; typing it moves there
 
-		{ "<leader>/", pick("grep"), desc = "Grep" },
-		{ "<leader>sg", pick("grep"), desc = "Grep" },
-		{ "<leader>sw", pick("grep_word"), mode = { "n", "x" }, desc = "Word or selection" },
-		{ "<leader>sb", pick("lines"), desc = "Buffer lines" },
-		{ "<leader>sB", pick("grep_buffers"), desc = "Grep open buffers" },
-		{ "<leader>sh", pick("help"), desc = "Help pages" },
-		{ "<leader>sk", pick("keymaps"), desc = "Keymaps" },
-		{ "<leader>sc", pick("commands"), desc = "Commands" },
-		{ "<leader>s:", pick("command_history"), desc = "Command history" },
-		{ "<leader>s/", pick("search_history"), desc = "Search history" },
-		{ "<leader>sd", pick("diagnostics"), desc = "Diagnostics" },
-		{ "<leader>sD", pick("diagnostics_buffer"), desc = "Buffer diagnostics" },
-		{ "<leader>sH", pick("highlights"), desc = "Highlights" },
-		{ "<leader>si", pick("icons"), desc = "Icons" },
-		{ "<leader>sj", pick("jumps"), desc = "Jumps" },
-		{ "<leader>s'", pick("marks"), desc = "Marks" },
-		{ '<leader>s"', pick("registers"), desc = "Registers" },
-		{ "<leader>sa", pick("autocmds"), desc = "Autocommands" },
-		{ "<leader>sM", pick("man"), desc = "Man pages" },
-		{ "<leader>sp", pick("lazy"), desc = "Plugin specs" },
-		{ "<leader>sq", pick("qflist"), desc = "Quickfix list" },
-		{ "<leader>sl", pick("loclist"), desc = "Location list" },
-		{ "<leader>su", pick("undo"), desc = "Undo history" },
-		{ "<leader>sn", pick("notifications"), desc = "Notifications" },
-		{ "<leader>sm", "<cmd>Noice history<cr>", desc = "Message history" },
-		{ "<leader>s.", pick("resume"), desc = "Resume last picker" },
+		{ "<leader>/", pick("grep"), desc = "Grep" }, -- n: search file contents while typing, same as <leader>sg
+		{ "<leader>sg", pick("grep"), desc = "Grep" }, -- n: live ripgrep over the working directory
+		{ "<leader>sw", pick("grep_word"), mode = { "n", "x" }, desc = "Word or selection" }, -- n/x: grep for the word under the cursor or the selected text
+		{ "<leader>sb", pick("lines"), desc = "Buffer lines" }, -- n: lines of this buffer
+		{ "<leader>sB", pick("grep_buffers"), desc = "Grep open buffers" }, -- n: like sg, limited to open buffers
+		{ "<leader>sh", pick("help"), desc = "Help pages" }, -- n: Neovim and plugin :help tags
+		{ "<leader>sk", pick("keymaps"), desc = "Keymaps" }, -- n: every mapping with its description, to find a forgotten key
+		{ "<leader>sc", pick("commands"), desc = "Commands" }, -- n: Ex commands
+		{ "<leader>s:", pick("command_history"), desc = "Command history" }, -- n: past : lines, rerun on <CR>
+		{ "<leader>s/", pick("search_history"), desc = "Search history" }, -- n: past / patterns
+		{ "<leader>sd", pick("diagnostics"), desc = "Diagnostics" }, -- n: every open buffer's errors and warnings
+		{ "<leader>sD", pick("diagnostics_buffer"), desc = "Buffer diagnostics" }, -- n: this buffer only
+		{ "<leader>sH", pick("highlights"), desc = "Highlights" }, -- n: highlight groups and their colours
+		{ "<leader>si", pick("icons"), desc = "Icons" }, -- n: insert a Nerd Font or emoji glyph
+		{ "<leader>sj", pick("jumps"), desc = "Jumps" }, -- n: the jump list that <C-o>/<C-i> walk
+		{ "<leader>s'", pick("marks"), desc = "Marks" }, -- n: marks set with m{letter}
+		{ '<leader>s"', pick("registers"), desc = "Registers" }, -- n: register contents; <CR> pastes
+		{ "<leader>sa", pick("autocmds"), desc = "Autocommands" }, -- n: autocommands and where they come from
+		{ "<leader>sM", pick("man"), desc = "Man pages" }, -- n: system manual pages
+		{ "<leader>sp", pick("lazy"), desc = "Plugin specs" }, -- n: the plugin specs in this config
+		{ "<leader>sq", pick("qflist"), desc = "Quickfix list" }, -- n: the quickfix list as a picker
+		{ "<leader>sl", pick("loclist"), desc = "Location list" }, -- n: the window's location list
+		{ "<leader>su", pick("undo"), desc = "Undo history" }, -- n: undo states with a diff preview
+		{ "<leader>sn", pick("notifications"), desc = "Notifications" }, -- n: past notifications
+		{ "<leader>s.", pick("resume"), desc = "Resume last picker" }, -- n: reopen the last picker as it was
 		{
 			"<leader>s?",
 			function()
 				Snacks.picker()
 			end,
 			desc = "All pickers",
-		},
+		}, -- n: list every picker source
 
-		{ "<leader>ld", pick("lsp_definitions"), desc = "Definitions" },
-		{ "<leader>lD", pick("lsp_declarations"), desc = "Declarations" },
-		{ "<leader>lr", pick("lsp_references"), nowait = true, desc = "References" },
-		{ "<leader>li", pick("lsp_implementations"), desc = "Implementations" },
-		{ "<leader>lt", pick("lsp_type_definitions"), desc = "Type definitions" },
-		{ "<leader>ls", pick("lsp_symbols"), desc = "Document symbols" },
-		{ "<leader>lS", pick("lsp_workspace_symbols"), desc = "Workspace symbols" },
-		{ "<leader>lc", pick("lsp_incoming_calls"), desc = "Incoming calls" },
-		{ "<leader>lC", pick("lsp_outgoing_calls"), desc = "Outgoing calls" },
+		{ "<leader>ld", pick("lsp_definitions"), desc = "Definitions" }, -- n: where the symbol is defined, as a list
+		{ "<leader>lD", pick("lsp_declarations"), desc = "Declarations" }, -- n: where it is declared
+		{ "<leader>lr", pick("lsp_references"), nowait = true, desc = "References" }, -- n: every use of the symbol; nowait, no lr* key follows
+		{ "<leader>li", pick("lsp_implementations"), desc = "Implementations" }, -- n: implementations of an interface or method
+		{ "<leader>lt", pick("lsp_type_definitions"), desc = "Type definitions" }, -- n: the type of the symbol
+		{ "<leader>ls", pick("lsp_symbols"), desc = "Document symbols" }, -- n: functions, classes and fields of this file
+		{ "<leader>lS", pick("lsp_workspace_symbols"), desc = "Workspace symbols" }, -- n: symbols across the project, typed query first
+		{ "<leader>lc", pick("lsp_incoming_calls"), desc = "Incoming calls" }, -- n: the functions that call the one under the cursor
+		{ "<leader>lC", pick("lsp_outgoing_calls"), desc = "Outgoing calls" }, -- n: the functions the one under the cursor calls
 
 		{
 			"]r",
@@ -180,14 +179,14 @@ return {
 				Snacks.words.jump(vim.v.count1, true)
 			end,
 			desc = "Next reference",
-		}, -- ]] and [[ stay the built-in section motions
+		}, -- n: next underlined use of the symbol; ]] and [[ stay the built-in section motions
 		{
 			"[r",
 			function()
 				Snacks.words.jump(-vim.v.count1, true)
 			end,
 			desc = "Previous reference",
-		},
+		}, -- n: previous underlined use; both take a count
 
 		{
 			"<leader>gl",
@@ -195,7 +194,7 @@ return {
 				Snacks.lazygit()
 			end,
 			desc = "LazyGit",
-		},
+		}, -- n: lazygit in a float, for staging, commits and pushes
 		{
 			"<leader>gb",
 			function()
@@ -203,24 +202,24 @@ return {
 			end,
 			mode = { "n", "x" },
 			desc = "Open in browser",
-		},
-		{ "<leader>gc", pick("git_log"), desc = "Commits" },
-		{ "<leader>gC", pick("git_log_file"), desc = "Commits (file)" },
-		{ "<leader>gS", pick("git_status"), desc = "Status" },
-		{ "<leader>gB", pick("git_branches"), desc = "Branches" },
-		{ "<leader>gd", pick("git_diff"), desc = "Changed hunks" },
+		}, -- n/x: the file, or the selected lines, on the git host's website
+		{ "<leader>gc", pick("git_log"), desc = "Commits" }, -- n: repository history
+		{ "<leader>gC", pick("git_log_file"), desc = "Commits (file)" }, -- n: history of this file only
+		{ "<leader>gS", pick("git_status"), desc = "Status" }, -- n: changed files, <Tab> stages inside the picker
+		{ "<leader>gB", pick("git_branches"), desc = "Branches" }, -- n: switch branch on <CR>
+		{ "<leader>gd", pick("git_diff"), desc = "Changed hunks" }, -- n: every changed hunk with a preview
 
-		{ "<C-,>", term("float"), mode = { "n", "t" }, desc = "Terminal (float)" },
-		{ "<leader>tf", term("float"), desc = "Float" },
-		{ "<leader>tv", term("vertical"), desc = "Vertical split" },
-		{ "<leader>th", term("horizontal"), desc = "Horizontal split" },
+		{ "<C-,>", term("float"), mode = { "n", "t" }, desc = "Terminal (float)" }, -- n/t: show or hide the floating terminal; Ctrl+comma, which no shell binds
+		{ "<leader>tf", term("float"), desc = "Float" }, -- n: the same floating terminal
+		{ "<leader>tv", term("vertical"), desc = "Vertical split" }, -- n: a terminal on the right, 60 columns
+		{ "<leader>th", term("horizontal"), desc = "Horizontal split" }, -- n: a terminal at the bottom, 15 lines
 		{
 			"<leader>tm",
 			function()
 				Snacks.terminal.toggle("btop")
 			end,
 			desc = "btop",
-		},
+		}, -- n: system monitor (m for monitor)
 
 		{
 			"<leader>us",
@@ -228,42 +227,42 @@ return {
 				Snacks.scratch()
 			end,
 			desc = "Scratch buffer",
-		},
+		}, -- n: a throwaway buffer kept between sessions
 		{
 			"<leader>uS",
 			function()
 				Snacks.scratch.select()
 			end,
 			desc = "Select scratch buffer",
-		},
+		}, -- n: pick one of the saved scratch buffers
 		{
 			"<leader>uz",
 			function()
 				Snacks.zen()
 			end,
 			desc = "Zen mode",
-		},
+		}, -- n: centred, distraction-free view; again to leave
 		{
 			"<leader>uZ",
 			function()
 				Snacks.zen.zoom()
 			end,
 			desc = "Zoom window",
-		},
+		}, -- n: this window full screen for a moment; again to restore
 		{
 			"<leader>un",
 			function()
 				Snacks.notifier.hide()
 			end,
 			desc = "Dismiss notifications",
-		},
+		}, -- n: clear the notification popups
 		{
 			"<leader>ui",
 			function()
 				Snacks.image.hover()
 			end,
 			desc = "Image or diagram in a float",
-		},
+		}, -- n: the image or math block under the cursor, larger
 	},
 	config = function(_, opts)
 		require("snacks").setup(opts)
@@ -272,7 +271,7 @@ return {
 			t.opts.name = name
 			return t
 		end
-		toggle.option("number", { name = "line numbers" }):map("<leader>on")
+		toggle.option("number", { name = "line numbers" }):map("<leader>on") -- n: line numbers on or off
 		toggle
 			.new({
 				id = "relativenumber",
@@ -285,14 +284,14 @@ return {
 					vim.wo.relativenumber = state and vim.wo.number
 				end,
 			})
-			:map("<leader>oN")
-		toggle.option("wrap", { name = "wrap" }):map("<leader>ow")
-		toggle.option("spell", { name = "spelling" }):map("<leader>os")
-		toggle.diagnostics({ name = "diagnostics" }):map("<leader>od")
-		toggle.inlay_hints({ name = "inlay hints" }):map("<leader>oh")
-		named(toggle.indent(), "indent guides"):map("<leader>oi")
-		named(toggle.dim(), "dimming"):map("<leader>oD")
-		named(toggle.words(), "reference highlights"):map("<leader>oR")
+			:map("<leader>oN") -- n: relative numbers, uppercase twin of on
+		toggle.option("wrap", { name = "wrap" }):map("<leader>ow") -- n: soft wrap of long lines
+		toggle.option("spell", { name = "spelling" }):map("<leader>os") -- n: spell checking
+		toggle.diagnostics({ name = "diagnostics" }):map("<leader>od") -- n: every diagnostic sign and message
+		toggle.inlay_hints({ name = "inlay hints" }):map("<leader>oh") -- n: the grey type and parameter hints
+		named(toggle.indent(), "indent guides"):map("<leader>oi") -- n: the vertical indent lines
+		named(toggle.dim(), "dimming"):map("<leader>oD") -- n: dim everything outside the current scope
+		named(toggle.words(), "reference highlights"):map("<leader>oR") -- n: the underline on other uses of the symbol
 		vim.treesitter.query.set( -- the plugin's own query also hands ```mermaid blocks to mmdc, which needs a Chromium; math only here
 			"markdown",
 			"images",

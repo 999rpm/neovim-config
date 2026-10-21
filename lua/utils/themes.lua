@@ -1,13 +1,61 @@
 -- Theme switcher: tokyonight, catppuccin, kanagawa and monokai-pro with their styles and a transparent background. The
 -- choice persists in stdpath("data")/999rpm-theme.json and loads at startup. Each switch drops the theme's Lua modules,
 -- so its setup() runs again with the new style, then fires User ThemeChanged after the ColorScheme event. A theme that
--- fails to load leaves the last one in place (Neovim's default colours at startup) and warns.
+-- fails to load leaves the last one in place (Neovim's default colours at startup) and warns. :colorscheme clears every
+-- highlight group, so each switch restores the default links plugins set once at load (copilot's ghost text, barbar's
+-- tabs, markdown headings, trouble) wherever the new theme defines none.
 local fn, api = vim.fn, vim.api
 local core = require("utils.core")
 
 local M = {}
 
 local STATE_FILE = fn.stdpath("data") .. "/999rpm-theme.json"
+
+local set_hl, get_hl = api.nvim_set_hl, api.nvim_get_hl
+local default_links = {} -- group -> link a plugin set as its default: default = true, or into an empty group
+local restored = {} -- groups the last switch refilled from default_links
+local theme_loading = false -- between ColorSchemePre and ColorScheme the links are the theme's own
+
+local function is_empty(name)
+	return next(get_hl(0, { name = name, create = false })) == nil
+end
+
+---Records the default links plugins set, then sets the highlight as asked. A plugin that recomputes one of its groups
+---with default = true after a switch (dap-ui's *NC groups) replaces the refilled link.
+---@diagnostic disable-next-line: duplicate-set-field
+api.nvim_set_hl = function(ns, name, val)
+	if ns == 0 and not theme_loading and type(val) == "table" then
+		if restored[name] and val.default then
+			restored[name] = nil
+			val = vim.tbl_extend("force", val, { default = false })
+		elseif val.link and (val.default or is_empty(name)) then
+			default_links[name] = val.link
+		end
+	end
+	return set_hl(ns, name, val)
+end
+
+local links_group = core.augroup("theme-default-links")
+api.nvim_create_autocmd("ColorSchemePre", {
+	group = links_group,
+	desc = "999rpm: stop recording default links while a colour scheme loads",
+	callback = function()
+		theme_loading, restored = true, {}
+	end,
+})
+api.nvim_create_autocmd("ColorScheme", { -- registered before the plugins' own handlers, which then see the links
+	group = links_group,
+	desc = "999rpm: refill the default links plugins set once at load, which :colorscheme clears",
+	callback = function()
+		theme_loading = false
+		for name, link in pairs(default_links) do
+			if is_empty(name) then -- a group the new theme defines keeps its colours
+				set_hl(0, name, { link = link })
+				restored[name] = true
+			end
+		end
+	end,
+})
 
 local adapters = {
 	tokyonight = {

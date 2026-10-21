@@ -1,203 +1,170 @@
 # Config log
 
-What changed, and the reason it changed. Newest first; older passes are condensed to their conclusions once a later
-pass has confirmed them.
+What changed and why, newest first. Older passes are condensed to their conclusions once a later pass confirms them.
 
-## 2026-10-06 (twenty-second pass)
+## 2026-10-20 (twenty-seventh pass)
 
-Method: Neovim 0.12.5 headless (`-u NONE` with the config's `lua/` on the runtime path, options.lua and autocmds.lua
-loaded, overseer.nvim at its locked commit), clang 18.1 and GNU make 4.3. A 39-step harness: the wizard's C and C++
-projects built, rebuilt after a flag edit and after a header edit, linked against a static library through `LDFLAGS`
-and `LDLIBS`, built for release and run; `<leader>cr` in a project with Neovim's working directory elsewhere and a
-header left unsaved, then with a compile error; a Makefile without a `run` target; a CMake folder; lone files in a folder
-with a space (a library, `-Wno-error`, a flag line below line ten, a missing file); `:make` under sh, zsh 5.9 and
-nushell 0.116.1; overseer's build task in a project and on a lone file. StyLua clean.
+Method: Neovim 0.12.6, still the latest release (`stable` tag); the tree matched pass 26's manifest file for file and
+the lockfile was unchanged, so no plugin moved and only the file the lint flagged (init.lua) was read in full. The
+archived harness did not run: the session's safety check refuses scripts from an uploaded archive, so each script used
+was reviewed and written again. lint.py now also takes its deprecated-call patterns from the runtime's
+`deprecated.txt` (102 of 138), and the key audit finds the `index.txt` sections by their tags.
 
 ### Fixed
 
-- `<leader>cr` ignored a project's Makefile: it compiled the open file alone with the default flags, so a project with
-  more than one source file or a library failed to link, and the binary landed in `src/`. Under a Makefile it now runs
-  `make`, then the `run` target in the split (Visual Studio's Ctrl+F5), after writing the project's modified file
-  buffers, as 'autowrite' does for `:make`. A directory line leads the quickfix list, so a make error opens the right
-  file when the working directory is elsewhere. A file under CMake or meson warns instead of building alone.
-- A generated Makefile did nothing after its own flags or a header changed, since the program depended on the sources
-  only; it depends on the Makefile and the headers in `src/` too.
+- README's Install section had the first start clone lazy.nvim at the locked commit; the bootstrap clones its `stable`
+  branch (`config/lazy.lua`; the clean boot recorded 85c7ff3 for the locked 306a055), as the edge-case note on
+  `:Lazy restore` already said. The sentence now says so. No config code needed a fix: every check came back as in
+  pass 26.
 
 ### Changed
 
-- Generated Makefiles keep linker options in `LDFLAGS` and libraries in `LDLIBS`, after the sources, as GNU ld needs;
-  a three-line header names the variables. `make` rewrites `compile_flags.txt` from `CXXFLAGS` (`CFLAGS` in C) whenever
-  the Makefile changes, so clangd follows a project's flags; the wizard still writes the first copy.
-- A lone C or C++ file names extra flags on `// 999rpm-flags:` lines among its first ten lines. They follow the file on
-  the command line, so a library links and a later flag overrides a default (`-Wno-error`). `<leader>cr`, overseer's
-  `clang: build file` task and `:make` read them; `'makeprg'` is set again after each write, each flag quoted for the
-  shell.
-- `utils/run.lua` owns the Makefile lookup overseer.lua's make task uses (`run.makefile()`). `M.flags` seeds new
-  Makefiles only: an existing project keeps the flags its Makefile holds.
-
-## 2026-10-03 (twenty-first pass)
-
-Method: Neovim 0.12.5 headless with every plugin at its newest commit (nine moved: avante, gitlinker, hardtime, lazy.nvim,
-nvim-lspconfig, nvim-treesitter, nvim-ts-autotag, schemastore, yazi; lazy-lock.json records them). A 63-step harness:
-startup, every theme and style, every plugin loaded, a key audit (no global key set twice with different jobs, no global
-map on a protected built-in, nothing on tmux's prefix, kitty's alt+digit or ctrl+shift keys, or Alt in terminal mode),
-each filetype opened, the notes layer on a scratch graph (dates, journals, task cycle, block moves, links, pickers,
-templates, logseq/ left out), a notebook written and reopened, `:grep`, `:%!` filters and `:make` under zsh 5.9 and
-nushell 0.116 in a folder with a space, the project wizard and `<leader>cr`. The shell files ran in real zsh and nu with
-and without starship, zoxide and broot; the tmux template, rendered with sample colours, loaded in tmux 3.4. StyLua clean.
-
-### Fixed
-
-- A notebook saved into a folder that did not exist was never written: BufWriteCmd skips BufWritePre, where autocmds.lua
-  creates missing folders. `utils/notebook.lua` creates the folder itself and fires BufWritePost after a write, so
-  otter.lua's cell diagnostics refresh as they do after any `:w`.
-- nushell stopped reading config.nu when broot's launcher was missing (`use` resolves at parse time) and stopped env.nu
-  when zoxide was missing. starship and zoxide now write their init scripts into the vendor autoload folder only when
-  installed, the broot module becomes `null` when its file is absent, and PATH drops duplicate entries.
-- zsh printed errors at every start without fzf, zoxide, starship or broot; each now loads only when present, and the
-  broot launcher path no longer spells out a home folder.
-- `:ProjectNew <template>` naming no template did nothing; it warns now.
-- `<leader>cv` (tw-values) answered in every buffer; it is limited to jsx, tsx, html and css.
-
-### Changed
-
-- tmux.conf ships as the matugen template, `.config/matugen/templates/tmux.conf`, and the generated
-  `~/.config/tmux/tmux.conf` stays out of the archive, so extracting it never replaces live colours with template fields.
-  Truecolour comes from `terminal-features RGB`, as the nineteenth pass intended. `.config/moxide/settings.toml` is back.
-- Comment trims: lualine's `path` and `file_status`, conform's `clang-format`, `rust` and `toml` notes. `is_lone` names its
-  argument a path, which is what its callers pass.
+- None.
 
 ### Checked and kept
 
-- The sixteen reference configs hold nothing new beyond what earlier passes took or declined: the options they set and
-  this config does not are 0.12 defaults (autoread, hidden, hlsearch, incsearch, wildmenu, history) or plugin territory
-  (statuscolumn, folds), and the plugins three or more of them share have replacements here (telescope, bufferline,
-  nvim-cmp, LuaSnip, diffview, fidget, vim-illuminate) or were declined before.
-- hardtime's `which_key_ignore` maps on `.`, `p`, `x`, `J`, `~` and the `g` operators count the key and pass it through;
-  multicursor's insert `<Left>`/`<Right>` exist only while cursors are active.
-- snacks.lua's markdown `images` query replaces only the fenced-block part (math kept, mermaid dropped); `![]()` images
-  come from the plugin's markdown_inline query. mason-tool-installer checks installs through `vim.defer_fn`, so loading
-  on VeryLazy still installs. blink's cmdline preset maps `<Left>`, `<Right>` and `<End>`, which the `false` entries drop.
-  avante's README lists mega.cmdparse. rustaceanvim v9.2.1 is the newest major and multicursor's 1.0 branch is current.
-  guess-indent, hex.nvim, nvim-dap-virtual-text, promise-async and mega.logging have had no commit in over a year; kept.
+- Kept upgrades; `owner/repo` is https://github.com/owner/repo at the locked commit (README unless a file is named),
+  "p27" a test this pass, other numbers the pass that ruled it:
+
+| Key (mode) | Mapping | Preserved | Gained | Source; test |
+| --- | --- | --- | --- | --- |
+| `n` `N` (n) | `nzzzv` | jump, count | centred, fold opened | `:help zz`; p27 |
+| `<Esc>` (n) | `:nohlsearch` | cancels a count or register | search highlight cleared | `:help index`; p27 `3<Esc>j` |
+| `grn` (n) | inc-rename | rename at cursor | live preview | smjonas/inc-rename.nvim; p27 TUI |
+| `gd` `gD` (n) | LSP | built-in without a server or an answer | server's answer | `:help vim.lsp.buf_request_all()`; p27 |
+| `]c` `[c` (n) | gitsigns | built-in in diff mode, count | hunks | lewis6991/gitsigns.nvim `doc/gitsigns.txt`; p27 |
+| `]m` `[m` `]M` `[M` (n, x) | textobjects | built-in without a parser, count | any parsed language | nvim-treesitter/nvim-treesitter-textobjects; p27 |
+| `zR` `zM` (n) | nvim-ufo | open, close all | provider folds | kevinhwang91/nvim-ufo; p27 |
+| `<C-a>` `<C-x>` (n) | dial.nvim | numbers, count, `.` | dates, true/false | monaqa/dial.nvim; p27, 30 cases |
+| `%` `g%` `[%` `]%` `a%` `i%` (n, x, o) | vim-matchup | brackets, `N%` | word pairs, tags | andymass/vim-matchup; p27 |
+| `a` `i` (x, o) | mini.ai | `iw` `a(` `i"` `ap` `as` `it`, counts | more objects, next/last | nvim-mini/mini.nvim `doc/mini-ai.txt`; p27 |
+| `K` (n, Rust) | rustaceanvim | built-in without rust-analyzer, count | hover actions | mrcjkb/rustaceanvim; p27 |
+| `gf` `<C-w>f` (n, graph) | logseq.lua | path under cursor, count | links, block refs | `notes/logseq.lua`; p27 |
+| `<BS>` `<CR>` (i) | nvim-autopairs | delete, line break | pairs | windwp/nvim-autopairs; p27 |
+| `o` `O` (n), `<CR>` `<Tab>` `<S-Tab>` `<BS>` (i) | markdown-plus | outside a list | list items | YousefHadder/markdown-plus.nvim; p27 |
+| `<LeftMouse>` (n) | satellite.nvim | click | scrollbar drag | lewis6991/satellite.nvim; p27 TUI |
+| `<Tab>` `<CR>` `<C-e>` `<C-k>` (i) | blink.cmp | `fallback` without menu | completion | saghen/blink.cmp keymap docs; p27 |
+| `<C-l>` (i) | copilot.lua | popup-menu CTRL-L, `<C-x><C-l>`, no suggestion | suggestion accepted | zbirenbaum/copilot.lua; `:help ins-completion`; p27 |
+| `<Tab>` `<S-Tab>` `<C-n>` `<C-p>` `<C-e>` `<C-y>` (c) | blink.cmp | built-in where Neovim has no completion, or with no menu | fuzzy menu | saghen/blink.cmp `keymap/presets.lua`; p27 TUI |
+| `,` `.` `;` (i) | `<C-g>u` | text, `.` repeat | undo per clause | `:help i_CTRL-G_u`; 13, p27 |
+| `<Left>` `<Right>` (i) | multicursor | built-in with one cursor | one insert per cursor set | jake-stewart/multicursor.nvim `core.lua`; p27 |
+
+- hardtime.nvim's 55 pass-through keys give the built-in result (20 typed cases, p27); `Y` runs 0.12's default `y$`.
+- Key audit (p27): no shadowed built-in outside the table, the pass-through keys and 26 quickfix window keys; no key on
+  kitty's alt+digit or ctrl+shift keys, tmux's C-b or a shell key in terminal mode; no key defined twice. Autocmd audit:
+  42 groups, 99 handlers, none registered twice. Lint: no deprecated call, comment, voice, header or util finding; the
+  two `dependencies` lists are the logged exceptions; plugdefaults' 16 same-path matches are pinned keys (copilot,
+  neo-tree) or other tables (snacks' per-source matchers, lualine's buffers component, a render-markdown preset,
+  lspconfig's docs block).
+- Ruling: init.lua's "Keys:" paragraph is the key hierarchy summary its header owes, not a plugin key list; the lint's
+  `gap.keys-line` rule now checks plugin headers only.
+- `E31` in `v:errmsg` after the first file opens: the markdown ftplugin's undo (a silent `nunmap` of `]]`) runs again
+  when lazy.nvim replays the read events; upstream, not this config. LuaLS's 28 warnings are stdlib type strictness;
+  selene's 9 are `\u{...}` escapes, which LuaJIT reads, and `_G` existence checks.
+- P4: two clean boots (103 plugins, 44 parsers); the only install error is Mason's unreachable registry (avante's
+  build now finds its v0.4.1 libraries). `:checkhealth` errors all environmental, as in pass 26 (Mason registry,
+  opencode, rust-analyzer, img-clip's clipboard, kitty graphics, gs, lazygit, locale, yazi's check without yazi;
+  mega.cmdparse calls the deprecated `vim.validate{}`). Startup within noise on identical Lua (medians 99.6 and 96.7
+  ms over five runs, 94.8 and 86.6 over 21). Upgrades: 107 typed cases and 6 logged gains, `grn` and the mouse in the
+  TUI, basedpyright's `gd`/`gD`. 91 files in the removal test; the dependency exceptions still needed; the shell
+  matrix under zsh 5.9 and the nushell smoke set under nu 0.116.1; edge cases as in pass 25, plus a TUI start inside
+  tmux. Skipped: kitty (no GUI), linters (none installed).
+- Research: jdhao/nvim-config and yutkat/dotfiles moved (ledger), nothing to adopt; awesome-neovim unchanged since
+  pass 26. Plugins near or past a year without commits have their upstream HEAD at the locked commit (backlog).
+- Kept despite a year without commits (upstream dates): sc-im.nvim 2024-03, promise-async 2024-08, mega.logging
+  2025-02, guess-indent 2025-03, nvim-dap-virtual-text 2025-05, tw-values.nvim 2025-10; no breakage known.
 
 ## Earlier passes: conclusions only
 
-**Twentieth pass (2026-10-03).** The theme switcher moved to `utils/themes.lua`; `core/colorschemes.lua` holds the
-four schemes and the 999rpm-themer spec, and `lang/d2.lua` became `lang/d2-diagrams.lua`, so no plugin file shares a
-basename with a `utils/` module. A theme that fails to load warns and keeps the last one; the state file is read
-defensively (anything but a JSON object keeps the defaults, the style index is clamped). `lualine.refresh()` after a
-switch and kanagawa's own `package.loaded` reset went.
+- 26th (2026-10-20): `<leader>nX` cancels (logseq.lua's key builder counts leading nils with `select("#", ...)`);
+  `2<C-w>f` passes its count to `wincmd f`; the right-click Trouble item is disabled without `:Trouble`; dropped as dead
+  or restated: basedpyright's `tagSupport`, noice's "search hit BOTTOM" route ('shortmess' s), `modeline` under sudo,
+  snacks' `words.debounce`, `notifier.timeout` and indent defaults, rustaceanvim's `enable_clippy`; `:autocmd 999rpm-*`
+  (E216) comments name the `<leader>sa` picker. Rulings: plugin files call `Snacks` only in handlers and events; the
+  key-handler builders of logseq, molten, sc-im and colorschemes stay local (one module each).
+- 25th (2026-10-19): a live theme switch refills the default links plugins set once at load (utils/themes.lua); the
+  right-click "Open in Web Browser" is an `amenu`, reaching 0.12's gx; dead options dropped (grug-far's
+  `headerMaxWidth`, trouble's `win.border`, lazy.nvim's `dev.path`); basedpyright leaves `useLibraryCodeForTypes` to
+  pyproject.toml; 40 specs lost restated defaults. Rulings: keymap options equal to a default stay (they pin the key);
+  sc-im.nvim stays (not archived; deprecated calls still present); `fn.system` stays in the statusline's branch lookup
+  and the bootstrap (`vim.system():wait()` would run the event loop inside a redraw).
+- 24th (2026-10-16): typed tests made the upgrades keep the built-in (dial, rustaceanvim's `K`, logseq's `2gf`,
+  lspconfig's `gd`/`gD`, blink's command-line `<Tab>`, copilot's `<C-l>` with `trigger_on_accept = false`);
+  markdown-plus's `gd` handed back. Rulings: an extra target (a date, true/false, a word pair) may take a key where the
+  plugin recognises it, other input gets the built-in; visual `<Tab>` indents.
+- 23rd (2026-10-15/16): notebooks: a priority-1 `.*%.ipynb` rule keeps converted ones out of snacks.bigfile, ruff's
+  diagnostics reach otter after each change, markdown-oxide stays out, `:w` runs conform's injected formatter,
+  `ipython/outlined_tables.py` boxes DataFrames; 'shell' is sh and terminals run the login shell; libraries left
+  `dependencies` (exceptions: blink keeps friendly-snippets, nvim-dap keeps dap-ui and dap-python); back to the
+  built-ins: notebook `<S-CR>`, octo's `]s`/`[s` and `<leader>qa`, hardtime's block mode, pipetable's `auto_enter`, `q`
+  in help, multicursor's `<M-LeftMouse>` and layer arrows. Ruling: a plugin's own window keys are listed, not moved.
+  Declined: ui2 (experimental), vim.pack (no event, key or command loading), blink.pairs and fff.nvim (overlap
+  nvim-autopairs and snacks.picker), jove.nvim (experimental, maps `[c`/`]c`).
+- 22nd (2026-10-06): `<leader>cr` builds Makefile projects (`make`, then `run`, after writing their buffers) and lone
+  files with their `// 999rpm-flags:` lines; generated Makefiles depend on themselves and the headers.
+- 21st (2026-10-03): notebooks write into missing folders; zsh and nushell load fzf, zoxide, starship and broot only
+  when installed; tmux.conf ships as the matugen template; tw-values only in jsx, tsx, html, css. Kept: rustaceanvim
+  v9; multicursor's 1.0 branch.
+- 20th: themes in `utils/themes.lua`; `lang/d2-diagrams.lua`, so no plugin file shares a basename with a util; a
+  failing theme warns and keeps the last one.
+- 19th: nvim-treesitter's parser hook builds d2; `'secure'` dropped; one `vim.lsp.enable()` call (each re-ran
+  FileType); tmux truecolour from `terminal-features RGB`. Declined: nvim-lightbulb (no room), ui2 (experimental).
+- 18th: the projects layer under `<leader>w`; terminal mode maps no Alt keys; kept nvim-treesitter's queries over
+  tree-sitter-manager.nvim; declined cmake-tools, vim-dadbod.
+- 17th: `lua/utils/` with one module per subject; 0.12's folding capabilities; previews scroll with `<M-j>`/`<M-k>`
+  because `<C-b>` is tmux's prefix; package-info.nvim and vim-suda added.
+- 16th: backups survive a failed write; `gO` in man pages, `<C-a>`/`<C-x>` in rebase lists returned.
+- 15th: `gd` and normal `<C-k>` only where a server answers; gitcommit parser left out (its build exhausts 4 GB).
+  Kept: nvim-treesitter, ts_ls, noice over ui2.
+- 13th and 14th: molten-nvim (main) runs kernels, otter.nvim attaches servers to cells, the jupytext CLI converts
+  (jupytext.nvim is unmaintained), `:JupyterSetup` prefers uv; quarto-nvim skipped; insert `,` `.` `;` undo breaks.
+- 12th: local specs are `virtual = true` with slash-less names (lazy.nvim merged two `dir` specs);
+  tiny-inline-diagnostic; vim-matchup replaces matchit and matchparen. Declined: kitty-scrollback, smart-splits,
+  quicker.nvim, marks.nvim, nvim-treesitter-endwise, themery, virt-column, mini.trailspace, reference keymaps that take
+  built-ins.
+- 11th: the Logseq layer (markdown-oxide, notes helpers, markdown-plus, bullet folds); `<leader>n` notes.
+- 10th: startup from 21 plugins to 11; snacks.words gives `]r`/`[r`; `<leader>o` holds toggles only.
+- 9th: d2 replaced mermaid (one static binary); fourteen built-in keys returned: `;` `,` `q` `x` `X`,
+  visual `p`, `<C-q>`, `H` `L`, `f` `F`, `s`, visual `S` `R`, `g]`, `<C-LeftMouse>`, `]f` `[f`, `zr`, command-line
+  `<Left>` `<Right>` `<End>`; snacks.dashboard, `pick_win()` and snacks.bigfile replaced alpha, nvim-window-picker and
+  a large-file autocmd.
+- 1st to 8th: one picker (snacks.picker); barbar over bufferline; `plugins/loader.lua` (an `init.lua` went missing);
+  mini.icons stands in for nvim-web-devicons; nf-md icons; coerce.nvim replaced text-case.nvim; `gd`/`gD` named through label-only which-key entries; mini.ai's next-object pair on
+  `aN`/`iN`; `<C-a>`/`<C-x>`, `>`/`<` and insert `<C-e>` returned. Declined: sidekick.nvim, eyeliner.nvim, hydra.nvim,
+  fidget.nvim, nvim-spider, nvim-navic, nvim-hlslens, terrastruct/d2-vim.
 
-**Nineteenth pass (2026-10-03).** nvim-treesitter's custom-parser hook builds the d2 parser (ravsii/tree-sitter-d2
-at v0.7.2): the plugin started treesitter unguarded on every `.d2` buffer and had no commit in a year. `'secure'` went
-(Neovim removed it; `:trust` guards `'exrc'`). One `vim.lsp.enable()` call for every server, since each call re-ran
-FileType over every open buffer. nvim-dap alone names its panels and Python adapter; `utils/run.lua` owns the compiler
-flags (`-W`, the old name of `-Wextra`, dropped); tmux takes truecolour from `terminal-features RGB`. Under nushell
-`:%!sort` runs nu's own `sort`: `:sort` or `:%!^sort` instead. Declined: nvim-lightbulb (no room in the sign column or
-at the end of the line), ui2 (still experimental in 0.12.5).
+## Reference ledger
 
-**Eighteenth pass (2026-10-03).** The projects layer under `<leader>w`: the `utils/project.lua` wizard (C and C++
-with a Makefile and `compile_flags.txt`, Rust, Python, JavaScript), overseer.nvim with a provider that tags make and
-lone-file clang builds, `utils/run.lua` (`<leader>cr`, and clang as `'makeprg'` quoted with `:S`), `'exrc'` and the
-`kdl` parser. Terminal mode maps no Alt keys; octo's Ctrl keys moved to `<localleader>` and `<A-...>`; `run_chain()`
-moved to `utils/core.lua`. Kept: nvim-treesitter's curated queries over tree-sitter-manager.nvim; no cmake-tools or
-vim-dadbod.
+| Repository | Scan date | Default-branch HEAD | Result |
+| --- | --- | --- | --- |
+| rockerBOO/awesome-neovim | 2026-10-20 | 54ae5f6ada9e | 3 entries: partial-diff.nvim, jisho.nvim, resonance.nvim; declined |
+| wsdjeg/SpaceVim | 2026-10-20 | eed9d8f14951 | no commit since 2026-10-03 |
+| jdhao/nvim-config | 2026-10-20 | c07f3c1e1b77 | 1 commit: oxocarbon removed, a scheme not used here; nothing to adopt |
+| craftzdog/dotfiles-public | 2026-10-20 | bf2867469b8b | no commit since 2026-10-03 |
+| xero/dotfiles | 2026-10-20 | 5204a2b74f9a | no commit since 2026-10-03 |
+| rafi/vim-config | 2026-10-20 | dfc296925794 | no commit since 2026-10-15 |
+| ecosse3/nvim | 2026-10-20 | 5d1e66db95b7 | no commit since 2026-10-03 |
+| linkarzu/dotfiles-latest | 2026-10-20 | df62cb73fd1b | 9 commits; a task-order tweak in its snacks.lua; nothing to adopt |
+| nshen/learn-neovim-lua | 2026-10-20 | 0813be9206a1 | no commit since 2026-10-03 |
+| yutkat/dotfiles | 2026-10-20 | 3c469bfb7268 | 4 commits: nushell, nix, zsh; lockfile bumps, no plugin added; nothing to adopt |
+| Matt-FTW/dotfiles | 2026-10-20 | 0bcecd91cd93 | tsc for TypeScript (backlog), markview.nvim (overlaps render-markdown) |
+| wincent/wincent | 2026-10-20 | 28a511dd74d8 | 8 commits: tests, CI, Hammerspoon; no Neovim file |
+| crivotz/nv-ide | 2026-10-20 | ebd4f35c3282 | no commit since 2026-10-03 |
+| SeniorMars/dotfiles | 2026-10-20 | ea99c6844e1d | no commit since 2026-10-03 |
+| folke/dot | 2026-10-20 | 10526a848771 | no commit since 2026-10-03 |
+| Allaman/nvim | 2026-10-20 | d62ecf5aa010 | no commit since 2026-10-03 |
+| loctvl842/monokai-pro.nvim | 2026-10-20 | a68e38b8e55d | no commit since 2026-10-03; one of the four schemes |
 
-**Seventeenth pass (2026-10-03).** `utils.lua` became `lua/utils/` (one module per subject, no `init.lua`).
-`get_lsp_capabilities` gave way to 0.12's own folding capabilities and blink's merge into `vim.lsp.config("*")`.
-blink, the pickers and nvim-bqf scroll documentation and previews with `<M-j>`/`<M-k>` instead of tmux's `<C-b>`.
-tmux.conf gained extended keys, passthrough and undercurl. better-escape stopped mapping visual `j`; notebooks in the
-graph stopped getting Logseq keys and auto-save; impossible journal dates are refused; `history` keeps 10000.
-package-info.nvim and vim-suda were added.
+## Backlog
 
-**Sixteenth pass (2026-10-02).** Backups survive a failed write (`'backupskip'` lists temporary files instead of
-toggling `'backup'`); trailing whitespace stays in patches, mail, binary buffers and where `.editorconfig` keeps it; the
-last cursor position survives bufload(); a tab left with only quickfix, Trouble or neo-tree closes alone; a resize
-equalizes every tab; `gO` in man pages and `<C-a>`/`<C-x>` in rebase todo lists are back. Notebook cell editing under
-`<leader>k` and barbar's order and pins in sessions were added; the archive mirrors `$HOME`.
-
-**Fifteenth pass (2026-10-02).** Nushell's `shellpipe` writes the errorfile through a `do` closure (tee's parallel
-closure lost it) and `:!` runs without `--login`. A notebook opened with `:edit` in a running session sets its own
-filetype. `gd` and normal-mode `<C-k>` only where a server answers them. actionlint only on `.github/workflows`.
-`<leader>oN` survives the number_toggle autocommands; every on/off switch under `<leader>o`. neotest-python and
-rustaceanvim's adapter added; parsers for kitty, zsh, diff, git files, luadoc, luap, printf, xml, ini, sql, dockerfile,
-make, cmake and just (gitcommit left out: its parser build exhausts 4 GB). `excluded_folders = ["logseq"]` in moxide.
-Kept: nvim-treesitter (unarchived July 2026), ts_ls (TypeScript 7 has no Mason package), noice over the private ui2.
-
-**Fourteenth pass (2026-10-01).** `:JupyterSetup` prefers uv (`uv venv`, then `uv pip install --python`), python3's
-venv and pip as the fallback, all from `stdpath("data")`. `<leader>kv` / `:JupyterKernelAdd` registers the uv project
-as a kernel the way uv's Jupyter guide does, through argument lists, so nushell needs no `$(pwd)`. Cells pressed while
-the kernel starts wait for `MoltenKernelReady`. `run_chain()` in `utils.lua` serves both.
-
-**Thirteenth pass (2026-10-01).** Jupyter notebooks: molten-nvim (main, for the snacks.image provider) runs kernels,
-otter.nvim attaches the servers to cells, and the `.ipynb` handler in `utils.lua` converts through the jupytext CLI
-(jupytext.nvim and its fork are unmaintained). quarto-nvim skipped. kanagawa's current tab gets an underline through
-`paint_tabs`. From the reference configs: `undolevels = 10000`, prose filetypes with soft wrap and spell, `]e [e` /
-`]w [w`, insert `,` `.` `;` undo breaks.
-
-**Twelfth pass (2026-10-01).** Three regressions: the theme switcher never ran, because two local specs shared
-`dir = stdpath("config")` and lazy.nvim merged them (both are now `virtual = true` with slash-less names); colorizer
-disabled itself, because 0.12 applies `termguicolors` at `VimEnter` (set again); DAP warned for every missing adapter
-(`utils.mason_adapter()` checks per session). tiny-inline-diagnostic replaced an 80-line handler, vim-matchup replaced
-matchit and matchparen; ts-comments, mini.align, crates.nvim and Snacks.rename were added; lualine stopped running
-`git fetch`. `<leader>x` merged into `<leader>d`, workspace folders moved to `<leader>lw*`. Declined: kitty-scrollback,
-smart-splits, quicker.nvim, marks.nvim, nvim-treesitter-endwise, themery, virt-column, reference keymaps that take
-built-ins, mini.trailspace. Over a year without commits but kept: promise-async, guess-indent, nvim-dap-virtual-text,
-hex.nvim. `v:errmsg` holds barbar's silent `dictwatcherdel` E116.
-
-**Eleventh pass (2026-09-30).** The Logseq layer: markdown-oxide rooted at a `logseq/` graph with
-`moxide/settings.toml`, `notes/logseq.lua` with the `notes_*` helpers (journals, pages, references, tasks, agenda,
-templates, block moves, focus, link graph, git commit), markdown-plus, auto-save limited to the graph, graph highlights
-through mini.hipatterns, bullet folds in `after/queries/markdown/folds.scm`, Logseq snippets. Defects fixed then:
-`matchpairs` entries with one character, `emoji = false` against kitty's two-cell emoji, `showcmdloc` next to
-`showcmd = false`, a `backupdir` Neovim never created, `close_with_q` on a wiped buffer, a file-reload check on every
-`CursorHold`, lualine listing every session's servers, blink loading lazydev outside Lua. `<leader>n` became the notes
-graph and the no-yank edits moved to `<leader>y`.
-
-**Tenth pass (2026-09-30).** Startup went from 21 plugins to 11 (119 ms to about 60 ms with a UI): harpoon's keys moved
-into `keys`, mason-lspconfig stopped naming nvim-lspconfig, lspconfig waits for `BufReadPre`, barbar stopped naming
-gitsigns, mini.icons left seven dependency lists. snacks.words replaced a hand-written `documentHighlight` pair and
-gave `]r`/`[r`. Key scheme: `<leader>o` holds toggles only, `<leader>u` UI and theme, `<leader>p` plugins and tools.
-`jumpoptions` keeps 0.12's `clean`; staged gitsigns glyphs match the unstaged ones; every executable check goes
-through `utils.executable`. `frontend/` merged into `lang/`. Buffer variables became `b:_999rpm_*`.
-
-**Ninth pass.** d2 replaced mermaid: mermaid-cli renders through a headless Chromium, d2 0.9.0 is one static binary
-that writes SVG, PNG and text itself. Added `tree-sitter-d2.lua` (replaced by nvim-treesitter's parser hook in the nineteenth pass), `utils.d2_render()`, `utils.d2_text()`, the `d2`
-filetype and conform's `d2` formatter; removed the mermaid parser and pointed snacks.image's markdown query at
-` ```math ` blocks only. Fourteen built-in keys were returned, each personal action moved to a free key: `;` `,` `q`
-`x` `X`, visual `p`, `<C-q>`, `H` `L`, `f` `F`, `s` and visual `S`, visual `R`, `g]`, `<C-LeftMouse>`, `]f` `[f`, `zr`
-and the command-line `<Left>` `<Right>` `<End>`. Defects fixed: hardtime's own maps had silently replaced the config's
-`j`/`k`/`J` and arrow maps; `<leader>io` called an opencode function that no longer exists; `K` on every LSP attach
-replaced rustaceanvim's hover actions; a `LspProgress` echo duplicated noice; conform sent Dockerfiles to prettier;
-nvim-surround v4 dropped `setup({ keymaps })`; octo and hex raised when `gh`/`xxd` were missing; the debug stack and
-blink loaded too early; `close_with_q` force-deleted oil buffers; highlight overrides were lost on the first theme
-switch; seventeen options were set to values 0.12.5 already uses. Replacements: alpha-nvim → snacks.dashboard,
-nvim-window-picker → `Snacks.picker.util.pick_win()`, a manual `large_file` autocommand → snacks.bigfile, mason-nvim-dap
-→ four mason-tool-installer entries.
-
-**Eighth pass.** First run with every plugin installed under 0.12.5. Icons restricted to nf-md glyphs (U+F0001 and up)
-and `\u{...}` escapes, after older private-use glyphs kept vanishing in transit. `lint.lua` moved to the public
-`try_lint(nil, { filter = installed })`. gopls and gofumpt became conditional on Go. text-case.nvim → coerce.nvim;
-FixCursorHold removed; barbar's version pin dropped. kitty's new tab moved to `ctrl+shift+t`, so `<C-t>` reaches Neovim
-and fzf. Nushell's `shellpipe` saves stdout as well as stderr, so `:grep` fills the quickfix list.
-
-**Seventh pass.** `gd`/`gD` are built-in commands, not keymaps, so which-key cannot discover them; label-only spec
-entries name them without taking them over. `diffopt` is assigned whole. 0.12 took `an`/`in` for node selection, so
-mini.ai's next-object pair moved to `aN`/`iN`. nvim-lspconfig registers no commands on 0.12, so `:LspInfo`, `:LspLog`
-and `:LspRestart` here are the only source of them.
-
-**Sixth pass.** Built-ins returned: `<C-a>`/`<C-x>` (dial widens them), `>`/`<`, insert-mode `<C-e>`; select-all moved
-to `<leader>na`. `dap.configurations.c` and `.rust` are deep copies of `.cpp`, since rustaceanvim appends runnables to
-the table in place. Statusline scans are memoised on `b:changedtick` through `utils.buf_cached()`.
-
-**Fifth pass.** One picker engine (snacks.picker) instead of three. barbar replaced bufferline. Each terminal layout is
-a separate snacks terminal, keyed by an env var. `'shell'` follows the passwd login shell, with nushell's own flags only
-when the shell is nu. Terminal-mode `<M-w/a/s/d>` move between splits and pass through in floats.
-
-**First to fourth passes.** `plugins/init.lua` renamed `plugins/loader.lua` after going missing in seven deliveries (it
-shared a basename with the root `init.lua`). Real bugs fixed: `shell = "nushell"` (the binary is `nu`), duplicate
-format-on-save, a ufo fallback chain that could not catch treesitter failures, nvim-lint raising on a missing `typos`
-inside `BufWritePost` and breaking `:w`, Noice swallowing the hover border. `mini.icons` stands in for
-nvim-web-devicons through `mock_nvim_web_devicons()`. Declined, reasons unchanged: sidekick.nvim, eyeliner.nvim,
-hydra.nvim, fidget.nvim, nvim-spider, nvim-navic, nvim-hlslens, terrastruct/d2-vim.
+| Deferred item | Source | Reason |
+| --- | --- | --- |
+| jove.nvim for the notebook stack | awesome-neovim README@c578b193 | experimental; re-check when its README drops the warning |
+| ShaDa tmp-file cleanup at startup (E138) | linkarzu/dotfiles-latest `neobean/lua/config/autocmds.lua`@fba7c6b | guards a crash-only failure |
+| copy a selection as a fenced block with path:line | yutkat/dotfiles `rc/mappings.lua`@aab0608 | new feature, owner's call |
+| noice.nvim activity | folke/noice.nvim, last commit 2025-11-03 | 12 months on 2026-11-03; ui2 once stable |
+| 12 months without commits by 2026-11-10 | which-key, persistence, trouble, todo-comments (folke), boundary.nvim, vim-suda, harpoon | no breakage known; log each as kept when it crosses, or switch to a maintained alternative (mini.clue for which-key) |
+| lazy.nvim activity | folke/lazy.nvim, last commit 2025-12-17 | 12 months on 2026-12-17; vim.pack is the built-in |
+| sc-im.nvim's deprecated calls | DAmesberger/sc-im.nvim `lua/sc-im/table.lua` | `termopen()`, `nvim_*_set_option()`; re-check at each Neovim release |
+| tsc (TypeScript 7 native server) for ts_ls | Matt-FTW/dotfiles `typescript-extended.lua`@86fa51f, yutkat/dotfiles `mise/conf.d/neovim.toml`@15d340b | attaches only with TypeScript 7; adopt once the projects use it |
+| fixed-colour defaults after a theme switch | crates.nvim, grug-far.nvim, csvview.nvim | set once at load as colours, not links; upstream would need a ColorScheme handler |

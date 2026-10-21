@@ -1,8 +1,8 @@
 -- Build and run, after Visual Studio's Ctrl+F5 and SpaceVim's code runner. A project owns its flags: under a Makefile,
 -- make builds the default target and the run target starts the program, whichever file is open. A lone C or C++ file
 -- compiles with clang, the warning flags below and the extra flags its own "// 999rpm-flags:" lines name, then runs in a
--- terminal split; scripts run through their interpreter. Every command is an argument list, so 'shell' (zsh or nushell)
--- never parses it. A failed build fills the quickfix list.
+-- terminal split; scripts run through their interpreter. Every command is an argument list, so no shell parses it. A
+-- failed build fills the quickfix list.
 local fn = vim.fn
 local api = vim.api
 local core = require("utils.core")
@@ -144,7 +144,7 @@ function M.set_makeprg(buf) -- This util is used by autocmds.lua
 	end
 	local own = vim.tbl_map(fn.shellescape, M.file_flags(file)) -- 'makeprg' goes through 'shell', so each flag is quoted
 	local flags = table.concat(M.flags, " ")
-	vim.bo[buf].makeprg = vim.trim(("%s %s %%:S -o %%:r:S %s"):format(compiler, flags, table.concat(own, " "))) -- :S quotes a path for either shell
+	vim.bo[buf].makeprg = vim.trim(("%s %s %%:S -o %%:r:S %s"):format(compiler, flags, table.concat(own, " "))) -- :S quotes a path for 'shell', which is sh
 end
 
 ---Writes every modified file buffer under root before a project build, since make reads the whole project from disk

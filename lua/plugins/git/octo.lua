@@ -1,10 +1,8 @@
--- pwntester/octo.nvim: GitHub issues and pull requests. Needs an authenticated `gh` (gh auth login).
--- Keys: <leader>goi issues, gop pull requests, goc create a pull request, gos search. Octo's own buffer keys sit on
--- <localleader> (\); which-key lists them. Moved off Ctrl keys that hide built-ins (<C-r> redo, <C-y>/<C-e> scroll,
--- <C-o> jump back, <C-f> page down, <C-x>/<C-a> decrement/increment) or tmux's prefix <C-b>: \B open in the browser,
--- \y copy the URL, \Y copy the commit SHA, \R reload; workflow runs \rr rerun, \rf rerun failed, \x cancel; review
--- submit window \a approve, \m comment, \r request changes, <C-c> close. Octo's pickers: <A-b> browser, <A-y> URL,
--- <A-e> SHA, <A-o> check out, <A-M> merge (shifted, so a merge takes a deliberate chord).
+-- pwntester/octo.nvim: GitHub issues and pull requests. Needs an authenticated `gh` (gh auth login). Octo's buffer
+-- keys sit on <localleader> (\) and which-key lists them there. Moved here off keys that do another job: Ctrl keys
+-- (<C-r> redo, <C-y>/<C-e> scroll, <C-o> jump back, <C-f> page down, <C-x>/<C-a> decrement/increment, <C-m> Enter,
+-- tmux's prefix <C-b>), the PR buffer's <leader>qa (this config's quit all) and its ]s/[s (next/previous misspelling).
+-- Owns <leader>go.
 local function keys(map) -- { action = lhs } to octo's { action = { lhs = lhs } }; deep merge keeps octo's own descs
 	local out = {}
 	for action, lhs in pairs(map) do
@@ -13,48 +11,57 @@ local function keys(map) -- { action = lhs } to octo's { action = { lhs = lhs } 
 	return out
 end
 
-local browse = { open_in_browser = "<localleader>B", copy_url = "<localleader>y" }
+local browse = { open_in_browser = "<localleader>B", copy_url = "<localleader>y" } -- n: \B open the item in the browser, \y copy its URL
+
 return {
 	"pwntester/octo.nvim",
 	cmd = "Octo",
-	dependencies = { "nvim-lua/plenary.nvim" },
+	-- octo's own keys, in its buffers only: (n) <CR> the issue's or PR's actions, ]c/[c next/previous comment, gf open
+	-- the file under the cursor, \ca add a comment, \ic close an issue, \pm merge a PR, \va add a reviewer, and the rest
+	-- of the \ list; in the review tab ]q/[q next/previous changed file, ]Q/[Q last/first, ]t/[t next/previous thread,
+	-- ]u/[u next/previous unviewed file, <C-c> close the tab; in the file panel j/k move, <CR> show the diff, R refresh;
+	-- in a workflow run ]j/[j next/previous job, ]s/[s next/previous step, o expand a step.
 	keys = {
-		{ "<leader>goi", "<cmd>Octo issue list<cr>", desc = "Issues" },
-		{ "<leader>gop", "<cmd>Octo pr list<cr>", desc = "Pull requests" },
-		{ "<leader>goc", "<cmd>Octo pr create<cr>", desc = "Create pull request" },
-		{ "<leader>gos", "<cmd>Octo search<cr>", desc = "Search" },
+		{ "<leader>goi", "<cmd>Octo issue list<cr>", desc = "Issues" }, -- n: the repository's open issues in a picker
+		{ "<leader>gop", "<cmd>Octo pr list<cr>", desc = "Pull requests" }, -- n: open pull requests in a picker
+		{ "<leader>goc", "<cmd>Octo pr create<cr>", desc = "Create pull request" }, -- n: from the current branch
+		{ "<leader>gos", "<cmd>Octo search<cr>", desc = "Search" }, -- n: GitHub search across issues and PRs
 	},
 	opts = {
 		use_local_fs = true, -- read files of a checked-out PR from disk
 		picker = "snacks",
 		picker_config = {
 			mappings = keys({
-				open_in_browser = "<A-b>",
-				copy_url = "<A-y>",
-				copy_sha = "<A-e>",
-				checkout_pr = "<A-o>",
-				merge_pr = "<A-M>",
+				open_in_browser = "<A-b>", -- picker i/n: Alt+b open the item in the browser
+				copy_url = "<A-y>", -- picker: Alt+y copy its URL
+				copy_sha = "<A-e>", -- picker: Alt+e copy the commit SHA
+				checkout_pr = "<A-o>", -- picker: Alt+o check the PR out
+				merge_pr = "<A-M>", -- picker: Alt+Shift+m merge, shifted so a merge takes a deliberate chord
 			}),
 		},
 		mappings = {
-			issue = keys(vim.tbl_extend("force", browse, { reload = "<localleader>R" })),
-			pull_request = keys(
-				vim.tbl_extend("force", browse, { reload = "<localleader>R", copy_sha = "<localleader>Y" })
-			),
-			discussion = keys(browse),
-			release = keys({ open_in_browser = "<localleader>B" }),
-			repo = keys({ open_in_browser = "<localleader>B" }),
-			review_diff = keys({ copy_sha = "<localleader>Y" }),
+			issue = keys(vim.tbl_extend("force", browse, { reload = "<localleader>R" })), -- n: \B, \y, and \R reload the issue
+			pull_request = keys(vim.tbl_extend("force", browse, {
+				reload = "<localleader>R", -- n: \R reload the PR
+				copy_sha = "<localleader>Y", -- n: \Y copy the head commit's SHA
+				approve_pr = "<localleader>pa", -- n: \pa approve, beside octo's own \p PR keys
+				stack_up = "<localleader>p]", -- n: \p] the next PR up the stack
+				stack_down = "<localleader>p[", -- n: \p[ the next PR down the stack
+			})),
+			discussion = keys(browse), -- n: \B and \y in a discussion
+			release = keys({ open_in_browser = "<localleader>B" }), -- n: \B the release page
+			repo = keys({ open_in_browser = "<localleader>B" }), -- n: \B the repository page
+			review_diff = keys({ copy_sha = "<localleader>Y" }), -- n: \Y copy the reviewed commit's SHA
 			runs = keys(vim.tbl_extend("force", browse, {
-				refresh = "<localleader>R",
-				rerun = "<localleader>rr",
-				rerun_failed = "<localleader>rf",
-				cancel = "<localleader>x",
+				refresh = "<localleader>R", -- n: \R reload the workflow run
+				rerun = "<localleader>rr", -- n: \rr run it again
+				rerun_failed = "<localleader>rf", -- n: \rf rerun only the failed jobs
+				cancel = "<localleader>x", -- n: \x cancel the run
 			})),
 			submit_win = keys({
-				approve_review = "<localleader>a",
-				comment_review = "<localleader>m",
-				request_changes = "<localleader>r",
+				approve_review = "<localleader>a", -- n: \a submit the review as an approval
+				comment_review = "<localleader>m", -- n: \m submit it as a comment (m for message)
+				request_changes = "<localleader>r", -- n: \r submit it as a change request; <C-c> closes the window
 			}),
 		},
 	},

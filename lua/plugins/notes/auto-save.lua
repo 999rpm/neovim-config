@@ -8,6 +8,5 @@ return {
 		condition = function(buf)
 			return vim.bo[buf].buftype == "" and vim.bo[buf].modifiable and require("utils.notes").is_page(buf)
 		end,
-		debounce_delay = 1000,
 	},
 }

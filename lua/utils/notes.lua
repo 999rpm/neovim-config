@@ -96,12 +96,10 @@ local function parse_date(words)
 		return nil
 	end
 	local diff = wday - now.wday
-	if prefix == "next" and diff <= 0 then
-		diff = diff + 7
+	if (prefix == "next" and diff <= 0) or (prefix == "" and diff < 0) then
+		diff = diff + 7 -- forward to the coming one; a bare weekday may be today, "next" never is
 	elseif prefix == "last" and diff >= 0 then
 		diff = diff - 7
-	elseif prefix == "" and diff < 0 then
-		diff = diff + 7
 	end
 	return day(diff)
 end
@@ -508,7 +506,7 @@ function M.task_cycle(first, last, force) -- This util is used by logseq.lua
 		end
 	end
 	api.nvim_buf_set_lines(0, first - 1, last, false, lines)
-	pcall(api.nvim_win_set_cursor, 0, cursor)
+	api.nvim_win_set_cursor(0, cursor)
 end
 
 ---Adds or replaces the block's SCHEDULED or DEADLINE line, in Logseq's "<2026-10-01 Thu>" form, from a date phrase.
@@ -519,7 +517,10 @@ function M.task_date(kind) -- This util is used by logseq.lua
 	vim.ui.input({ prompt = kind .. " (today, +3, fri, 2026-10-01): " }, function(words)
 		local time = words and parse_date(words)
 		if not time then
-			return words and warn(("%q is not a date"):format(words))
+			if words then
+				warn(("%q is not a date"):format(words))
+			end
+			return
 		end
 		local lines = api.nvim_buf_get_lines(buf, 0, -1, false)
 		local block = row
@@ -629,9 +630,9 @@ end
 function M.move_block(dir) -- This util is used by logseq.lua
 	local cursor = api.nvim_win_get_cursor(0)
 	local line = api.nvim_get_current_line()
-	local ok, parser = pcall(vim.treesitter.get_parser, 0, "markdown")
+	local parser = vim.treesitter.get_parser(0, "markdown") -- nil, not an error, without a markdown parser
 	local node
-	if ok and parser then
+	if parser then
 		parser:parse()
 		node = vim.treesitter.get_node({
 			lang = "markdown",
@@ -676,7 +677,7 @@ function M.focus() -- This util is used by logseq.lua
 	else
 		vim.cmd("normal! zM")
 	end
-	pcall(vim.cmd, "normal! zv")
+	vim.cmd("normal! zv")
 	pcall(vim.cmd, "normal! zO") -- E490 when the block has no children
 end
 
@@ -720,7 +721,8 @@ function M.follow(split) -- This util is used by logseq.lua
 	if name then
 		return open_page(page_path((name:gsub("|.*$", ""))), split)
 	end
-	local ok, err = pcall(vim.cmd, split and "wincmd f" or "normal! gf")
+	local count = vim.v.count > 0 and vim.v.count or "" -- [count]gf and [count]<C-w>f pick the count'th match in 'path'
+	local ok, err = pcall(vim.cmd, split and (count .. "wincmd f") or ("normal! " .. count .. "gf"))
 	if not ok then
 		warn(err)
 	end

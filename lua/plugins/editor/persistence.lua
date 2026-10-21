@@ -1,12 +1,10 @@
 -- folke/persistence.nvim: per-directory, per-branch session files. Before each save it fires User SessionSavePre,
--- which barbar.lua answers by storing the tabline's buffer order and pins in the session.
--- Keys: <leader>qs restore this directory, qS pick a session, ql restore the last one, qd stop saving this session.
+-- which barbar.lua answers by storing the tabline's buffer order and pins in the session. Owns <leader>qs, <leader>qS,
+-- <leader>ql and <leader>qd.
 return {
 	"folke/persistence.nvim",
 	event = "BufReadPre", -- tracking starts with the first real file, not on a bare `nvim`
-	opts = {
-		branch = true,
-	},
+	opts = {},
 	keys = {
 		{
 			"<leader>qs",
@@ -14,28 +12,28 @@ return {
 				require("persistence").load()
 			end,
 			desc = "Restore session for this directory",
-		},
+		}, -- n: the windows and buffers last open in the working directory, on this git branch
 		{
 			"<leader>qS",
 			function()
 				require("persistence").select()
 			end,
 			desc = "Select session",
-		},
+		}, -- n: a picker over every saved session
 		{
 			"<leader>ql",
 			function()
 				require("persistence").load({ last = true })
 			end,
 			desc = "Restore last session",
-		},
+		}, -- n: the most recent session, whatever the working directory
 		{
 			"<leader>qd",
 			function()
 				require("persistence").stop()
 			end,
 			desc = "Stop saving this session",
-		},
+		}, -- n: quitting no longer writes this session; the saved one stays as it was
 	},
 	config = function(_, opts)
 		require("persistence").setup(opts)

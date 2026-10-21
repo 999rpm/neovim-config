@@ -1,28 +1,22 @@
 -- avante-corp/avante.nvim: Claude sidebar with diff-based edits. Needs ANTHROPIC_API_KEY. The build step fetches the
--- prebuilt libraries with curl and tar; upstream's Makefile would compile them with cargo instead.
--- Keys: <leader>ia toggle, ie edit selection, iA ask, in new chat, is stop, ir refresh, if focus, im model, ih history,
--- ib add open buffers, iF add current file, iz zen mode, iR repo map.
--- In the sidebar: A apply all, a apply at cursor, r retry, e edit request, @ add file, d remove file, <Tab>/<S-Tab> switch panes, q close.
+-- prebuilt libraries with curl and tar; upstream's Makefile would compile them with cargo instead. It follows its
+-- main branch (no version set), as avante's own docs ask. Owns <leader>i except io/ic/iS (opencode.lua).
 return {
 	"avante-corp/avante.nvim",
 	build = "bash build.sh",
 	cmd = { "AvanteAsk", "AvanteChat", "AvanteEdit", "AvanteToggle" }, -- with the keys below; nothing loads at startup
-	version = false, -- avante's own docs: never pin this to "*", the plugin tracks Nvim API changes closely
-	dependencies = { "nvim-lua/plenary.nvim", "MunifTanjim/nui.nvim", "ColinKennedy/mega.cmdparse" }, -- mini.icons is already loaded at priority 1000
 	opts = {
-		provider = "claude",
 		providers = {
 			claude = {
-				endpoint = "https://api.anthropic.com",
 				model = "claude-sonnet-5-5", -- current Sonnet API id; "claude-sonnet-5" matches no model
 			},
 		},
 		behaviour = {
-			auto_suggestions = false, -- copilot.lua already draws the ghost text
-			auto_apply_diff_after_generation = false, -- a diff waits for review before it applies
 			auto_set_keymaps = false,
 		},
 	},
+	-- avante's own keys in the sidebar: A apply every change, a apply the one at the cursor, r retry, e edit the request,
+	-- ]p/[p next/previous prompt, @ add a file, d remove a file, x hide the code pane, <Tab>/<S-Tab> switch panes, q close.
 	keys = {
 		{
 			"<leader>ia",
@@ -31,7 +25,7 @@ return {
 			end,
 			mode = { "n", "x" },
 			desc = "Avante sidebar",
-		},
+		}, -- n/x: open or close the chat beside the code (a for avante)
 		{
 			"<leader>ie",
 			function()
@@ -39,7 +33,7 @@ return {
 			end,
 			mode = { "n", "x" },
 			desc = "Avante: edit selection",
-		},
+		}, -- n/x: describe a change and get a diff for the selection
 		{
 			"<leader>iA",
 			function()
@@ -47,7 +41,7 @@ return {
 			end,
 			mode = { "n", "x" },
 			desc = "Avante: ask",
-		},
+		}, -- n/x: a question about the file or selection, uppercase twin of ia
 		{
 			"<leader>in",
 			function()
@@ -55,56 +49,56 @@ return {
 			end,
 			mode = { "n", "x" },
 			desc = "Avante: new chat",
-		},
+		}, -- n/x: start over with an empty history
 		{
 			"<leader>is",
 			function()
 				require("avante.api").stop()
 			end,
 			desc = "Avante: stop",
-		},
+		}, -- n: stop the answer being written
 		{
 			"<leader>ir",
 			function()
 				require("avante.api").refresh()
 			end,
 			desc = "Avante: refresh",
-		},
+		}, -- n: redraw the sidebar
 		{
 			"<leader>if",
 			function()
 				require("avante.api").focus()
 			end,
 			desc = "Avante: focus window",
-		},
+		}, -- n: jump between the sidebar and the code
 		{
 			"<leader>im",
 			function()
 				require("avante.api").select_model()
 			end,
 			desc = "Avante: select model",
-		},
+		}, -- n: switch the Claude model
 		{
 			"<leader>ih",
 			function()
 				require("avante.api").select_history()
 			end,
 			desc = "Avante: history",
-		},
+		}, -- n: reopen an earlier chat
 		{
 			"<leader>ib",
 			function()
 				require("avante.api").add_buffer_files()
 			end,
 			desc = "Avante: add open buffers",
-		},
+		}, -- n: every open buffer as context
 		{
 			"<leader>iF",
 			function()
 				require("avante.api").add_selected_file(vim.api.nvim_buf_get_name(0))
 			end,
 			desc = "Avante: add this file",
-		},
+		}, -- n: the current file as context, uppercase twin of if
 		{
 			"<leader>iz",
 			function()
@@ -112,14 +106,14 @@ return {
 			end,
 			mode = { "n", "x" },
 			desc = "Avante: zen mode",
-		},
+		}, -- n/x: the chat full screen
 		{
 			"<leader>iR",
 			function()
 				require("avante.repo_map").show()
 			end,
 			desc = "Avante: repo map",
-		},
+		}, -- n: the project outline avante sends as context
 	},
 	config = function(_, opts)
 		require("utils.core").warn_if_missing_env("ANTHROPIC_API_KEY", "avante.nvim")

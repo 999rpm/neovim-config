@@ -9,10 +9,9 @@ return {
 				require("treesj").toggle()
 			end,
 			desc = "Split or join node",
-		},
+		}, -- n: the treesitter node under the cursor from one line to several, or back (j for join)
 	},
 	opts = {
 		use_default_keymaps = false, -- keymap lives above, in this config's own Code group
-		max_join_length = 120,
 	},
 }

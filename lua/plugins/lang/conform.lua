@@ -1,5 +1,7 @@
--- stevearc/conform.nvim: formatting on save with per-filetype formatters, LSP as fallback.
--- Keys: <leader>cf format now, <leader>of buffer toggle, <leader>oF global toggle, <leader>pc :ConformInfo.
+-- stevearc/conform.nvim: formatting on save with per-filetype formatters, LSP as fallback. In a notebook (.ipynb) the
+-- injected formatter runs each code cell through its language's formatters (ruff for Python) and leaves the markdown
+-- alone; utils/notebook.lua fires the BufWritePre a notebook write would otherwise skip. Owns <leader>cf, <leader>of,
+-- <leader>oF and <leader>pc; conform maps no keys itself.
 return {
 	"stevearc/conform.nvim",
 	event = { "BufWritePre" },
@@ -12,7 +14,7 @@ return {
 			end,
 			mode = { "n", "x" }, -- not "", which would also bind the key in operator-pending mode
 			desc = "Format buffer",
-		},
+		}, -- n/x: format now, the whole buffer or only the selected lines
 		{
 			"<leader>of",
 			function()
@@ -20,7 +22,7 @@ return {
 				vim.notify("Autoformat (buffer): " .. (vim.b.disable_autoformat and "off" or "on"), vim.log.levels.INFO)
 			end,
 			desc = "Toggle format on save (buffer)",
-		},
+		}, -- n: this buffer only; the notification says which state it is in now
 		{
 			"<leader>oF",
 			function()
@@ -28,12 +30,12 @@ return {
 				vim.notify("Autoformat (global): " .. (vim.g.disable_autoformat and "off" or "on"), vim.log.levels.INFO)
 			end,
 			desc = "Toggle format on save (global)",
-		},
+		}, -- n: every buffer, uppercase twin of of
 		{
 			"<leader>pc",
 			"<cmd>ConformInfo<CR>",
 			desc = "Conform info",
-		},
+		}, -- n: which formatters this buffer gets and whether they are installed
 	},
 	opts = {
 		notify_on_error = false,
@@ -57,7 +59,9 @@ return {
 			html = { "prettier" },
 			json = { "prettier" },
 			yaml = { "prettier" },
-			markdown = { "prettier" },
+			markdown = function(bufnr) -- a notebook formats its code cells only: prettier would reflow the jupytext markdown
+				return vim.b[bufnr]._999rpm_notebook and { "injected" } or { "prettier" }
+			end,
 			mdx = { "prettier" },
 			bash = { "shfmt" },
 			sh = { "shfmt" },
@@ -71,6 +75,14 @@ return {
 			d2 = { "d2" }, -- d2 fmt
 			rust = { lsp_format = "fallback" }, -- no formatter listed: rust-analyzer runs rustfmt
 			toml = { lsp_format = "fallback" }, -- taplo
+		},
+		formatters = {
+			injected = { -- each code block through its language's formatters above
+				options = {
+					ignore_errors = true, -- a cell ruff cannot parse (IPython magics such as %timeit) stays as written
+					lang_to_formatters = { yaml = {} }, -- the jupytext header at the top stays as jupytext writes it
+				},
+			},
 		},
 	},
 }

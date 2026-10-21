@@ -1,20 +1,18 @@
 -- neovim/nvim-lspconfig: server definitions, started through vim.lsp.config/vim.lsp.enable. Mason installs the binaries
--- (mason.lua); rust-analyzer belongs to rustaceanvim.lua.
--- Built-in LSP keys, kept as they are: K hover, grn rename (inc-rename preview), gra code action, grx code lens,
--- grr references, gri implementation, grt type definition, gO document symbols, <C-s> signature help in insert mode.
--- Built-in diagnostic keys, also kept: ]d/[d next/previous, ]D/[D last/first, <C-w>d float. Floats take 'winborder'.
--- Added per buffer, only where an attached server answers them: gd definition, gD declaration, <C-k> signature help
--- (normal mode); everywhere a server attaches: <leader>lwa/lwr/lwl add, remove and list workspace folders.
--- Diagnostics: tiny-inline-diagnostic.lua draws the cursor line's messages, mappings.lua holds <leader>df/db/dw.
+-- (mason.lua); rust-analyzer belongs to rustaceanvim.lua. markdown-oxide serves markdown files and the notes graph,
+-- never a notebook (.ipynb), whose cells otter.lua serves. Diagnostics: tiny-inline-diagnostic.lua draws the cursor
+-- line's messages, mappings.lua holds <leader>df/db/dw. Floats take 'winborder'.
+-- Built-in LSP keys kept as Neovim sets them: K hover, gra code action, grx code lens, grr references, gri
+-- implementation, grt type definition, gO document symbols, <C-s> signature help in insert mode; ]d/[d, ]D/[D and
+-- <C-w>d for diagnostics. Set per buffer below, only where an attached server answers them: gd, gD and grn as upgrades
+-- of the built-ins, normal-mode <C-k>. Owns <leader>lw.
 return {
 	"neovim/nvim-lspconfig",
 	event = { "BufReadPre", "BufNewFile" }, -- off the startup path; the servers still attach before the first FileType
-	dependencies = { "b0o/schemastore.nvim" }, -- JSON/YAML schema catalog for jsonls and yamlls
 	config = function()
 		local core = require("utils.core")
 
 		vim.diagnostic.config({
-			update_in_insert = false,
 			severity_sort = true,
 			float = {
 				source = "if_many", -- show the source only when several servers report on one line
@@ -52,49 +50,73 @@ return {
 					vim.keymap.set(mode or "n", keys, func, { buf = event.buf, desc = "LSP: " .. desc, silent = true })
 				end
 
-				if client:supports_method("textDocument/definition", event.buf) then -- render-markdown's and crates.nvim's in-process servers answer none, so gd stays built-in there
-					map("gd", function()
-						vim.lsp.buf.definition({
-							on_list = function(options)
-								local unique, seen = {}, {}
-								for _, loc in ipairs(options.items) do
-									local key = loc.filename .. loc.lnum -- filename plus line identifies one definition
+				---The servers' locations for method, one hit jumped to and several in the location list; when no server finds
+				---any, the built-in key runs, so a word the servers do not know still gets Neovim's own text search.
+				---@param method string
+				---@param builtin string
+				local function locate(method, builtin)
+					return function()
+						local win = vim.api.nvim_get_current_win()
+						vim.lsp.buf_request_all(event.buf, method, function(c)
+							return vim.lsp.util.make_position_params(win, c.offset_encoding)
+						end, function(results)
+							if not vim.api.nvim_win_is_valid(win) then
+								return -- the window closed before the servers answered
+							end
+							local items, seen = {}, {}
+							for id, res in pairs(results) do
+								local found = res.result or {}
+								local c = vim.lsp.get_client_by_id(id)
+								found = c
+									and vim.lsp.util.locations_to_items(
+										vim.islist(found) and found or { found },
+										c.offset_encoding
+									)
+								for _, item in ipairs(found or {}) do
+									local key = item.filename .. ":" .. item.lnum -- one definition per file and line, whichever server sent it
 									if not seen[key] then
 										seen[key] = true
-										table.insert(unique, loc)
+										items[#items + 1] = item
 									end
 								end
-								options.items = unique
-								vim.fn.setloclist(0, {}, " ", options)
-								if #unique > 1 then
-									vim.cmd.lopen()
-								else
-									vim.cmd("silent! lfirst") -- silent: an empty list is not an error
-								end
-							end,
-						})
-					end, "Go to definition")
+							end
+							if #items == 0 then
+								return vim.api.nvim_win_call(win, function()
+									vim.cmd("normal! " .. builtin)
+								end)
+							end
+							vim.fn.setloclist(win, {}, " ", { title = method, items = items })
+							vim.api.nvim_win_call(win, function()
+								vim.cmd(#items > 1 and "lopen" or "lfirst")
+							end)
+						end)
+					end
+				end
+
+				if client:supports_method("textDocument/definition", event.buf) then -- render-markdown's and crates.nvim's in-process servers answer none, so gd stays built-in there
+					map("gd", locate("textDocument/definition", "gd"), "Go to definition (LSP, else built-in)") -- n: upgrades built-in gd: the server's definition, one hit jumped to, several in the location list; when no server finds one, the built-in local-declaration search
 				end
 
 				if client:supports_method("textDocument/declaration", event.buf) then
-					map("gD", vim.lsp.buf.declaration, "Go to declaration") -- elsewhere gD stays the built-in file-global declaration search
+					map("gD", locate("textDocument/declaration", "gD"), "Go to declaration (LSP, else built-in)") -- n: upgrades built-in gD the same way; with no answer, the built-in file-wide search
 				end
 
 				if client:supports_method("textDocument/rename", event.buf) then
 					vim.keymap.set("n", "grn", function()
+						vim.v.errmsg = "" -- inc-rename cancels the rename when v:errmsg holds anything, and barbar's startup leaves an E116 there
 						return ":IncRename " .. vim.fn.expand("<cword>")
-					end, { buf = event.buf, expr = true, silent = true, desc = "LSP: Rename" })
+					end, { buf = event.buf, expr = true, silent = true, desc = "LSP: Rename (live preview)" }) -- n: upgrades built-in grn: the same rename, each change previewed while typing (inc-rename.lua)
 				end
 
 				if client:supports_method("textDocument/signatureHelp", event.buf) then
-					map("<C-k>", vim.lsp.buf.signature_help, "Signature help")
+					map("<C-k>", vim.lsp.buf.signature_help, "Signature help") -- n: the parameters of the call under the cursor; normal-mode <C-k> has no built-in job
 				end
 
-				map("<leader>lwa", vim.lsp.buf.add_workspace_folder, "Add workspace folder")
-				map("<leader>lwr", vim.lsp.buf.remove_workspace_folder, "Remove workspace folder")
+				map("<leader>lwa", vim.lsp.buf.add_workspace_folder, "Add workspace folder") -- n: let the server index another folder too
+				map("<leader>lwr", vim.lsp.buf.remove_workspace_folder, "Remove workspace folder") -- n: drop one of those folders
 				map("<leader>lwl", function()
 					vim.print(vim.lsp.buf.list_workspace_folders())
-				end, "List workspace folders")
+				end, "List workspace folders") -- n: print the folders the servers index
 
 				if client.name == "ruff" then
 					client.server_capabilities.hoverProvider = false -- basedpyright answers hover for Python
@@ -198,17 +220,10 @@ return {
 				settings = {
 					basedpyright = {
 						disableOrganizeImports = true, -- ruff owns import sorting, see `ruff` below
-						analysis = {
-							autoSearchPaths = true,
-							useLibraryCodeForTypes = true,
+						analysis = { -- useLibraryCodeForTypes stays unset: set here it would override a project's pyproject.toml
 							diagnosticMode = "workspace",
 							typeCheckingMode = "standard",
 						},
-					},
-				},
-				capabilities = {
-					textDocument = {
-						publishDiagnostics = { tagSupport = { valueSet = { 2 } } }, -- greys out unreachable code
 					},
 				},
 			},
@@ -228,7 +243,11 @@ return {
 			dockerls = {},
 			docker_compose_language_service = {},
 			markdown_oxide = {
-				root_markers = { ".moxide.toml", "logseq", ".obsidian", ".git" }, -- a Logseq graph keeps its logseq/ folder at the root
+				root_dir = function(bufnr, on_dir) -- never in a notebook: its rename renames the .ipynb file, and otter.lua answers there
+					if not vim.api.nvim_buf_get_name(bufnr):match("%.ipynb$") then
+						on_dir(vim.fs.root(bufnr, { ".moxide.toml", "logseq", ".obsidian", ".git" })) -- a Logseq graph keeps its logseq/ folder at the root
+					end
+				end,
 				capabilities = {
 					workspace = { didChangeWatchedFiles = { dynamicRegistration = true } }, -- upstream's README: pages created outside Neovim get indexed
 				},
@@ -251,15 +270,7 @@ return {
 			},
 			golangci_lint_ls = { _exec = "golangci-lint-langserver" },
 			clangd = { _exec = "clangd" },
-			hls = {
-				_exec = "haskell-language-server-wrapper", -- ghcup builds hls against the installed GHC
-				settings = {
-					haskell = {
-						formattingProvider = "ormolu",
-						cabalFormattingProvider = "cabal-fmt",
-					},
-				},
-			},
+			hls = { _exec = "haskell-language-server-wrapper" }, -- ghcup builds it against the installed GHC; nvim-lspconfig sets ormolu and cabal-fmt
 			sqls = { _exec = "sqls" },
 			vimls = { _exec = "vim-language-server" },
 		}

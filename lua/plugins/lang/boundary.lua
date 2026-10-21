@@ -3,7 +3,5 @@ return {
 	"Kenzo-Wada/boundary.nvim",
 	branch = "release",
 	ft = { "typescriptreact", "javascriptreact" },
-	opts = {
-		auto = true,
-	},
+	opts = {},
 }

@@ -1,6 +1,6 @@
--- folke/tokyonight.nvim, catppuccin/nvim, rebelot/kanagawa.nvim and loctvl842/monokai-pro.nvim, switched by the
--- 999rpm-themer spec below, whose code is utils/themes.lua. Theme, style and transparency persist across restarts.
--- Keys: <leader>ut next theme, <leader>uc next style, <leader>uC pick theme and style, <leader>ot toggle transparency.
+-- folke/tokyonight.nvim, catppuccin/nvim, rebelot/kanagawa.nvim and loctvl842/monokai-pro.nvim: the four colour
+-- schemes, switched by the 999rpm-themer spec below, whose code is utils/themes.lua. Theme, style and transparency
+-- persist across restarts. Owns <leader>ut, <leader>uc, <leader>uC and <leader>ot; the schemes map no keys.
 local function themes(name)
 	return function()
 		require("utils.themes")[name]()
@@ -18,10 +18,10 @@ return {
 		lazy = false,
 		priority = 1000, -- colours are set before the first screen draws
 		keys = {
-			{ "<leader>ut", themes("cycle_theme"), desc = "Next theme" },
-			{ "<leader>uc", themes("cycle_style"), desc = "Next style" },
-			{ "<leader>uC", themes("pick_theme"), desc = "Pick theme and style" },
-			{ "<leader>ot", themes("toggle_transparency"), desc = "Toggle transparency" },
+			{ "<leader>ut", themes("cycle_theme"), desc = "Next theme" }, -- n: tokyonight, catppuccin, kanagawa, monokai-pro in turn
+			{ "<leader>uc", themes("cycle_style"), desc = "Next style" }, -- n: the current theme's next variant (moon, mocha, wave...)
+			{ "<leader>uC", themes("pick_theme"), desc = "Pick theme and style" }, -- n: every theme and variant in one list, uppercase twin of uc
+			{ "<leader>ot", themes("toggle_transparency"), desc = "Toggle transparency" }, -- n: the terminal's own background shows through
 		},
 		config = themes("load"),
 	},

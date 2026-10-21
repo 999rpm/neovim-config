@@ -1,13 +1,12 @@
--- mrcjkb/rustaceanvim: rust-analyzer client with runnables, debuggables and hover actions (rust_analyzer stays out of lspconfig.lua).
--- Keys in rust buffers: K hover actions (buffer-local, so 0.12 leaves its own LSP K out), <leader>Tc cargo runnables,
--- <leader>Dd debuggables. nvim-dap loads on the first debug action, not at startup.
+-- mrcjkb/rustaceanvim: rust-analyzer client with runnables, debuggables and hover actions; rust_analyzer stays out of
+-- lspconfig.lua. Its keys are buffer-local in rust buffers: K, and <leader>Tc and <leader>Dd in neotest.lua's and
+-- dap.lua's groups. nvim-dap loads on the first debug action, not at startup.
 return {
 	"mrcjkb/rustaceanvim",
 	version = "^9",
 	lazy = false, -- loads itself per filetype
 	init = function()
 		vim.g.rustaceanvim = {
-			tools = { enable_clippy = true },
 			server = {
 				default_settings = {
 					["rust-analyzer"] = {
@@ -23,11 +22,15 @@ return {
 		{
 			"K",
 			function()
-				vim.cmd.RustLsp({ "hover", "actions" })
+				if #vim.lsp.get_clients({ bufnr = 0, name = "rust-analyzer" }) > 0 then
+					vim.cmd.RustLsp({ "hover", "actions" })
+				else
+					vim.cmd("normal! " .. (vim.v.count > 0 and vim.v.count or "") .. "K") -- :RustLsp exists only while the server runs
+				end
 			end,
 			ft = "rust",
-			desc = "Hover actions",
-		}, -- replaces the LSP default K in rust buffers
+			desc = "Hover with actions (rust-analyzer)",
+		}, -- n: upgrades built-in K: the hover adds runnable and debuggable actions; without rust-analyzer the built-in K, count included
 		{
 			"<leader>Tc",
 			function()
@@ -35,7 +38,7 @@ return {
 			end,
 			ft = "rust",
 			desc = "Cargo runnables",
-		},
+		}, -- n: pick a cargo run, test or bench target and run it
 		{
 			"<leader>Dd",
 			function()
@@ -43,6 +46,6 @@ return {
 			end,
 			ft = "rust",
 			desc = "Rust debuggables",
-		},
+		}, -- n: pick a binary or test and start it under nvim-dap
 	},
 }

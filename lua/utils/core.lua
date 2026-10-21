@@ -6,7 +6,7 @@ local M = {}
 
 ---@param name string
 ---@return boolean
-function M.executable(name) -- This util is used by autocmds.lua, lazy.lua, lint.lua, lspconfig.lua, mason.lua, options.lua, package-info.lua, shared.lua, treesitter.lua, yazi.lua, utils/d2.lua, utils/notes.lua, utils/jupyter.lua, utils/project.lua and utils/run.lua
+function M.executable(name) -- This util is used by autocmds.lua, blink.lua, gitsigns.lua, lazy.lua, lint.lua, lspconfig.lua, lualine.lua, mason.lua, options.lua, package-info.lua, sc-im.lua, shared.lua, treesitter.lua, yazi.lua, utils/d2.lua, utils/notes.lua, utils/jupyter.lua, utils/project.lua, utils/run.lua and utils/statusline.lua
 	return fn.executable(name) > 0
 end
 
@@ -71,18 +71,18 @@ function M.run_chain(steps, cwd, title, on_done) -- This util is used by utils/j
 	next_step()
 end
 
----Augroup named "999rpm-<name>", so :autocmd 999rpm-* lists every group of this config.
+---Augroup named "999rpm-<name>", so the autocommands picker (<leader>sa) finds every group of this config by its prefix.
 ---@param name string
 ---@param clear? boolean defaults to true
 ---@return integer
-function M.augroup(name, clear) -- This util is used by autocmds.lua, ipynb.lua, lint.lua, logseq.lua, lspconfig.lua, lualine.lua, markdown-plus.lua, molten.lua, nvim-bqf.lua, oil.lua, package-info.lua, persistence.lua, treesitter.lua, utils/notebook.lua and on_colorscheme below
+function M.augroup(name, clear) -- This util is used by autocmds.lua, ipynb.lua, lint.lua, logseq.lua, lspconfig.lua, lualine.lua, markdown-plus.lua, molten.lua, nvim-bqf.lua, oil.lua, otter.lua, package-info.lua, persistence.lua, treesitter.lua, utils/notebook.lua, utils/themes.lua and on_colorscheme below
 	return api.nvim_create_augroup("999rpm-" .. name:gsub("_", "-"), { clear = clear ~= false })
 end
 
 ---Runs `apply` now and after every colorscheme change, so highlight overrides survive a theme switch.
 ---@param name string augroup suffix
 ---@param apply fun()
-function M.on_colorscheme(name, apply) -- This util is used by barbar.lua, dap.lua, logseq.lua, multicursor.lua and render-markdown.lua
+function M.on_colorscheme(name, apply) -- This util is used by barbar.lua, dap.lua, logseq.lua and multicursor.lua
 	apply()
 	api.nvim_create_autocmd("ColorScheme", {
 		group = M.augroup(name),
@@ -103,14 +103,14 @@ function M.map_close(buf, wipe) -- This util is used by autocmds.lua, utils/d2.l
 		if wipe then
 			pcall(api.nvim_buf_delete, buf, { force = true })
 		end
-	end, { buf = buf, silent = true, desc = "Close" })
+	end, { buf = buf, silent = true, desc = "Close" }) -- n: q closes the window, as in plugin windows; wipe drops the buffer too
 end
 
 ---Tab/S-Tab move through the entries of one list buffer, as in the picker, Trouble and dropbar.
 ---@param buf integer
 function M.menu_nav(buf) -- This util is used by harpoon.lua and nvim-bqf.lua
-	vim.keymap.set("n", "<Tab>", "j", { buf = buf, desc = "Next entry" })
-	vim.keymap.set("n", "<S-Tab>", "k", { buf = buf, desc = "Previous entry" })
+	vim.keymap.set("n", "<Tab>", "j", { buf = buf, desc = "Next entry" }) -- n: one entry down, as in the picker
+	vim.keymap.set("n", "<S-Tab>", "k", { buf = buf, desc = "Previous entry" }) -- n: one entry up
 end
 
 ---RainbowDelimiter groups, in rainbow-delimiters' own order. Colors follow the active theme.

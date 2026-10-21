@@ -2,7 +2,5 @@
 return {
 	"mawkler/modicator.nvim",
 	event = "VeryLazy",
-	opts = {
-		show_warnings = false,
-	},
+	opts = {},
 }

@@ -1,7 +1,7 @@
 -- Jupyter environment in stdpath("data")/999rpm-jupyter: pynvim, jupyter_client, jupytext, ipykernel and molten's image
 -- packages. uv builds it when it is on $PATH (and fetches a Python of its own when none is installed), else python3's
--- venv and pip. Every step runs as an argument list from stdpath("data"), so neither 'shell' (zsh or nushell) nor a
--- project's .python-version, uv.toml or pip settings reach it.
+-- venv and pip. Every step runs as an argument list from stdpath("data"), so no shell parses it and no project's
+-- .python-version, uv.toml or pip settings reach it.
 local fn = vim.fn
 local core = require("utils.core")
 
@@ -59,6 +59,20 @@ function M.setup() -- This util is used by molten.lua
 		local level = ok and vim.log.levels.INFO or vim.log.levels.ERROR
 		vim.notify(ok and ("Jupyter environment ready in " .. dir) or tostring(err), level, { title = "Jupyter" })
 	end)
+end
+
+---Points PYTHONSTARTUP at ipython/outlined_tables.py in this config, so every kernel molten starts from here on (they
+---inherit Neovim's environment) shows DataFrames as outlined tables; an IPython prompt in a terminal buffer does too. A
+---PYTHONSTARTUP that was already set moves to _999RPM_PYTHONSTARTUP, which the file runs first.
+function M.python_startup() -- This util is used by molten.lua
+	local file = fn.stdpath("config") .. "/ipython/outlined_tables.py"
+	if vim.env.PYTHONSTARTUP == file or not vim.uv.fs_stat(file) then
+		return
+	end
+	if (vim.env.PYTHONSTARTUP or "") ~= "" then
+		vim.env._999RPM_PYTHONSTARTUP = vim.env.PYTHONSTARTUP
+	end
+	vim.env.PYTHONSTARTUP = file
 end
 
 ---Registers the uv project around the current file (else the working directory) as a Jupyter kernel, the way uv's

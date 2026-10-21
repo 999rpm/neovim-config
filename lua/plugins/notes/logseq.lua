@@ -1,22 +1,16 @@
 -- 999rpm-notes: Logseq-style notes on plain markdown, built on markdown-oxide (links, backlinks, completion, rename),
--- snacks pickers, mini.hipatterns and utils/notes.lua. The graph lives in vim.g.notes_dir (options.lua)
--- and keeps Logseq's layout, so the Logseq app still opens the same folder: journals/yyyy_MM_dd.md, pages/, assets/.
--- Keys (<leader>n): n today's journal, d journal for a date (today, -1, +2, fri, next mon, 2026-10-01), j journals,
--- p pages, N new page, s search the text, b linked references, u unlinked references, t open tasks, a agenda
--- (scheduled and deadline dates), T tags, x cycle TODO > DOING > DONE (visual: every selected line), X cancel a task,
--- S/D set SCHEDULED/DEADLINE, i insert a template, z focus the block (zoom in), Z unfold everything (zoom out),
--- g/G link graph as an image/as text, c commit the graph folder with git.
--- In graph buffers: gf follows the [[page]], #tag or ((block ref)) under the cursor and creates a missing page,
--- <C-w>f does the same in a vertical split (Logseq's sidebar), <C-CR> cycles the task marker in normal and insert mode,
--- <M-j>/<M-k> move a bullet together with its children. Commands: :Journal [date], :NotesInit (creates the folders).
+-- snacks pickers, mini.hipatterns and utils/notes.lua. The graph lives in vim.g.notes_dir (options.lua) and keeps
+-- Logseq's layout, so the Logseq app still opens the same folder: journals/yyyy_MM_dd.md, pages/, assets/. Commands:
+-- :Journal [date], :NotesInit (creates the folders). Owns <leader>n, and in graph buffers gf, <C-w>f, <C-CR> and
+-- <M-j>/<M-k>.
 -- Built-in keys that matter here: gd or <C-]> jump to a link target through markdown-oxide and <C-o> comes back, grr
 -- lists references, grn renames a page or heading across the graph, gra offers "create file" on a missing link, K
 -- previews a link, gO lists the headings, ]]/[[ next/previous heading, za/zc/zo toggle/close/open a block, zM/zR every
 -- block, >>/<< and insert-mode <C-t>/<C-d> indent/dedent a line.
 local function notes(name, ...)
-	local args = { ... }
+	local args = { n = select("#", ...), ... } -- the count keeps leading nils, which # and a bare unpack drop
 	return function()
-		require("utils.notes")[name](unpack(args))
+		require("utils.notes")[name](unpack(args, 1, args.n))
 	end
 end
 
@@ -88,16 +82,19 @@ local function attach(buf)
 	end
 	vim.bo[buf].expandtab = spaced -- Logseq indents with tabs; a page already indented with spaces keeps them
 	vim.b[buf].minihipatterns_config = { highlighters = highlighters }
-	pcall(require("mini.hipatterns").disable, buf)
-	pcall(require("mini.hipatterns").enable, buf)
+	local ok, hipatterns = pcall(require, "mini.hipatterns") -- mini.lua may be gone; the keys below work without colours
+	if ok then
+		hipatterns.disable(buf) -- again, so the buffer's own highlighters above replace the global ones
+		hipatterns.enable(buf)
+	end
 	local function map(mode, lhs, rhs, desc)
 		vim.keymap.set(mode, lhs, rhs, { buf = buf, desc = desc })
 	end
-	map("n", "gf", notes("follow", false), "Follow link, tag or block ref")
-	map("n", "<C-w>f", notes("follow", true), "Follow link in a vertical split")
-	map({ "n", "i" }, "<C-CR>", notes("task_cycle"), "Cycle task marker")
-	map("n", "<M-j>", notes("move_block", 1), "Move bullet and children down")
-	map("n", "<M-k>", notes("move_block", -1), "Move bullet and children up")
+	map("n", "gf", notes("follow", false), "Follow link, tag or block ref (else built-in gf)") -- n: upgrades built-in gf: also [[page]], #tag and ((block ref)), creating a missing page; elsewhere the built-in, count included
+	map("n", "<C-w>f", notes("follow", true), "Follow link in a vertical split (else built-in)") -- n: upgrades built-in <C-w>f: a link opens in a vertical split, as Logseq's sidebar; elsewhere the built-in split
+	map({ "n", "i" }, "<C-CR>", notes("task_cycle"), "Cycle task marker") -- n/i: Ctrl+Enter, the line's marker: none, TODO, DOING, DONE in turn
+	map("n", "<M-j>", notes("move_block", 1), "Move bullet and children down") -- n: Alt+j swaps the bullet, children included, with the next one; mappings.lua's Alt+j elsewhere
+	map("n", "<M-k>", notes("move_block", -1), "Move bullet and children up") -- n: Alt+k, the same upwards
 end
 
 return {
@@ -106,7 +103,7 @@ return {
 	ft = "markdown",
 	cmd = { "Journal", "NotesInit" },
 	keys = {
-		{ "<leader>nn", notes("journal"), desc = "Today's journal" },
+		{ "<leader>nn", notes("journal"), desc = "Today's journal" }, -- n: open today's journal page, a new one with one empty bullet
 		{
 			"<leader>nd",
 			function()
@@ -117,28 +114,28 @@ return {
 				end)
 			end,
 			desc = "Journal for a date",
-		},
-		{ "<leader>nj", notes("journals"), desc = "Journals" },
-		{ "<leader>np", notes("pages"), desc = "Pages" },
-		{ "<leader>nN", notes("new_page"), desc = "New page" },
-		{ "<leader>ns", notes("search"), desc = "Search notes" },
-		{ "<leader>nb", notes("backlinks"), desc = "Linked references" },
-		{ "<leader>nu", notes("unlinked"), desc = "Unlinked references" },
-		{ "<leader>nt", notes("tasks"), desc = "Open tasks" },
-		{ "<leader>na", notes("agenda"), desc = "Agenda (scheduled, deadlines)" },
-		{ "<leader>nT", notes("tags"), desc = "Tags" },
-		{ "<leader>nx", notes("task_cycle"), desc = "Cycle task: TODO > DOING > DONE" },
-		{ "<leader>nx", selected_lines(), mode = "x", desc = "Cycle task on each line" },
-		{ "<leader>nX", notes("task_cycle", nil, nil, "CANCELED"), desc = "Cancel task" },
-		{ "<leader>nX", selected_lines("CANCELED"), mode = "x", desc = "Cancel task on each line" },
-		{ "<leader>nS", notes("task_date", "SCHEDULED"), desc = "Schedule" },
-		{ "<leader>nD", notes("task_date", "DEADLINE"), desc = "Deadline" },
-		{ "<leader>ni", notes("template"), desc = "Insert template" },
-		{ "<leader>nz", notes("focus"), desc = "Focus block (zoom in)" },
-		{ "<leader>nZ", notes("unfocus"), desc = "Unfold all (zoom out)" },
-		{ "<leader>ng", notes("graph", false), desc = "Link graph (image)" },
-		{ "<leader>nG", notes("graph", true), desc = "Link graph (text)" },
-		{ "<leader>nc", notes("commit"), desc = "Commit the graph (git)" },
+		}, -- n: type today, -1, +2, fri, next mon or 2026-10-01
+		{ "<leader>nj", notes("journals"), desc = "Journals" }, -- n: every journal page in a picker, newest first
+		{ "<leader>np", notes("pages"), desc = "Pages" }, -- n: the graph's pages in a file picker
+		{ "<leader>nN", notes("new_page"), desc = "New page" }, -- n: type a name; the page starts as one empty bullet
+		{ "<leader>ns", notes("search"), desc = "Search notes" }, -- n: live grep over the graph's text
+		{ "<leader>nb", notes("backlinks"), desc = "Linked references" }, -- n: blocks that link to this page (b for backlinks)
+		{ "<leader>nu", notes("unlinked"), desc = "Unlinked references" }, -- n: plain mentions of this page's name that are not links yet
+		{ "<leader>nt", notes("tasks"), desc = "Open tasks" }, -- n: TODO, DOING, NOW, LATER and WAITING across the graph, active ones first
+		{ "<leader>na", notes("agenda"), desc = "Agenda (scheduled, deadlines)" }, -- n: dates of open tasks, soonest first, overdue ones in red
+		{ "<leader>nT", notes("tags"), desc = "Tags" }, -- n: every tag with its count; picking one lists the blocks that use it
+		{ "<leader>nx", notes("task_cycle"), desc = "Cycle task: TODO > DOING > DONE" }, -- n: the next marker for this line, none after DONE
+		{ "<leader>nx", selected_lines(), mode = "x", desc = "Cycle task on each line" }, -- x: the same on every selected line
+		{ "<leader>nX", notes("task_cycle", nil, nil, "CANCELED"), desc = "Cancel task" }, -- n: CANCELED, or TODO again on a canceled task
+		{ "<leader>nX", selected_lines("CANCELED"), mode = "x", desc = "Cancel task on each line" }, -- x: the same on every selected line
+		{ "<leader>nS", notes("task_date", "SCHEDULED"), desc = "Schedule" }, -- n: add or change the block's SCHEDULED date from a typed phrase
+		{ "<leader>nD", notes("task_date", "DEADLINE"), desc = "Deadline" }, -- n: the same for its DEADLINE
+		{ "<leader>ni", notes("template"), desc = "Insert template" }, -- n: pick a template:: block; its children land under the cursor
+		{ "<leader>nz", notes("focus"), desc = "Focus block (zoom in)" }, -- n: fold away all but the cursor's block and the path to it
+		{ "<leader>nZ", notes("unfocus"), desc = "Unfold all (zoom out)" }, -- n: every fold open again
+		{ "<leader>ng", notes("graph", false), desc = "Link graph (image)" }, -- n: pages linking here and pages linked from here, drawn by d2
+		{ "<leader>nG", notes("graph", true), desc = "Link graph (text)" }, -- n: the same as box-drawing text, uppercase twin of ng
+		{ "<leader>nc", notes("commit"), desc = "Commit the graph (git)" }, -- n: git add and commit everything in the graph folder
 	},
 	config = function()
 		local core = require("utils.core")

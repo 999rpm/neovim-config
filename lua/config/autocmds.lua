@@ -1,4 +1,5 @@
--- Autocommands. Every group is named "999rpm-<name>" through utils/core.lua's augroup, so :autocmd 999rpm-* lists them all.
+-- Autocommands. Every group is named "999rpm-<name>" through utils/core.lua's augroup, so typing 999rpm in the
+-- autocommands picker (<leader>sa, snacks.lua) lists them all.
 local api = vim.api
 local fn = vim.fn
 local core = require("utils.core")
@@ -63,7 +64,7 @@ api.nvim_create_autocmd("BufReadPost", {
 		vim.b[ev.buf]._999rpm_last_loc = true
 		local mark = api.nvim_buf_get_mark(ev.buf, '"') -- read now: closing the hidden window of a bufload() resets it
 		api.nvim_create_autocmd("BufWinEnter", {
-			buffer = ev.buf, -- a buffer loaded unseen (pickers, grug-far, LSP renames) waits for its first real window
+			buf = ev.buf, -- a buffer loaded unseen (pickers, grug-far, LSP renames) waits for its first real window
 			desc = "999rpm: jump to the '\" mark",
 			callback = function()
 				if fn.win_gettype() == "autocmd" then
@@ -146,8 +147,8 @@ api.nvim_create_autocmd("BufWritePost", {
 		end
 
 		local cmd = vim.list_extend(vim.deepcopy(cmd_base), { ev.file })
-		vim.system(cmd, { text = true }, function(result)
-			if result.code ~= 0 then
+		vim.system(cmd, { text = true }, function(check)
+			if check.code ~= 0 then
 				vim.schedule(function()
 					vim.notify(string.format("[%s] File is not properly formatted.", cmd[1]), vim.log.levels.WARN)
 				end)
@@ -262,7 +263,7 @@ api.nvim_create_autocmd("ColorScheme", {
 	end,
 })
 
-local utility_fts = { qf = true, ["neo-tree"] = true, trouble = true } -- neo-tree.lua leaves close_if_last_window off, so this is the one place that decides
+local utility_fts = { qf = true, ["neo-tree"] = true, trouble = true } -- neo-tree's close_if_last_window is off by default, so this is the one place that decides
 local function only_utility_windows()
 	for _, win in ipairs(api.nvim_tabpage_list_wins(0)) do
 		if
@@ -297,11 +298,11 @@ api.nvim_create_autocmd("TermOpen", {
 	end,
 })
 
-api.nvim_create_autocmd("OptionSet", {
-	group = augroup("shell_options"),
-	pattern = "shell",
-	desc = "999rpm: re-apply the shell* flags when 'shell' changes",
-	callback = require("utils.shell").apply_shell_options,
+api.nvim_create_autocmd("CmdlineLeave", {
+	group = augroup("terminal_shell"),
+	pattern = ":",
+	desc = "999rpm: a bare :terminal runs the login shell, not 'shell'",
+	callback = require("utils.shell").terminal_login_shell,
 })
 
 api.nvim_create_autocmd("MenuPopup", {
@@ -330,7 +331,7 @@ api.nvim_create_autocmd("MenuPopup", {
 			anoremenu PopUp.-3-                        <Nop>
 			anoremenu PopUp.LazyGit                     <cmd>lua Snacks.lazygit()<CR>
 			anoremenu PopUp.Open\ Git\ in\ Browser      <cmd>lua Snacks.gitbrowse()<CR>
-			anoremenu PopUp.Open\ in\ Web\ Browser      gx
+			amenu     PopUp.Open\ in\ Web\ Browser      gx
 			anoremenu PopUp.-4-                        <Nop>
 			vnoremenu PopUp.Cut                         "+x
 			vnoremenu PopUp.Copy                        "+y
@@ -357,6 +358,9 @@ api.nvim_create_autocmd("MenuPopup", {
 		if not has_client_for("textDocument/declaration") then
 			vim.cmd([[amenu disable PopUp.Declaration]])
 		end
+		if fn.exists(":Trouble") ~= 2 then -- trouble.lua removed: lazy.nvim defines the command stub otherwise
+			vim.cmd([[amenu disable PopUp.Diagnostics\ (Trouble)]])
+		end
 		if not _G.Snacks then
 			vim.cmd([[amenu disable PopUp.Find\ Symbol]])
 			vim.cmd([[amenu disable PopUp.Grep\ Word]])
@@ -378,14 +382,16 @@ api.nvim_create_autocmd("FileType", {
 })
 
 api.nvim_create_autocmd("FileType", {
-	group = augroup("close_with_q"),
-	desc = "999rpm: close utility buffers with q",
-	pattern = { "checkhealth", "help", "man", "qf" }, -- man's own q runs <C-w>q, which quits Neovim from the last window
+	group = augroup("utility_buffers"),
+	desc = "999rpm: keep utility buffers out of the buffer list, close the quickfix list with q",
+	pattern = { "checkhealth", "help", "man", "qf" }, -- help keeps q for macros; man and checkhealth map a q that closes
 	callback = function(event)
 		vim.bo[event.buf].buflisted = false
-		vim.schedule(function()
-			core.map_close(event.buf, true)
-		end)
+		if event.match == "qf" then -- bqf's window, whose keys are listed in nvim-bqf.lua
+			vim.schedule(function()
+				core.map_close(event.buf, true)
+			end)
+		end
 	end,
 })
 

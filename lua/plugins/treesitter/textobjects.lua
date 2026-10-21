@@ -1,13 +1,13 @@
--- nvim-treesitter/nvim-treesitter-textobjects (main branch): select, swap and move by function, class, parameter and scope.
--- Objects: af/if function, ac/ic class, a,/i, parameter, aS scope. Swap: <leader>a/<leader>A parameter with next/previous.
--- Moves: ]m/[m function start and ]M/[M function end, ]k/[k class, ]K/[K class end, ],/[, parameter, ]j/[j JSX element.
--- The python and ruby ftplugins map their own ]m [m ]M [M, which win in those buffers and jump the same way.
--- Built-ins kept: ]f/[f open file, ]] [[ sections, as/is sentences.
+-- nvim-treesitter/nvim-treesitter-textobjects: select, swap and move by function, class, parameter and scope through
+-- each language's treesitter queries (main branch); the parsers come from treesitter.lua. ]m [m ]M [M upgrade the
+-- built-in method motions, which only follow Java-style braces, in normal and visual mode; a buffer without a parser
+-- and operator-pending mode get the built-in, and the python and ruby ftplugins map their own, which win there.
+-- Built-ins kept: ]f/[f open file, ]] [[ sections, as/is sentences. Owns <leader>a and <leader>A; the plugin maps no
+-- keys itself.
 return {
 	"nvim-treesitter/nvim-treesitter-textobjects",
 	branch = "main",
 	event = { "BufReadPost", "BufNewFile", "BufWritePre" },
-	dependencies = { "nvim-treesitter/nvim-treesitter" },
 	config = function()
 		require("nvim-treesitter-textobjects").setup({
 			select = {
@@ -19,82 +19,87 @@ return {
 					["@class.inner"] = "V",
 					["@parameter.outer"] = "v",
 				},
-				include_surrounding_whitespace = false,
 			},
-			move = { set_jumps = true },
 		})
 
-		local select = require("nvim-treesitter-textobjects.select").select_textobject
+		local pick = require("nvim-treesitter-textobjects.select").select_textobject -- not `select`, which would hide Lua's own
 		local swap = require("nvim-treesitter-textobjects.swap")
 		local move = require("nvim-treesitter-textobjects.move")
 		local map = vim.keymap.set
 		local sel = { "x", "o" }
 		local nav = { "n", "x", "o" }
+		local method = { "n", "x" } -- not o: the plugin makes every move inclusive there, and the built-in ]m family is exclusive
 
 		map(sel, "af", function()
-			select("@function.outer", "textobjects")
-		end, { desc = "Function (outer)" })
+			pick("@function.outer", "textobjects")
+		end, { desc = "Function (outer)" }) -- x/o: the whole function, signature included (vaf, daf)
 		map(sel, "if", function()
-			select("@function.inner", "textobjects")
-		end, { desc = "Function (inner)" })
+			pick("@function.inner", "textobjects")
+		end, { desc = "Function (inner)" }) -- x/o: only the function body
 		map(sel, "ac", function()
-			select("@class.outer", "textobjects")
-		end, { desc = "Class (outer)" })
+			pick("@class.outer", "textobjects")
+		end, { desc = "Class (outer)" }) -- x/o: the whole class
 		map(sel, "ic", function()
-			select("@class.inner", "textobjects")
-		end, { desc = "Class (inner)" })
+			pick("@class.inner", "textobjects")
+		end, { desc = "Class (inner)" }) -- x/o: the class body
 		map(sel, "aS", function()
-			select("@local.scope", "textobjects")
-		end, { desc = "Scope" }) -- as/is stay the native sentence objects
+			pick("@local.scope", "textobjects")
+		end, { desc = "Scope" }) -- x/o: the enclosing scope; as/is stay the native sentence objects
 		map(sel, "a,", function()
-			select("@parameter.outer", "textobjects")
-		end, { desc = "Parameter (outer)" })
+			pick("@parameter.outer", "textobjects")
+		end, { desc = "Parameter (outer)" }) -- x/o: an argument with its comma (da,)
 		map(sel, "i,", function()
-			select("@parameter.inner", "textobjects")
-		end, { desc = "Parameter (inner)" })
+			pick("@parameter.inner", "textobjects")
+		end, { desc = "Parameter (inner)" }) -- x/o: the argument alone (ci,)
 
 		map("n", "<leader>a", function()
 			swap.swap_next("@parameter.inner")
-		end, { desc = "Swap parameter with next" })
+		end, { desc = "Swap parameter with next" }) -- n: move the argument under the cursor one place right
 		map("n", "<leader>A", function()
 			swap.swap_previous("@parameter.inner")
-		end, { desc = "Swap parameter with previous" })
+		end, { desc = "Swap parameter with previous" }) -- n: one place left, uppercase twin
 
-		map(nav, "]m", function()
-			move.goto_next_start("@function.outer", "textobjects")
-		end, { desc = "Next function start" })
-		map(nav, "[m", function()
-			move.goto_previous_start("@function.outer", "textobjects")
-		end, { desc = "Previous function start" })
-		map(nav, "]M", function()
-			move.goto_next_end("@function.outer", "textobjects")
-		end, { desc = "Next function end" })
-		map(nav, "[M", function()
-			move.goto_previous_end("@function.outer", "textobjects")
-		end, { desc = "Previous function end" })
+		---The treesitter move where the buffer's language has textobjects queries, else the built-in key; both keep the count.
+		---@param builtin string
+		---@param name string move.lua function
+		local function method_motion(builtin, name)
+			return function()
+				local parser = vim.treesitter.get_parser()
+				if not (parser and vim.treesitter.query.get(parser:lang(), "textobjects")) then
+					return builtin
+				end
+				return ("<Cmd>lua require('nvim-treesitter-textobjects.move').%s('@function.outer', 'textobjects')<CR>"):format(
+					name
+				)
+			end
+		end
+		map(method, "]m", method_motion("]m", "goto_next_start"), { expr = true, desc = "Next function start" }) -- n/x: upgrades built-in ]m: the next function in any language with a parser, else the built-in
+		map(method, "[m", method_motion("[m", "goto_previous_start"), { expr = true, desc = "Previous function start" }) -- n/x: upgrades built-in [m the same way
+		map(method, "]M", method_motion("]M", "goto_next_end"), { expr = true, desc = "Next function end" }) -- n/x: upgrades built-in ]M: the end of the next function
+		map(method, "[M", method_motion("[M", "goto_previous_end"), { expr = true, desc = "Previous function end" }) -- n/x: upgrades built-in [M: the end of the previous one
 		map(nav, "]k", function()
 			move.goto_next_start("@class.outer", "textobjects")
-		end, { desc = "Next class start" })
+		end, { desc = "Next class start" }) -- n/x/o: k for klass, since c is the diff-change motion
 		map(nav, "[k", function()
 			move.goto_previous_start("@class.outer", "textobjects")
-		end, { desc = "Previous class start" })
+		end, { desc = "Previous class start" }) -- n/x/o: the previous class
 		map(nav, "]K", function()
 			move.goto_next_end("@class.outer", "textobjects")
-		end, { desc = "Next class end" })
+		end, { desc = "Next class end" }) -- n/x/o: the end of the next class
 		map(nav, "[K", function()
 			move.goto_previous_end("@class.outer", "textobjects")
-		end, { desc = "Previous class end" })
+		end, { desc = "Previous class end" }) -- n/x/o: the end of the previous class
 		map(nav, "],", function()
 			move.goto_next_start("@parameter.inner", "textobjects")
-		end, { desc = "Next parameter" })
+		end, { desc = "Next parameter" }) -- n/x/o: the next argument of a call or signature
 		map(nav, "[,", function()
 			move.goto_previous_start("@parameter.inner", "textobjects")
-		end, { desc = "Previous parameter" })
+		end, { desc = "Previous parameter" }) -- n/x/o: the previous argument
 		map(nav, "]j", function()
 			move.goto_next_start("@jsx.element", "textobjects")
-		end, { desc = "Next JSX element" })
+		end, { desc = "Next JSX element" }) -- n/x/o: j for JSX; notebook buffers use ]j for cells instead
 		map(nav, "[j", function()
 			move.goto_previous_start("@jsx.element", "textobjects")
-		end, { desc = "Previous JSX element" })
+		end, { desc = "Previous JSX element" }) -- n/x/o: the previous JSX element
 	end,
 }

@@ -1,14 +1,16 @@
--- mason-org/mason.nvim with two installer bridges: mason-lspconfig for servers, WhoIsSethDaniel/mason-tool-installer
--- for formatters, linters and debug adapters.
--- :Mason or <leader>pm opens the UI, :MasonUpdate refreshes the registry. In the UI: i install, u update, U update all,
--- X uninstall, c/C check versions, <CR> expand, <C-f> language filter, g? help.
--- Both bridges wait for VeryLazy: installing a tool is never on the critical path of opening a file.
+-- mason-org/mason.nvim: installs language servers, formatters, linters and debug adapters into stdpath("data")/mason,
+-- with two bridges that keep the lists below installed: mason-org/mason-lspconfig.nvim for servers and
+-- WhoIsSethDaniel/mason-tool-installer.nvim for the rest. Both bridges wait for VeryLazy, after mason itself loaded at
+-- startup, so installing a tool is never on the path of opening a file. :MasonUpdate refreshes the registry.
+-- Owns <leader>pm.
 return {
 	{
 		"mason-org/mason.nvim",
 		lazy = false, -- setup() puts $MASON/bin on $PATH, which servers, formatters and debug adapters all look through
 		build = ":MasonUpdate",
-		keys = { { "<leader>pm", "<cmd>Mason<cr>", desc = "Mason" } },
+		-- mason's own keys in its window: i install, u update, U update all, X uninstall, c/C check versions, <CR>
+		-- expand, <C-f> language filter, g? help.
+		keys = { { "<leader>pm", "<cmd>Mason<cr>", desc = "Mason" } }, -- n: the installer window (p for plugins and tools)
 		opts = {
 			ui = {
 				icons = {
@@ -22,7 +24,6 @@ return {
 	{
 		"mason-org/mason-lspconfig.nvim",
 		event = "VeryLazy",
-		dependencies = { "mason-org/mason.nvim" }, -- no nvim-lspconfig: v2 carries its own package mappings, and listing it would undo lspconfig.lua's lazy event
 		opts = {
 			automatic_enable = false, -- lspconfig.lua calls vim.lsp.enable() per server instead
 			ensure_installed = {
@@ -51,7 +52,6 @@ return {
 	{
 		"WhoIsSethDaniel/mason-tool-installer.nvim",
 		event = "VeryLazy",
-		dependencies = { "mason-org/mason.nvim" },
 		opts = function()
 			local tools = {
 				"stylua",

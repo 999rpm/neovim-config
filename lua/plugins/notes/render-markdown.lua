@@ -1,35 +1,27 @@
 -- MeanderingProgrammer/render-markdown.nvim: draws headings, bullets, checkboxes, callouts, tables, ==highlights== and
--- [[wiki links]] in place and shows the raw text on the cursor line. <leader>om toggles it. Its in-process completion
--- source offers checkbox states and callout names through blink. It owns markdown's 'conceallevel': 3 while rendered,
--- 0 in insert mode, so links and markup read as typed while editing.
+-- [[wiki links]] in place and shows the raw text on the cursor line. Its in-process completion source offers checkbox
+-- states and callout names through blink. It owns markdown's 'conceallevel': 3 while rendered, 0 in insert mode, so
+-- links and markup read as typed while editing. Owns <leader>om.
 return {
 	"MeanderingProgrammer/render-markdown.nvim",
 	ft = { "markdown", "quarto" },
 	keys = {
-		{ "<leader>om", "<cmd>RenderMarkdown toggle<cr>", desc = "Toggle markdown rendering" },
+		{ "<leader>om", "<cmd>RenderMarkdown toggle<cr>", desc = "Toggle markdown rendering" }, -- n: drawn or raw markdown in every markdown buffer
 	},
 	opts = {
 		file_types = { "markdown", "quarto" }, -- notebooks open as markdown; quarto documents render too
 		completions = { lsp = { enabled = true } },
 		latex = { enabled = false }, -- snacks.image draws math; this would need latex2text or utftex and draw it a second time
+		pipe_table = { enabled = false }, -- markdown-pipetable.lua draws tables; with both on, the borders double up
 		win_options = {
 			conceallevel = { default = 0 }, -- used while not rendered (insert mode); rendered stays the plugin's 3
 		},
 		heading = {
 			icons = { "󰉫 ", "󰉬 ", "󰉭 ", "󰉮 ", "󰉯 ", "󰉰 " },
 			signs = {},
-			backgrounds = {
-				"RenderMarkdownH1Bg",
-				"RenderMarkdownH2Bg",
-				"RenderMarkdownH3Bg",
-				"RenderMarkdownH4Bg",
-				"RenderMarkdownH5Bg",
-				"RenderMarkdownH6Bg",
-			},
 		},
 		code = {
 			sign = false,
-			width = "full",
 			right_pad = 1,
 			style = "language",
 			border = "thin",
@@ -38,28 +30,13 @@ return {
 			icons = { "● ", "○ ", "◆ ", "◇ " },
 		},
 		checkbox = {
-			unchecked = { icon = "󰄱 " },
-			checked = { icon = "󰱒 " },
 			custom = {
-				todo = { raw = "[-]", rendered = "󰥔 ", highlight = "RenderMarkdownWarn" },
+				todo = { highlight = "RenderMarkdownWarn" }, -- upstream's [-], in the warning colour
 				progress = { raw = "[~]", rendered = "󰏫 ", highlight = "RenderMarkdownInfo" },
 			},
 		},
 		callout = {
-			note = { raw = "[!NOTE]", rendered = "󰋽 Note", highlight = "RenderMarkdownInfo" },
-			tip = { raw = "[!TIP]", rendered = "󰌶 Tip", highlight = "RenderMarkdownSuccess" },
-			important = { raw = "[!IMPORTANT]", rendered = "󰅾 Important", highlight = "RenderMarkdownError" },
-			warning = { raw = "[!WARNING]", rendered = "󰀪 Warning", highlight = "RenderMarkdownWarn" },
+			important = { highlight = "RenderMarkdownError" }, -- the other callouts keep upstream's colours
 		},
-		anti_conceal = { enabled = true },
 	},
-	config = function(_, opts)
-		require("render-markdown").setup(opts)
-		require("utils.core").on_colorscheme("render-markdown-highlights", function()
-			vim.api.nvim_set_hl(0, "RenderMarkdownInfo", { link = "DiagnosticInfo" })
-			vim.api.nvim_set_hl(0, "RenderMarkdownSuccess", { link = "DiagnosticOk" })
-			vim.api.nvim_set_hl(0, "RenderMarkdownWarn", { link = "DiagnosticWarn" })
-			vim.api.nvim_set_hl(0, "RenderMarkdownError", { link = "DiagnosticError" })
-		end)
-	end,
 }

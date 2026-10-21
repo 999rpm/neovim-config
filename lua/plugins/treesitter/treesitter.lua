@@ -1,4 +1,4 @@
--- nvim-treesitter/nvim-treesitter (main branch): parser installs and highlighting through Neovim's own treesitter.
+-- nvim-treesitter/nvim-treesitter: parser installs and highlighting through Neovim's own treesitter (main branch).
 -- Parsers build with the tree-sitter CLI (mason.lua installs it); :TSUpdate refreshes them, :TSInstall {lang} adds one.
 -- d2, which nvim-treesitter does not ship, is registered from its own repository through nvim-treesitter's custom
 -- parser hook, so a missing parser never breaks a .d2 buffer: highlighting stays off until :TSUpdate builds it.

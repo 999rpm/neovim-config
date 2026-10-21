@@ -1,9 +1,8 @@
--- kevinhwang91/nvim-ufo: folds from LSP, with treesitter and indent as fallbacks.
--- Keys: zR open all and zM close all through ufo, which keeps 'foldlevel' fixed; zr/zm/za/zc/zo/zj/zk stay built-in.
+-- kevinhwang91/nvim-ufo: folds from LSP, with treesitter and indent as fallbacks; promise-async (deps/shared.lua) loads
+-- on its first require. zr/zm/za/zc/zo/zj/zk stay built-in. Owns zR and zM, as upgrades.
 return {
 	{
 		"kevinhwang91/nvim-ufo",
-		dependencies = "kevinhwang91/promise-async",
 		event = { "BufReadPost", "BufNewFile" },
 		config = function()
 			local ft_providers = {
@@ -69,8 +68,8 @@ return {
 				end,
 			})
 
-			vim.keymap.set("n", "zR", require("ufo").openAllFolds, { desc = "Open all folds" })
-			vim.keymap.set("n", "zM", require("ufo").closeAllFolds, { desc = "Close all folds" })
+			vim.keymap.set("n", "zR", require("ufo").openAllFolds, { desc = "Open all folds" }) -- n: upgrades built-in zR: every fold opens while 'foldlevel' stays 99, which ufo's providers need (ufo's README)
+			vim.keymap.set("n", "zM", require("ufo").closeAllFolds, { desc = "Close all folds" }) -- n: upgrades built-in zM the same way: every fold closes
 		end,
 	},
 }

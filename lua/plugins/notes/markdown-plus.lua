@@ -1,13 +1,9 @@
 -- YousefHadder/markdown-plus.nvim: outliner-style editing for markdown lists, plus tables, checkboxes, links and inline
--- formatting. Lists (insert): <CR> next bullet, <Tab>/<S-Tab> indent/outdent the bullet, <BS> on an empty bullet removes
--- it, <A-CR> a new line inside the same bullet (Logseq's Shift+Enter); o/O (normal) open a bullet below/above. Outside a
--- list those keys keep their usual job, blink's <Tab>/<CR> included.
--- Buffer keys on <localleader> (\): mx toggle checkbox, lt + u/t/n/c change the list type, mb/mi/mS/m`/m= bold/italic/
--- strikethrough/code/highlight, h+/h- promote/demote a heading, ht table of contents, t + a table command (which-key
--- lists them). gd follows a table-of-contents link to its heading; where markdown-oxide attaches, its gd takes over.
--- Handed back to Neovim: insert-mode <C-t> (indent the line) and ]b/[b (next/previous buffer). The insert-mode
--- <A-h/j/k/l> cell moves stay off, so copilot.lua's <M-l> keeps accepting a word. ]]/[[ stay the heading jumps.
-local conflicts = { ["<C-T>"] = "i", ["]b"] = "n", ["[b"] = "n" }
+-- formatting. Handed back to Neovim: insert-mode <C-t> (indent the line), ]b/[b (next/previous buffer) and gd, which off
+-- a table-of-contents link did nothing; lspconfig.lua's gd follows links where markdown-oxide attaches. The insert-mode
+-- <A-h/j/k/l> cell moves stay off, so copilot.lua's <M-l> keeps accepting a word. ]]/[[ stay the heading jumps. Owns
+-- the markdown buffers' <localleader>m, l, h and t groups.
+local conflicts = { ["<C-T>"] = "i", ["]b"] = "n", ["[b"] = "n", gd = "n" }
 
 local function hand_back(buf)
 	if not vim.api.nvim_buf_is_valid(buf) then
@@ -16,7 +12,7 @@ local function hand_back(buf)
 	for lhs, mode in pairs(conflicts) do
 		for _, map in ipairs(vim.api.nvim_buf_get_keymap(buf, mode)) do
 			if map.lhs == lhs and (map.rhs or ""):find("MarkdownPlus", 1, true) then
-				pcall(vim.keymap.del, mode, lhs, { buf = buf })
+				vim.keymap.del(mode, lhs, { buf = buf })
 			end
 		end
 	end
@@ -25,6 +21,12 @@ end
 return {
 	"YousefHadder/markdown-plus.nvim",
 	ft = "markdown",
+	-- markdown-plus's own keys in markdown buffers: (i) <CR> next bullet, <Tab>/<S-Tab> indent/outdent the bullet, <BS>
+	-- on an empty bullet removes it, <A-CR> a new line inside the bullet (Logseq's Shift+Enter); (n) o/O a bullet
+	-- below/above. Each upgrades built-in <CR>, <Tab>, <S-Tab>, <BS>, o and O inside a list, and does the built-in job
+	-- elsewhere, blink's <Tab>/<CR> included. (n) \mx checkbox, \lt then u/t/n/c list type, \mb/\mi/\mS/\m`/\m=
+	-- bold/italic/strikethrough/code/highlight, \h+/\h- promote/demote a heading, \ht table of contents, \t then a table
+	-- command (which-key lists them).
 	opts = {
 		table = { keymaps = { insert_mode_navigation = false } },
 	},
@@ -33,7 +35,7 @@ return {
 		vim.api.nvim_create_autocmd("FileType", {
 			group = require("utils.core").augroup("markdown-plus-keys"),
 			pattern = "markdown",
-			desc = "999rpm: hand insert <C-t> and ]b/[b back to Neovim in markdown buffers",
+			desc = "999rpm: hand insert <C-t>, ]b/[b and gd back to Neovim in markdown buffers",
 			callback = function(ev)
 				vim.schedule(function()
 					hand_back(ev.buf) -- scheduled: markdown-plus maps the buffer in its own FileType handler

@@ -1,5 +1,5 @@
--- lazy.nvim bootstrap and runtime settings. :Lazy or <leader>pl opens the manager; the statusline shows pending updates.
--- In the Lazy window: H home, I install, U update, S sync, X clean, C check, L log, R restore, P profile, D debug, ? help.
+-- lazy.nvim bootstrap and runtime settings: :Lazy or <leader>pl opens the manager, and the statusline shows pending
+-- updates. Owns <leader>pl.
 local fn = vim.fn
 local api = vim.api
 local uv = vim.uv
@@ -40,21 +40,16 @@ local icons = {
 	keys = "󰌌 ",
 	plugin = "󰏖 ",
 	runtime = "󰍜 ",
-	require = "󰢱 ",
 	source = "󰈩 ",
 	start = "󰐊 ",
 	task = "󰄉 ",
-	lazy = "󰒲 ",
 }
 
 require("lazy").setup({
 	spec = {
 		{ import = "plugins.loader" }, -- lua/plugins/loader.lua imports every category folder
 	},
-	defaults = { lazy = false, version = false },
-	lockfile = fn.stdpath("config") .. "/lazy-lock.json",
 	concurrency = 10,
-	dev = { path = fn.stdpath("config") .. "/dev" },
 	install = { missing = has_git, colorscheme = {} },
 	checker = { enabled = has_git, notify = false }, -- lualine.lua shows the count; no startup notification
 	change_detection = { notify = false },
@@ -62,19 +57,17 @@ require("lazy").setup({
 	ui = {
 		border = "rounded",
 		size = { width = 0.8, height = 0.85 },
-		wrap = true,
 		icons = icons,
 	},
 	diff = { cmd = "terminal_git" },
 	performance = {
-		reset_packpath = true,
-		cache = { enabled = true },
 		rtp = { disabled_plugins = disabled_plugins },
 	},
-	debug = false,
 })
 
-vim.keymap.set("n", "<leader>pl", "<cmd>Lazy<cr>", { desc = "Lazy" })
+-- lazy.nvim's own keys in its window: (n) H home, I install, U update, S sync, X clean, C check, L log, R restore,
+-- P profile, D debug, ? help, q close.
+vim.keymap.set("n", "<leader>pl", "<cmd>Lazy<cr>", { desc = "Lazy" }) -- n: the plugin manager window (p for plugins, l for lazy)
 
 api.nvim_create_user_command("LazyDisable", function()
 	local config = require("lazy.core.config")

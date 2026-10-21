@@ -1,9 +1,9 @@
--- Bekaboo/dropbar.nvim: clickable breadcrumbs in the winbar. <leader>ub picks a crumb by label.
--- Menu keys: <Tab>/<S-Tab> down/up, <CR> open, i fuzzy find, q or <Esc> close.
+-- Bekaboo/dropbar.nvim: clickable breadcrumbs in the winbar; fuzzy find inside a menu uses telescope-fzf-native's
+-- library (deps/shared.lua), loaded on its first require. Owns <leader>ub.
 return {
 	"Bekaboo/dropbar.nvim",
 	event = { "BufReadPost", "BufNewFile" },
-	dependencies = { "nvim-telescope/telescope-fzf-native.nvim" }, -- fuzzy find inside menus
+	-- dropbar's own keys in a menu: <CR> open, i fuzzy find (then <C-n>/<C-p> or <C-j>/<C-k> move), q or <Esc> close.
 	keys = {
 		{
 			"<leader>ub",
@@ -11,7 +11,7 @@ return {
 				require("dropbar.api").pick()
 			end,
 			desc = "Pick breadcrumb",
-		},
+		}, -- n: each crumb shows a letter; typing it opens that crumb's menu
 	},
 	opts = {
 		bar = {
@@ -20,8 +20,8 @@ return {
 		menu = {
 			win_configs = { border = "rounded" },
 			keymaps = {
-				["<Tab>"] = "j",
-				["<S-Tab>"] = "k",
+				["<Tab>"] = "j", -- menu: next entry, as Tab moves through every menu here
+				["<S-Tab>"] = "k", -- menu: previous entry
 			},
 		},
 	},

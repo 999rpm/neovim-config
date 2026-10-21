@@ -5,7 +5,7 @@ One plugin per file, almost all of them lazy-loaded. Besides code editing it cov
 notes graph on plain markdown, Jupyter notebooks that run against real kernels, and Visual Studio-style projects that are
 created from templates, opened from a list and built as tasks.
 
-Written for Neovim 0.12.5 on Linux, with kitty as the terminal, zsh or nushell as the shell, and tmux optional.
+Written for Neovim 0.12.6 on Linux, with kitty as the terminal, zsh or nushell as the login shell, and tmux optional.
 
 ## Features
 
@@ -33,8 +33,9 @@ Written for Neovim 0.12.5 on Linux, with kitty as the terminal, zsh or nushell a
   [markdown-oxide](https://github.com/Feel-ix-343/markdown-oxide), drawn by
   [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim)
 - Jupyter notebooks through [molten-nvim](https://github.com/benlubas/molten-nvim) and
-  [otter.nvim](https://github.com/jmbuhr/otter.nvim); `.ipynb` files open as markdown, and cells are added, cut, split
-  and joined with JupyterLab's letters
+  [otter.nvim](https://github.com/jmbuhr/otter.nvim): `.ipynb` files open as markdown, the code cells get diagnostics,
+  rename with a live preview and format on save, pandas DataFrames print as outlined tables, and cells are added, cut,
+  split and joined with JupyterLab's letters
 - Projects: a new-project wizard (C and C++ with a Makefile, Rust, Python through uv, JavaScript through npm), a project
   list from [snacks.nvim](https://github.com/folke/snacks.nvim), builds and tasks through
   [overseer.nvim](https://github.com/stevearc/overseer.nvim) (make, cargo, npm scripts, `.vscode/tasks.json`), and
@@ -45,29 +46,29 @@ Written for Neovim 0.12.5 on Linux, with kitty as the terminal, zsh or nushell a
 
 ## Requirements
 
-- Neovim 0.12+, git, a C compiler, `make`, curl, ripgrep, fd and a [Nerd Font](https://www.nerdfonts.com)
+- Neovim 0.12+ (tested on 0.12.6), git, a C compiler, `make`, curl, ripgrep, fd, a POSIX `sh` on `$PATH` and a
+  [Nerd Font](https://www.nerdfonts.com)
 - The tree-sitter CLI for parser builds (Mason installs it)
 - Node.js 22+ for Copilot and the JavaScript tooling; python3 or [uv](https://github.com/astral-sh/uv) for the Jupyter setup
 - Optional: lazygit, yazi, `gh`, [d2](https://d2lang.com), ImageMagick, xxd, btop, npm
-- kitty, or another terminal with the kitty graphics protocol, for images, math and notebook plots
+- kitty, or another terminal with the kitty graphics protocol, for images, math and notebook plots; tmux optional, with
+  extended keys and passthrough on
+- zsh or nushell as the login shell; both behave the same here
 
 ## Install
 
-The archive mirrors the home folder: `.config/nvim`, `.config/kitty/kitty.conf`, `.config/nushell`,
-`.config/moxide/settings.toml`, `.config/matugen/templates/tmux.conf`, `.zshrc` and `.zshenv`.
+The archive holds one folder, `nvim`, with the whole config and the plugin lockfile it was tested with. Extracting it
+replaces `~/.config/nvim`, so the old folder is backed up or removed first:
 
 ```sh
 mv ~/.config/nvim ~/.config/nvim.bak
-unzip -o 999rpm-dotfiles.zip -d ~
+unzip nvim.zip -d ~/.config
 nvim
 ```
 
-`unzip -o 999rpm-dotfiles.zip '.config/nvim/*' -d ~` installs the Neovim part alone. The first start clones the plugins
-and Mason installs the servers, formatters and linters. `:checkhealth` reports anything missing. `:JupyterSetup` builds
-the Python environment the notebooks use, and `:NotesInit` creates the notes folders.
-
-`tmux.conf` is a matugen template: DankMaterialShell fills in the colours and writes `~/.config/tmux/tmux.conf` once a
-`[templates.tmux]` entry in `~/.config/matugen/config.toml` names the template as input and that file as output.
+The first start clones lazy.nvim (its `stable` branch) and every other plugin at the commits in `lazy-lock.json`, builds
+the treesitter parsers and lets Mason install the servers, formatters and linters. `:checkhealth` reports anything
+missing. `:JupyterSetup` builds the Python environment the notebooks use, and `:NotesInit` creates the notes folders.
 
 ## Layout
 
@@ -78,14 +79,73 @@ lua/plugins/<group>/  one file per plugin: core, lsp, completion, treesitter, ed
                       explorer, debug, test, projects, lang, notes, notebook, ai, deps
 lua/utils/            shared helpers by subject: core, shell, statusline, debugger, fences,
                       d2, notes, jupyter, notebook, run, project, themes
+ipython/              the startup file Jupyter kernels run (outlined pandas tables)
 after/queries/        markdown folds that keep a bullet with its children
 snippets/             markdown snippets for the notes graph
 ```
 
+## Plugins
+
+One line per file under `lua/plugins/`; each file's header says more.
+
+- core: tokyonight, catppuccin, kanagawa and monokai-pro colour schemes with the 999rpm-themer switcher;
+  nvim-mini/mini.nvim (icons, text objects, alignment, pattern highlights); folke/snacks.nvim (picker, terminals,
+  notifier, indent guides, dashboard, lazygit, images, toggles); folke/which-key.nvim (lists what follows a prefix)
+- lsp: neovim/nvim-lspconfig (server definitions for `vim.lsp.enable`); mason-org/mason.nvim (installs servers, formatters,
+  linters, debug adapters), with mason-org/mason-lspconfig.nvim and WhoIsSethDaniel/mason-tool-installer.nvim keeping
+  their lists installed; mrcjkb/rustaceanvim (rust-analyzer with runnables and hover actions); smjonas/inc-rename.nvim
+  (rename with a live preview); folke/lazydev.nvim (Neovim API completion in this config); Wansmer/symbol-usage.nvim
+  (reference counts above functions)
+- completion: saghen/blink.cmp (completion and signature help, also on the command line); zbirenbaum/copilot.lua
+  (inline suggestions); windwp/nvim-autopairs (closes brackets and quotes)
+- treesitter: nvim-treesitter/nvim-treesitter (parsers and highlighting); nvim-treesitter/nvim-treesitter-textobjects
+  (select, swap and move by function, class, parameter); nvim-treesitter/nvim-treesitter-context (pins the enclosing
+  function); m-demare/hlargs.nvim (parameters in their own colour); hiphish/rainbow-delimiters.nvim (brackets by depth);
+  Wansmer/treesj (split or join a node); windwp/nvim-ts-autotag (HTML and JSX tags)
+- editor: max397574/better-escape.nvim (jj/jk leave insert mode); gregorias/coerce.nvim (case conversion under `gA`);
+  monaqa/dial.nvim (wider increment and decrement); folke/flash.nvim (jump by label); MagicDuck/grug-far.nvim (search and
+  replace across files); nmac427/guess-indent.nvim (indentation from the file); m4xshen/hardtime.nvim (hints for faster
+  motions); ThePrimeagen/harpoon (pinned files); RaafatTurki/hex.nvim (hex view); andymass/vim-matchup (`%` through
+  treesitter); jake-stewart/multicursor.nvim (multiple cursors); danymat/neogen (docstrings); nacro90/numb.nvim (peek at
+  `:42`); chrisgrieser/nvim-scissors (snippet editing); folke/persistence.nvim (sessions per folder and branch);
+  lambdalisue/vim-suda (writes files that need root); kylechui/nvim-surround (surrounding pairs);
+  folke/todo-comments.nvim (TODO highlights); folke/ts-comments.nvim (comment style per treesitter node)
+- ui: romgrk/barbar.nvim (buffer tabline); nvim-lualine/lualine.nvim (statusline); folke/noice.nvim (command line,
+  messages, LSP progress); kevinhwang91/nvim-bqf (quickfix preview, filters, marks); kevinhwang91/nvim-ufo (folds from
+  LSP and treesitter); folke/trouble.nvim (diagnostics and symbol lists); Bekaboo/dropbar.nvim (breadcrumbs);
+  lewis6991/satellite.nvim (scrollbar with marks); luukvbaal/statuscol.nvim (status column);
+  rachartier/tiny-inline-diagnostic.nvim (inline diagnostics); nvim-zh/colorful-winsep.nvim (active window border);
+  catgoose/nvim-colorizer.lua (colour codes); mawkler/modicator.nvim (line number in the mode colour);
+  stevearc/stickybuf.nvim (utility windows keep their buffer)
+- git: lewis6991/gitsigns.nvim (signs, hunks, blame); esmuellert/codediff.nvim (review workspace);
+  linrongbin16/gitlinker.nvim (permalinks); pwntester/octo.nvim (GitHub issues and pull requests)
+- explorer: nvim-neo-tree/neo-tree.nvim (sidebar tree); stevearc/oil.nvim (edit a folder as a buffer);
+  mikavilpas/yazi.nvim (the yazi file manager in a float)
+- debug: mfussenegger/nvim-dap (debugger client); rcarriga/nvim-dap-ui (panels); mfussenegger/nvim-dap-python (Python
+  configurations); theHamsta/nvim-dap-virtual-text (values inline)
+- test: nvim-neotest/neotest (tests from the editor)
+- projects: 999rpm-projects (new-project wizard and project picker); stevearc/overseer.nvim (builds and tasks)
+- lang: stevearc/conform.nvim (format on save); mfussenegger/nvim-lint (linters); saecki/crates.nvim (Cargo.toml);
+  vuki656/package-info.nvim (package.json versions); hat0uma/csvview.nvim (CSV and TSV as columns); 999rpm-d2 (d2
+  diagrams); brianhuster/live-preview.nvim (browser preview); Kenzo-Wada/boundary.nvim (React server/client boundaries);
+  axelvc/template-string.nvim (template literals); MaximilianLloyd/tw-values.nvim (CSS behind Tailwind classes)
+- notes: 999rpm-notes (the Logseq-style graph); MeanderingProgrammer/render-markdown.nvim (rendered markdown);
+  YousefHadder/markdown-plus.nvim (outliner lists); dominic-righthere/markdown-pipetable.nvim (pipe tables);
+  DAmesberger/sc-im.nvim (tables in the sc-im spreadsheet); HakonHarnes/img-clip.nvim (pasted images);
+  okuuva/auto-save.nvim (saves graph pages)
+- notebook: 999rpm-ipynb (`.ipynb` through jupytext); benlubas/molten-nvim (Jupyter kernels); jmbuhr/otter.nvim (language
+  servers inside code cells)
+- ai: avante-corp/avante.nvim (Claude sidebar); NickvanDyke/opencode.nvim (opencode TUI); ravitemer/mcphub.nvim (MCP
+  servers)
+- deps (`deps/shared.lua`, loaded on first require): nvim-lua/plenary.nvim, MunifTanjim/nui.nvim, nvim-neotest/nvim-nio,
+  kevinhwang91/promise-async, gregorias/coop.nvim, ColinKennedy/mega.cmdparse, ColinKennedy/mega.logging,
+  b0o/schemastore.nvim, rafamadriz/friendly-snippets, nvim-neotest/neotest-jest, nvim-neotest/neotest-python,
+  nvim-telescope/telescope-fzf-native.nvim
+
 ## Keys
 
 Leader is `Space`, local leader is `\`. Press the leader and wait for which-key to list what follows, or `<leader>sk`
-to search every mapping. Built-in keys keep their jobs.
+to search every mapping. Built-in keys keep their jobs, except the upgrades listed below.
 
 | Prefix | Group | Prefix | Group |
 | --- | --- | --- | --- |
@@ -105,8 +165,38 @@ to search every mapping. Built-in keys keep their jobs.
 
 Outside the leader: `<M-h>`/`<M-l>` previous/next buffer, `<M-w/a/s/d>` move between windows (normal mode), `<M-j>`/`<M-k>` move a
 line (and scroll documentation and previews in completion menus and pickers), `<C-s>` write, `<C-,>` floating terminal,
-`]e`/`[e` and `]w`/`[w` errors and warnings, `]r`/`[r` references. The header of `lua/config/mappings.lua` lists the
-built-in keys worth knowing, and each plugin file lists its own.
+`]e`/`[e` and `]w`/`[w` errors and warnings, `]r`/`[r` references. Multicursor adds cursors with `<C-Up>`/`<C-Down>` or
+Ctrl+Alt+click; while cursors exist, `<leader>mh`/`<leader>ml` pick the main one and `<Esc>` clears them. The quickfix
+list closes with `q`; help, man and checkhealth windows close with `:q` (help keeps `q` for macros, man and checkhealth
+have their own `q`). The header of `lua/config/mappings.lua` lists the built-in keys worth knowing, and each plugin file
+lists its own.
+
+## Built-in keys kept as upgrades
+
+Each key still does its built-in job and falls back to it where the plugin cannot act.
+
+| Key | Plugin or file | Added |
+| --- | --- | --- |
+| `n` `N` | mappings.lua | the match is centred and its fold opened |
+| `<Esc>` | mappings.lua | the search highlight is cleared |
+| `grn` | inc-rename.nvim | live preview of the rename |
+| `gd` `gD` | lspconfig.lua | the server's definition and declaration where one is found |
+| `]c` `[c` | gitsigns.nvim | git hunks outside diff mode, counts kept |
+| `]m` `[m` `]M` `[M` | nvim-treesitter-textobjects | function starts and ends in any parsed language (normal and visual) |
+| `zR` `zM` | nvim-ufo | open and close every fold from the fold provider |
+| `<C-a>` `<C-x>` | dial.nvim | dates and true/false when one comes first from the cursor; numbers stay built-in |
+| `%` `g%` `[%` `]%` | vim-matchup | word pairs such as `if`/`end` and HTML tags |
+| `a` `i` text objects | mini.nvim (mini.ai) | more objects, and the next or last one with `aN`/`iN`, `al`/`il` |
+| `K` | rustaceanvim | hover actions in Rust buffers |
+| `gf` `<C-w>f` | logseq.lua | `[[links]]`, tags and block references in the notes graph |
+| insert `<BS>` `<CR>` | nvim-autopairs | pair-aware delete and line break |
+| `o` `O`, insert `<CR>` `<Tab>` `<S-Tab>` `<BS>` | markdown-plus.nvim | list items continue and indent in markdown |
+| `<LeftMouse>` | satellite.nvim | dragging the scrollbar |
+| insert `<Tab>` `<CR>` `<C-e>` `<C-k>` | blink.cmp | completion while its menu is open |
+| insert `<C-l>` | copilot.lua | the grey suggestion while one shows; the popup menu keeps its `<C-l>` |
+| command-line `<Tab>` `<S-Tab>` `<C-n>` `<C-p>` `<C-e>` `<C-y>` | blink.cmp | its menu where Neovim has completions |
+| insert `,` `.` `;` | mappings.lua | an undo step per clause |
+| insert `<Left>` `<Right>` | multicursor.lua | one insert across several cursors |
 
 ## Notes and notebooks
 
@@ -114,36 +204,53 @@ The notes graph lives in `~/notes` (or `$NOTES_DIR`) and keeps Logseq's layout: 
 the Logseq app can open the same folder. `<leader>nn` opens today's journal, `<leader>nb` lists backlinks,
 `<leader>nt` open tasks, `<leader>na` the agenda.
 
-`nvim file.ipynb` opens a notebook as markdown, starts its kernel and shows the saved outputs. `<S-CR>` runs a cell
-and moves to the next one, `<C-CR>` runs it in place, and `:w` writes a normal notebook back, outputs included.
+`nvim file.ipynb` opens a notebook as markdown, starts its kernel and shows the saved outputs. `<C-CR>` runs a cell in
+place, `<leader>kn` runs it and moves to the next one (`<S-CR>` does the same in insert mode), and `:w` formats the code
+cells and writes a normal notebook back, outputs included. The cells' language servers answer through otter: diagnostics,
+`K`, `gd`, `grr`, and `grn` with a live preview. Kernels started here print pandas DataFrames as outlined tables.
 `<leader>ka`/`<leader>kb` add an empty cell above/below, `<leader>kd` cuts the cell (`p` pastes it elsewhere),
 `<leader>ks` splits it at the cursor and `<leader>kj` joins it with the next one; the same keys work in quarto
 documents and `# %%` scripts.
 
 ## Projects
 
-`<leader>wn` asks for a template and a folder (under `~/Coding`, or `$PROJECTS_DIR`), creates the project, puts it under
-git and opens it. C and C++ projects get a Makefile with `build`, `release`, `run` and `clean` targets; its
+`<leader>wn` asks for a template and a folder (the prompt starts in the working directory), creates the project, puts it
+under git and opens it. C and C++ projects get a Makefile with `build`, `release`, `run` and `clean` targets; its
 `CXXFLAGS` (`CFLAGS` in C), `LDFLAGS` and `LDLIBS` lines hold that project's compiler flags, linker options and
 libraries, and `make` copies the compiler flags into `compile_flags.txt`, so clangd checks what the build uses.
-`<leader>wp` lists projects and restores a project's session on opening it. `<leader>wb` runs the project's build task
-and opens the quickfix list on errors, `<leader>wr` picks any task (make targets, cargo, npm scripts,
-`.vscode/tasks.json`), `<leader>wt` shows the task list. `<leader>cr` builds and runs: in a Makefile project, `make` and
-then the `run` target, whichever file is open; a lone C or C++ file builds with clang, as `:make` and `<leader>wb` do,
-plus any flags its `// 999rpm-flags:` lines name near the top (`// 999rpm-flags: -lncurses`). A `.nvim.lua` at a
-project's root holds its own settings once `:trust` approves it.
+`<leader>wp` lists the projects under `~/Coding` (or `$PROJECTS_DIR`) and restores a project's session on opening it.
+`<leader>wb` runs the project's build task and opens the quickfix list on errors, `<leader>wr` picks any task (make
+targets, cargo, npm scripts, `.vscode/tasks.json`), `<leader>wt` shows the task list. `<leader>cr` builds and runs: in a
+Makefile project, `make` and then the `run` target, whichever file is open; a lone C or C++ file builds with clang, as
+`:make` and `<leader>wb` do, plus any flags its `// 999rpm-flags:` lines name near the top (`// 999rpm-flags: -lncurses`).
+A `.nvim.lua` at a project's root holds its own settings once `:trust` approves it.
 
 ## Shell and terminal
 
-`'shell'` follows the login shell, so zsh and nushell both work; nushell gets its own `shell*` flags. Key conflicts
-resolve kitty first, then the shell, then tmux, then Neovim: `kitty.conf` binds only `ctrl+shift` combinations and
-`alt+1` to `alt+9`, none of which Neovim uses here; tmux keeps its default prefix `C-b` (`C-b C-b` sends it on), so no
-Neovim mapping sits on `<C-b>`; and a terminal buffer maps no Alt keys, which zsh's vi mode and nushell both use.
+`'shell'` is `sh`, found through `$PATH`, whatever the login shell, so `:!`, `:make`, `:grep`, `:%!` filters and plugins
+that build shell commands get POSIX syntax under zsh and nushell alike. Terminal buffers run the login shell: snacks
+terminals (`<C-,>` and `<leader>t`) and a bare `:terminal`. External tools run through argument lists, never through a
+shell string.
 
-starship, zoxide, fzf and broot are optional in both shells: a tool that is not installed is skipped at startup.
+Key conflicts resolve kitty first, then the shell, then tmux, then Neovim: `kitty.conf` binds only `ctrl+shift`
+combinations and `alt+1` to `alt+9`, none of which Neovim uses here; tmux keeps its default prefix `C-b` (`C-b C-b`
+sends it on), so no Neovim mapping sits on `<C-b>`; and a terminal buffer maps no Alt keys, which zsh's vi mode and
+nushell both use. tmux's extended keys let `<C-CR>`, `<S-CR>` and `<C-,>` reach Neovim, and passthrough lets images
+and plots draw.
 
-Under nushell a `:%!` filter runs nushell's own command of that name: `:%!sort` is nu's `sort`, which rejects plain
-text, while `:%!^sort` runs the external program and `:sort` needs no shell at all.
+## Known edge cases
 
-`tmux.conf` turns on extended keys, so `<C-CR>`, `<S-CR>` and `<C-,>` reach Neovim inside tmux, and passthrough, so
-images and plots still draw.
+- A fresh install records lazy.nvim's `stable` commit in `lazy-lock.json`, since the bootstrap clones that branch;
+  `:Lazy restore` returns it to the locked commit.
+- Without git, ripgrep, fd or node the start stays silent: gitsigns stays off and the statusline shows no branch,
+  while `:grep` and the grep pickers need ripgrep when used.
+- markdown-oxide never attaches to notebooks, so the notes graph's links and rename stay out of `.ipynb` files.
+- Images, math and plots need the kitty graphics protocol; elsewhere they are skipped and text output still shows.
+- After a theme switch without a restart (`<leader>ut`, `<leader>uc`, `<leader>uC`), crates.nvim's popup colours,
+  grug-far's change markers and csvview's header line stay plain until the next start; those plugins set fixed colours
+  once, at load. Every other plugin's colours follow the new theme.
+- Files over snacks.bigfile's size limit open with the `bigfile` filetype: no treesitter, LSP or folds. A converted
+  notebook is measured by its markdown, not by the `.ipynb`, whose saved outputs alone can cross the limit.
+- avante.nvim's build step downloads the prebuilt libraries of avante's newest release, whatever commit is locked. Right
+  after a release they can be missing (404), and the build stops with a `tar` error; `:Lazy build avante.nvim` repeats
+  it once they are published.

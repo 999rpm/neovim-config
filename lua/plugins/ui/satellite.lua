@@ -2,6 +2,8 @@
 return {
 	"lewis6991/satellite.nvim",
 	event = { "BufReadPost", "BufNewFile" },
+	-- satellite's own keys: (n) <LeftMouse> on the scrollbar drags it, upgrades built-in <LeftMouse>, which clicks as
+	-- before everywhere else.
 	opts = {
 		excluded_filetypes = {
 			"neo-tree",

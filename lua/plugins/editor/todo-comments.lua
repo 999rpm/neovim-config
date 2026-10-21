@@ -1,9 +1,8 @@
--- folke/todo-comments.nvim: highlights TODO, FIX, HACK, WARN, PERF and NOTE comments.
--- Keys: ]n/[n next/previous todo, <leader>st list them, <leader>sT only TODO and FIX.
+-- folke/todo-comments.nvim: highlights TODO, FIX, HACK, WARN, PERF and NOTE comments. ]n/[n in normal mode only:
+-- 0.12 holds visual ]n/[n for treesitter nodes. Owns ]n/[n, <leader>st and <leader>sT; the plugin maps no keys itself.
 return {
 	"folke/todo-comments.nvim",
 	event = { "BufReadPre", "BufNewFile" },
-	dependencies = { "nvim-lua/plenary.nvim" },
 
 	keys = {
 		{
@@ -12,44 +11,38 @@ return {
 				require("todo-comments").jump_next()
 			end,
 			desc = "Next todo comment",
-		},
+		}, -- n: the next TODO, FIX, HACK, WARN, PERF or NOTE (n for note)
 		{
 			"[n",
 			function()
 				require("todo-comments").jump_prev()
 			end,
 			desc = "Previous todo comment",
-		},
+		}, -- n: the previous one
 		{
 			"<leader>st",
 			function()
 				Snacks.picker.todo_comments()
 			end,
 			desc = "Todo comments",
-		},
+		}, -- n: every such comment in the project, in a picker
 		{
 			"<leader>sT",
 			function()
 				Snacks.picker.todo_comments({ keywords = { "TODO", "FIX", "FIXME" } })
 			end,
 			desc = "Todo and fix comments",
-		},
+		}, -- n: only TODO, FIX and FIXME, uppercase twin of st
 	},
 
 	opts = {
-		signs = true,
-		highlight = {
-			before = "",
-			keyword = "wide",
-			after = "fg",
-		},
-		keywords = {
-			FIX = { icon = "󰃤 ", color = "error", alt = { "FIXME", "BUG", "ISSUE" } },
-			TODO = { icon = "󰗡 ", color = "info" },
-			HACK = { icon = "󰈸 ", color = "warning" },
-			WARN = { icon = "󰀦 ", color = "warning", alt = { "WARNING", "XXX" } },
-			PERF = { icon = "󰓅 ", alt = { "OPTIM", "PERFORMANCE", "OPTIMIZE" } },
-			NOTE = { icon = "󱇗 ", color = "hint", alt = { "INFO" } },
+		keywords = { -- nf-md icons; colours and alternative keywords stay upstream's, except that FIX leaves out FIXIT
+			FIX = { icon = "󰃤 ", alt = { "FIXME", "BUG", "ISSUE" } },
+			TODO = { icon = "󰗡 " },
+			HACK = { icon = "󰈸 " },
+			WARN = { icon = "󰀦 " },
+			PERF = { icon = "󰓅 " },
+			NOTE = { icon = "󱇗 " },
 		},
 	},
 }

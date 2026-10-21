@@ -1,5 +1,6 @@
--- nvim-lualine/lualine.nvim: global statusline with slanted separators, the same glyphs and edge colouring as barbar's tabline.
--- Ahead/behind counts compare HEAD with its upstream as last fetched (lazygit or `git fetch` updates them).
+-- nvim-lualine/lualine.nvim: global statusline with slanted separators, the same glyphs and edge colouring as
+-- barbar's tabline. Ahead/behind counts compare HEAD with its upstream as last fetched (lazygit or `git fetch`
+-- updates them).
 return {
 	"nvim-lualine/lualine.nvim",
 	event = "VeryLazy",
@@ -29,10 +30,11 @@ return {
 		end
 
 		local git_status_cache = { behind_count = 0, ahead_count = 0 }
+		local has_git = require("utils.core").executable("git") -- vim.system raises on a missing executable
 
 		local update_git_status = status.throttle(function()
 			local dir = fn.expand("%:p:h")
-			if fn.isdirectory(dir) == 0 then
+			if not has_git or fn.isdirectory(dir) == 0 then
 				return
 			end
 			local cmd = { "git", "-C", dir, "rev-list", "--left-right", "--count", "HEAD...@{upstream}" } -- local refs only: no fetch racing lazygit for git's lock files
@@ -150,13 +152,9 @@ return {
 			filename = {
 				"filename",
 				path = 1, -- relative to the working directory
-				file_status = true,
-				newfile_status = false,
 				symbols = {
 					modified = " ●",
 					readonly = " 󰌾 ",
-					unnamed = "[No Name]",
-					newfile = "[New]",
 				},
 			},
 			python_env = {
@@ -196,8 +194,6 @@ return {
 
 		require("lualine").setup({
 			options = {
-				theme = "auto",
-				globalstatus = true,
 				component_separators = { left = "\u{e0bb}", right = "\u{e0bb}" }, -- written as escapes: private-use glyphs do not survive every copy of this file
 				section_separators = { left = "\u{e0bc}", right = "\u{e0ba}" },
 				disabled_filetypes = {

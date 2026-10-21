@@ -1,13 +1,10 @@
--- nvim-treesitter/nvim-treesitter-context: pins the enclosing function or class to the top of the window.
--- Keys: [u jump to the context, <leader>oc toggle it.
+-- nvim-treesitter/nvim-treesitter-context: pins the enclosing function or class to the top of the window. Owns [u and
+-- <leader>oc.
 return {
 	"nvim-treesitter/nvim-treesitter-context",
 	event = { "BufReadPost", "BufNewFile" },
 	opts = {
-		enable = true,
 		max_lines = 3,
-		mode = "cursor",
-		trim_scope = "outer",
 	},
 	keys = {
 		{
@@ -16,7 +13,7 @@ return {
 				require("treesitter-context").toggle()
 			end,
 			desc = "Toggle treesitter context",
-		},
+		}, -- n: the pinned lines at the top of the window on or off (c for context)
 		{
 			"[u",
 			function()
@@ -24,6 +21,6 @@ return {
 			end,
 			desc = "Jump to upper context",
 			silent = true,
-		},
+		}, -- n: up to the line the pinned context starts at; a count goes further out (u for up)
 	},
 }

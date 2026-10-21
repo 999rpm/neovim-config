@@ -1,15 +1,15 @@
--- mfussenegger/nvim-dap: debugger client, adapters and launch configurations under <leader>D.
--- Adapters come from Mason: codelldb (C, C++, Rust), js-debug-adapter (JS, TS), haskell-debug-adapter (installed only
--- when stack is on $PATH); python is dap-python.lua. Each adapter checks for its file when its session starts.
--- Keys: <leader>D b breakpoint, B conditional, L log point, x clear all, p list, c continue, C run to cursor, l run last,
--- i/o/O step into/over/out, P pause, t terminate, r REPL, h hover value, s scopes, e evaluate, u UI; F5/F10/F11/F12 as in most IDEs.
+-- mfussenegger/nvim-dap: debugger client, adapters and launch configurations. Adapters come from Mason: codelldb (C,
+-- C++, Rust), js-debug-adapter (JS, TS), haskell-debug-adapter (installed only when stack is on $PATH); python is
+-- dap-python.lua. Each adapter checks for its file when its session starts. nvim-dap loads on the first debug key.
+-- Owns <leader>D and F5/F10/F11/F12, the keys most IDEs use.
 return {
 	"mfussenegger/nvim-dap",
-	dependencies = {
-		"rcarriga/nvim-dap-ui", -- configured in dap-ui.lua
-		"mfussenegger/nvim-dap-python", -- configured in dap-python.lua
+	dependencies = { -- logged exception: nothing requires these two, and each must be configured before the first session starts
+		"rcarriga/nvim-dap-ui", -- dap-ui.lua registers the listeners that open and close the panels
+		"mfussenegger/nvim-dap-python", -- dap-python.lua defines the Python adapter and launch configurations
 	},
 
+	-- nvim-dap's own keys, in its hover and scopes floats only: (n) <CR> expand or collapse an entry, a list its actions.
 	keys = {
 		{
 			"<leader>Db",
@@ -17,98 +17,98 @@ return {
 				require("dap").toggle_breakpoint()
 			end,
 			desc = "Toggle breakpoint",
-		},
+		}, -- n: stop here on the next run; again to remove
 		{
 			"<leader>DB",
 			function()
 				require("dap").set_breakpoint(vim.fn.input("Breakpoint condition: "))
 			end,
 			desc = "Conditional breakpoint",
-		},
+		}, -- n: stops only when the typed expression is true
 		{
 			"<leader>DL",
 			function()
 				require("dap").set_breakpoint(nil, nil, vim.fn.input("Log message: "))
 			end,
 			desc = "Log point",
-		},
+		}, -- n: prints the typed message instead of stopping
 		{
 			"<leader>Dx",
 			function()
 				require("dap").clear_breakpoints()
 			end,
 			desc = "Clear breakpoints",
-		},
+		}, -- n: every breakpoint in every file
 		{
 			"<leader>Dp",
 			function()
 				require("dap").list_breakpoints(true)
 			end,
 			desc = "List breakpoints (quickfix)",
-		},
+		}, -- n: all breakpoints in the quickfix list
 		{
 			"<leader>Dc",
 			function()
 				require("dap").continue()
 			end,
 			desc = "Continue or start",
-		},
+		}, -- n: start a session, or run to the next breakpoint
 		{
 			"<leader>DC",
 			function()
 				require("dap").run_to_cursor()
 			end,
 			desc = "Run to cursor",
-		},
+		}, -- n: run until the cursor line
 		{
 			"<leader>Dl",
 			function()
 				require("dap").run_last()
 			end,
 			desc = "Run last configuration",
-		},
+		}, -- n: rerun the previous session
 		{
 			"<leader>Di",
 			function()
 				require("dap").step_into()
 			end,
 			desc = "Step into",
-		},
+		}, -- n: enter the function call on this line
 		{
 			"<leader>Do",
 			function()
 				require("dap").step_over()
 			end,
 			desc = "Step over",
-		},
+		}, -- n: run this line, stop on the next
 		{
 			"<leader>DO",
 			function()
 				require("dap").step_out()
 			end,
 			desc = "Step out",
-		},
+		}, -- n: finish the current function, stop in its caller
 		{
 			"<leader>DP",
 			function()
 				require("dap").pause()
 			end,
 			desc = "Pause",
-		},
+		}, -- n: halt a running program where it is
 		{
 			"<leader>Dt",
 			function()
 				require("dap").terminate()
 			end,
 			desc = "Terminate",
-		},
+		}, -- n: end the session
 		{
 			"<leader>Dr",
 			function()
 				require("dap").repl.toggle()
 			end,
 			desc = "REPL",
-		},
+		}, -- n: evaluate expressions in the paused program
 		{
 			"<leader>Dh",
 			function()
@@ -116,14 +116,14 @@ return {
 			end,
 			mode = { "n", "x" },
 			desc = "Hover value",
-		},
+		}, -- n/x: the value under the cursor or of the selection
 		{
 			"<leader>Ds",
 			function()
 				require("dap.ui.widgets").centered_float(require("dap.ui.widgets").scopes)
 			end,
 			desc = "Scopes",
-		},
+		}, -- n: local and global variables in a float
 		{
 			"<leader>De",
 			function()
@@ -131,42 +131,42 @@ return {
 			end,
 			mode = { "n", "x" },
 			desc = "Evaluate",
-		},
+		}, -- n/x: dap-ui's evaluation float
 		{
 			"<leader>Du",
 			function()
 				require("dapui").toggle()
 			end,
 			desc = "Toggle UI",
-		},
+		}, -- n: dap-ui's panels by hand
 		{
 			"<F5>",
 			function()
 				require("dap").continue()
 			end,
 			desc = "Debug: continue or start",
-		}, -- desc so which-key and <leader>sk name them
+		}, -- n: F5 as in most IDEs
 		{
 			"<F10>",
 			function()
 				require("dap").step_over()
 			end,
 			desc = "Debug: step over",
-		},
+		}, -- n: F10 as in most IDEs
 		{
 			"<F11>",
 			function()
 				require("dap").step_into()
 			end,
 			desc = "Debug: step into",
-		},
+		}, -- n: F11 as in most IDEs
 		{
 			"<F12>",
 			function()
 				require("dap").step_out()
 			end,
 			desc = "Debug: step out",
-		},
+		}, -- n: F12 here; Shift+F11 in Visual Studio
 	},
 	config = function()
 		local dap = require("dap")

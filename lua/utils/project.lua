@@ -1,7 +1,8 @@
--- New-project wizard, Visual Studio's "Create a new project": pick a template, type the folder, and the project is
--- created there, put under git and opened, with the working directory moved into it. Rust, Python and JavaScript
--- projects come from their own tools (cargo, uv, npm); C and C++ get a Makefile with build, release, run and clean
--- targets (overseer.lua lists them as tasks). The Makefile is the project's property pages: compiler flags in
+-- New-project wizard, Visual Studio's "Create a new project": pick a template, type the folder (the prompt starts in
+-- the working directory, so a bare name lands inside it), and the project is created there, put under git and opened,
+-- with the working directory moved into it. Rust, Python and JavaScript projects come from their own tools (cargo, uv,
+-- npm); C and C++ get a Makefile with build, release, run and clean targets (overseer.lua lists them as tasks). The
+-- Makefile is the project's property pages: compiler flags in
 -- CXXFLAGS (CFLAGS in C), linker options in LDFLAGS, libraries in LDLIBS, and make rewrites compile_flags.txt from the
 -- compiler flags, so clangd checks what the build uses. Every command is an argument list, so zsh and nushell behave
 -- the same.
@@ -134,7 +135,7 @@ local TEMPLATES = {
 	{
 		name = "JavaScript (npm)",
 		needs = "npm",
-		cmd = function(dir)
+		cmd = function()
 			return { { "npm", "init", "--yes" } } -- runs inside the new folder
 		end,
 		mkdir = true,
@@ -200,8 +201,8 @@ function M.templates() -- This util is used by new_project below
 	end, TEMPLATES)
 end
 
----Asks for a template, then for the folder (prefilled with vim.g.projects_dir), and creates the project. An existing
----folder that is not empty is refused, so nothing is overwritten.
+---Asks for a template, then for the folder (prefilled with the working directory), and creates the project. An
+---existing folder that is not empty is refused, so nothing is overwritten.
 ---@param tpl_name? string template name, skipping the first question
 ---@param path? string project folder, skipping the second question
 function M.new_project(tpl_name, path) -- This util is used by new-project.lua
@@ -225,7 +226,7 @@ function M.new_project(tpl_name, path) -- This util is used by new-project.lua
 		if path then
 			return with_path(path)
 		end
-		local base = vim.fs.normalize(vim.g.projects_dir or "~/Coding")
+		local base = vim.fs.normalize(fn.getcwd()):gsub("/$", "") -- "/" itself would otherwise become "//"
 		vim.ui.input({ prompt = tpl.name .. " in: ", default = base .. "/", completion = "dir" }, with_path)
 	end
 	local list = M.templates()
