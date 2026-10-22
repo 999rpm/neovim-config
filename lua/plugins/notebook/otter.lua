@@ -1,12 +1,14 @@
 -- jmbuhr/otter.nvim: language servers inside the code cells of a markdown notebook. Each cell language gets a hidden
 -- buffer that basedpyright, ruff and the rest attach to, and otter's in-process server forwards completion, K, gd, grr
 -- and grn between the two; diagnostics come back as each server reports them. ipynb.lua activates it in notebook and
--- quarto buffers. Two gaps are closed here: servers that answer diagnostics only on request (ruff) are asked after
--- every change, since Neovim asks only for buffers shown in a window and the hidden buffers never are; and otter copies
+-- quarto buffers. Three gaps are closed here: servers that answer diagnostics only on request (ruff) are asked after
+-- every change, since Neovim asks only for buffers shown in a window and the hidden buffers never are; otter copies
 -- the diagnostics of the one server that just reported, which would drop the other servers', so every change is handed
--- to otter again with the hidden buffer's full set.
+-- to otter again with the hidden buffer's full set; and basedpyright gets the notebook's folder as an extra import
+-- path, since its kernel starts there (molten.lua) and imports the modules beside it, as in JupyterLab. The hidden
+-- buffers stay out of the diagnostic lists (trouble.lua, snacks.lua, mappings.lua).
 local function is_cell_buffer(buf)
-	return vim.api.nvim_buf_get_name(buf):find("%.otter%.") ~= nil
+	return require("utils.notebook").is_cell_buffer(buf)
 end
 
 return {
@@ -37,6 +39,23 @@ return {
 						textDocument = vim.lsp.util.make_text_document_params(ev.buf),
 					}, nil, ev.buf)
 				end
+			end,
+		})
+		vim.api.nvim_create_autocmd("LspAttach", {
+			group = group,
+			desc = "999rpm: add the notebook's folder to basedpyright's import paths",
+			callback = function(ev)
+				local client = vim.lsp.get_client_by_id(ev.data.client_id)
+				if not client or client.name ~= "basedpyright" or not is_cell_buffer(ev.buf) then
+					return
+				end
+				local analysis = vim.tbl_get(client.settings, "basedpyright", "analysis")
+				local dir = vim.fs.dirname(vim.api.nvim_buf_get_name(ev.buf))
+				if not analysis or vim.list_contains(analysis.extraPaths or {}, dir) then
+					return
+				end
+				analysis.extraPaths = vim.list_extend(vim.deepcopy(analysis.extraPaths or {}), { dir })
+				client:notify("workspace/didChangeConfiguration", { settings = client.settings }) -- the server asks for its settings again
 			end,
 		})
 		vim.api.nvim_create_autocmd("DiagnosticChanged", {

@@ -4,12 +4,14 @@ A DataFrame shown as cell output renders as a table outlined in box-drawing char
 pandas' own limits apply: display.max_rows and display.min_rows cut the rows, display.max_columns the columns, and a
 table wider than display.width continues in a second box below, as pandas wraps its own output. print(df) and the HTML
 that JupyterLab shows stay pandas' own. A plain python prompt skips the file; a PYTHONSTARTUP set before Neovim started
-runs first.
+runs first. A kernel moves into the folder named in the file that _999RPM_KERNEL_CWD points at (utils/jupyter.lua),
+the notebook's own, so the modules beside the notebook import as they do in JupyterLab.
 """
 
 
 def _rpm999_startup():
     import os
+    import sys
 
     previous = os.environ.get("_999RPM_PYTHONSTARTUP", "")
     if previous != os.environ.get("PYTHONSTARTUP") and os.path.isfile(previous):
@@ -19,6 +21,15 @@ def _rpm999_startup():
         shell = get_ipython()  # noqa: F821  IPython defines it in the user namespace
     except NameError:
         return
+
+    if "ipykernel" in sys.modules:  # a kernel, not an IPython prompt in a terminal
+        try:
+            with open(os.environ.get("_999RPM_KERNEL_CWD", ""), encoding="utf-8") as file:
+                folder = file.read().strip()
+            if os.path.isdir(folder):
+                os.chdir(folder)
+        except OSError:
+            pass  # no file: the kernel stays in the host's folder
 
     import unicodedata
 

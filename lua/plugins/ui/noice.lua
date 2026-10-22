@@ -4,7 +4,7 @@ return {
 	"folke/noice.nvim",
 	lazy = false, -- keys alone would defer it, and the command line UI is needed from the first :
 	keys = {
-		{ "<leader>sm", "<cmd>Noice history<cr>", desc = "Message history" }, -- n: every message and notification of the session in a split
+		{ "<leader>sm", "<cmd>Noice history<cr>", desc = "Message history" }, -- n: :messages output and command-line messages in a split; popups from vim.notify are in <leader>sn
 	},
 	opts = {
 		lsp = {

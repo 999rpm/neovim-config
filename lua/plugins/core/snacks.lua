@@ -78,6 +78,13 @@ return {
 				git_grep = { focus = "input" },
 				lines = { focus = "input" },
 				lsp_workspace_symbols = { focus = "input" },
+				diagnostics = {
+					filter = {
+						filter = function(item)
+							return not require("utils.notebook").is_cell_buffer(item.buf or item.file or "")
+						end, -- otter's hidden cell buffers repeat what the notebook already shows
+					},
+				},
 			},
 			win = {
 				input = { keys = menu_keys, b = { completion = false } },
@@ -153,7 +160,7 @@ return {
 		{ "<leader>sq", pick("qflist"), desc = "Quickfix list" }, -- n: the quickfix list as a picker
 		{ "<leader>sl", pick("loclist"), desc = "Location list" }, -- n: the window's location list
 		{ "<leader>su", pick("undo"), desc = "Undo history" }, -- n: undo states with a diff preview
-		{ "<leader>sn", pick("notifications"), desc = "Notifications" }, -- n: past notifications
+		{ "<leader>sn", pick("notifications"), desc = "Notification history" }, -- n: every vim.notify popup of the session, errors included, after it fades
 		{ "<leader>s.", pick("resume"), desc = "Resume last picker" }, -- n: reopen the last picker as it was
 		{
 			"<leader>s?",

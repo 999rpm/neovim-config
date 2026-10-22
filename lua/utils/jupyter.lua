@@ -63,8 +63,10 @@ end
 
 ---Points PYTHONSTARTUP at ipython/outlined_tables.py in this config, so every kernel molten starts from here on (they
 ---inherit Neovim's environment) shows DataFrames as outlined tables; an IPython prompt in a terminal buffer does too. A
----PYTHONSTARTUP that was already set moves to _999RPM_PYTHONSTARTUP, which the file runs first.
+---PYTHONSTARTUP that was already set moves to _999RPM_PYTHONSTARTUP, which the file runs first. _999RPM_KERNEL_CWD
+---names the file kernel_cwd below writes, from which a starting kernel takes its working directory.
 function M.python_startup() -- This util is used by molten.lua
+	vim.env._999RPM_KERNEL_CWD = fn.tempname() -- in this Neovim's own temp folder, also when a parent Neovim set one
 	local file = fn.stdpath("config") .. "/ipython/outlined_tables.py"
 	if vim.env.PYTHONSTARTUP == file or not vim.uv.fs_stat(file) then
 		return
@@ -73,6 +75,17 @@ function M.python_startup() -- This util is used by molten.lua
 		vim.env._999RPM_PYTHONSTARTUP = vim.env.PYTHONSTARTUP
 	end
 	vim.env.PYTHONSTARTUP = file
+end
+
+---Records the current buffer's folder for the kernel about to start or restart: molten launches kernels from its
+---Python host, whose working directory stays wherever Neovim was when the host started, so outlined_tables.py moves
+---the kernel into this folder instead, the notebook's own, as JupyterLab does. A buffer with no file leaves it as is.
+function M.kernel_cwd() -- This util is used by molten.lua
+	local file = vim.env._999RPM_KERNEL_CWD
+	if file and file ~= "" then
+		local name = vim.api.nvim_buf_get_name(0)
+		fn.writefile({ (name ~= "" and vim.bo.buftype == "") and vim.fs.dirname(name) or "" }, file)
+	end
 end
 
 ---Registers the uv project around the current file (else the working directory) as a Jupyter kernel, the way uv's

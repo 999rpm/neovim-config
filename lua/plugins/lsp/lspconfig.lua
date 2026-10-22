@@ -229,7 +229,14 @@ return {
 			},
 			ruff = {
 				init_options = {
-					settings = { organizeImports = true }, -- pairs with basedpyright's disableOrganizeImports above
+					settings = {
+						organizeImports = true, -- pairs with basedpyright's disableOrganizeImports above
+						configuration = { -- inline, above the project's own ruff settings (Ruff 0.9.8 and later)
+							lint = {
+								["extend-per-file-ignores"] = { ["*.otter.*"] = { "I001", "N999" } }, -- otter.lua's hidden cell file: blank lines stand in for the markdown between cells, and its name is no module name
+							},
+						},
+					},
 				},
 			},
 			tailwindcss = {},

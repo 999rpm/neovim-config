@@ -4,8 +4,10 @@
 -- through PYTHONSTARTUP (utils/jupyter.lua). The picker lists every installed kernelspec: a uv project joins it through
 -- <leader>kv, a micromamba or venv environment after `python -m ipykernel install --user --name <env>` inside it.
 -- Notebooks open through ipynb.lua; in cell buffers utils/notebook.lua adds <leader>ka/kb/kd/ks/kj (add above/below,
--- delete, split, join). The statusline names the buffer's kernel. :JupyterSetup builds the Python side, with uv when it
--- is on $PATH, else venv and pip. Owns <leader>k; molten maps no keys itself, and its output window closes with :q.
+-- delete, split, join). A kernel starts in its notebook's folder, as in JupyterLab, so the modules beside the notebook
+-- import without os.chdir. Each notebook runs its own kernel: a second notebook on the same kernelspec gets molten's id
+-- <name>_1, and the statusline names the buffer's kernels. :JupyterSetup builds the Python side, with uv when it is on
+-- $PATH, else venv and pip. Owns <leader>k; molten maps no keys itself, and its output window closes with :q.
 local function call(module, name, ...)
 	local args = { ... }
 	return function()
@@ -36,7 +38,14 @@ return {
 	end,
 	keys = {
 		{ "<leader>ki", call("notebook", "kernel"), desc = "Start kernel" }, -- n: the notebook's own kernel, else a picker
-		{ "<leader>kr", "<Cmd>MoltenRestart!<CR>", desc = "Restart kernel, clear outputs" }, -- n: a fresh kernel; every output goes
+		{
+			"<leader>kr",
+			function()
+				require("utils.jupyter").kernel_cwd() -- the restarted process starts in the notebook's folder again
+				vim.cmd("MoltenRestart!")
+			end,
+			desc = "Restart kernel, clear outputs",
+		}, -- n: a fresh kernel; every output goes
 		{ "<leader>kx", "<Cmd>MoltenInterrupt<CR>", desc = "Interrupt kernel" }, -- n: stop the running cell, like JupyterLab's i i
 		{ "<leader>kq", "<Cmd>MoltenDeinit<CR>", desc = "Shut down kernel" }, -- n: end the kernel process (q for quit)
 		{ "<leader>kK", "<Cmd>MoltenInfo<CR>", desc = "Kernel info" }, -- n: which kernels run and for which buffers
@@ -62,6 +71,14 @@ return {
 		local group = require("utils.core").augroup("molten-kernel")
 		vim.api.nvim_create_autocmd("User", {
 			group = group,
+			pattern = "MoltenInitPre",
+			desc = "999rpm: start the kernel in the folder of the buffer it is for",
+			callback = function()
+				require("utils.jupyter").kernel_cwd()
+			end,
+		})
+		vim.api.nvim_create_autocmd("User", {
+			group = group,
 			pattern = "MoltenInitPost",
 			desc = "999rpm: remember the buffer's kernel for the statusline and notebook writes",
 			callback = function(ev)
@@ -72,10 +89,26 @@ return {
 		vim.api.nvim_create_autocmd("User", {
 			group = group,
 			pattern = "MoltenDeinitPost",
-			desc = "999rpm: forget the buffer's kernel",
-			callback = function(ev)
-				vim.b[ev.buf]._999rpm_kernel = nil
-				vim.b[ev.buf]._999rpm_ready = nil
+			desc = "999rpm: refresh each buffer's kernel names once a kernel ends",
+			callback = function()
+				vim.schedule(function() -- molten drops the kernel after this event, which names the current buffer only
+					for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+						if vim.b[buf]._999rpm_kernel then
+							local ok, names = false, {}
+							if vim.api.nvim_buf_is_loaded(buf) then
+								ok, names = pcall(vim.api.nvim_buf_call, buf, function()
+									return vim.fn.MoltenRunningKernels(true)
+								end)
+							end
+							if ok and #names > 0 then
+								vim.b[buf]._999rpm_kernel = table.concat(names, ", ")
+							else
+								vim.b[buf]._999rpm_kernel = nil
+								vim.b[buf]._999rpm_ready = nil
+							end
+						end
+					end
+				end)
 			end,
 		})
 	end,

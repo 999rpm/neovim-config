@@ -1,6 +1,6 @@
 -- nvim-lualine/lualine.nvim: global statusline with slanted separators, the same glyphs and edge colouring as
 -- barbar's tabline. Ahead/behind counts compare HEAD with its upstream as last fetched (lazygit or `git fetch`
--- updates them).
+-- updates them). While a macro records, the mode block shows "recording @<register>" until q ends it.
 return {
 	"nvim-lualine/lualine.nvim",
 	event = "VeryLazy",
@@ -116,6 +116,19 @@ return {
 			return status.buf_cached("mixed_indent", scan_mixed_indent) -- up to four whole-buffer searches; cached like trailing_space above
 		end
 
+		local function macro()
+			local reg = fn.reg_recording()
+			return reg ~= "" and ("\u{f044a} recording @" .. reg) or ""
+		end
+
+		vim.api.nvim_create_autocmd({ "RecordingEnter", "RecordingLeave" }, {
+			group = require("utils.core").augroup("lualine-macro"),
+			desc = "999rpm: show or hide the recording register at once, not at the next timer tick",
+			callback = function()
+				require("lualine").refresh({ place = { "statusline" } }) -- queued, so it runs after RecordingLeave has cleared the register
+			end,
+		})
+
 		local function kernel()
 			local name = vim.b._999rpm_kernel -- set by notebook/molten.lua when a kernel starts; reading it costs no call into molten
 			return name and ("󰘚 " .. name) or ""
@@ -139,6 +152,9 @@ return {
 				fmt = function(str)
 					return (icons.modes[str] or " ") .. str
 				end,
+			},
+			macro = {
+				macro, -- noice hides the "recording @q" message and which-key steps aside while a macro records, so this is the only sign
 			},
 			branch = {
 				"branch",
@@ -210,7 +226,7 @@ return {
 				}, -- explicit shape: a bare list is copied into both by lualine's own normaliser, which is not what a global statusline wants
 			},
 			sections = {
-				lualine_a = { components.mode },
+				lualine_a = { components.mode, components.macro },
 				lualine_b = {
 					components.branch,
 					components.git_status,

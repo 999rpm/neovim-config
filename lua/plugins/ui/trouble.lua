@@ -35,5 +35,16 @@ return {
 			folder_closed = "󰉋 ",
 			folder_open = "󰝰 ",
 		},
+		modes = {
+			diagnostics = {
+				filter = { -- a table, so filter.buf=0 from <leader>dD adds to it
+					["not"] = {
+						function(item)
+							return require("utils.notebook").is_cell_buffer(item.buf or item.filename or "")
+						end, -- otter's hidden cell buffers: the notebook already lists the same diagnostics
+					},
+				},
+			},
+		},
 	},
 }

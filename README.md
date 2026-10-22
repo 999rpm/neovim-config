@@ -207,7 +207,10 @@ the Logseq app can open the same folder. `<leader>nn` opens today's journal, `<l
 `nvim file.ipynb` opens a notebook as markdown, starts its kernel and shows the saved outputs. `<C-CR>` runs a cell in
 place, `<leader>kn` runs it and moves to the next one (`<S-CR>` does the same in insert mode), and `:w` formats the code
 cells and writes a normal notebook back, outputs included. The cells' language servers answer through otter: diagnostics,
-`K`, `gd`, `grr`, and `grn` with a live preview. Kernels started here print pandas DataFrames as outlined tables.
+`K`, `gd`, `grr`, and `grn` with a live preview. A kernel starts in its notebook's folder, as in JupyterLab, so a module
+beside the notebook imports by its bare name (`import hfpy_utils`), and basedpyright resolves it the same way. Each
+notebook runs its own kernel; a second notebook on the same kernelspec shows in the statusline as `<name>_1`, molten's
+id for a second instance. Kernels started here print pandas DataFrames as outlined tables.
 `<leader>ka`/`<leader>kb` add an empty cell above/below, `<leader>kd` cuts the cell (`p` pastes it elsewhere),
 `<leader>ks` splits it at the cursor and `<leader>kj` joins it with the next one; the same keys work in quarto
 documents and `# %%` scripts.
@@ -245,6 +248,15 @@ and plots draw.
 - Without git, ripgrep, fd or node the start stays silent: gitsigns stays off and the statusline shows no branch,
   while `:grep` and the grep pickers need ripgrep when used.
 - markdown-oxide never attaches to notebooks, so the notes graph's links and rename stay out of `.ipynb` files.
+- otter's hidden cell buffer (`<notebook>.otter.py`) is left out of `<leader>dd`, `<leader>sd` and `<leader>dw`, since
+  the notebook lists the same diagnostics; ruff skips I001 and N999 there, which only its synthetic file triggers.
+- While a macro records (`q` and a register), which-key stays out of the way: `<leader>` opens no menu and the
+  statusline's pending keys show `<20>` (the space). The mode block shows `recording @<register>`; `q` ends it.
+- Notifications fade after a few seconds; `<leader>sn` lists them again, errors included (a failed image conversion,
+  for example). `<leader>sm` holds command-line messages only.
+- snacks.image also draws the `img` and inline `svg` elements of HTML files. An SVG that is not well-formed, or an
+  ImageMagick whose SVG renderer cannot start (inkscape aborting with `Gio::DBus::Error`), ends in a "Conversion
+  failed" notification.
 - Images, math and plots need the kitty graphics protocol; elsewhere they are skipped and text output still shows.
 - After a theme switch without a restart (`<leader>ut`, `<leader>uc`, `<leader>uC`), crates.nvim's popup colours,
   grug-far's change markers and csvview's header line stay plain until the next start; those plugins set fixed colours

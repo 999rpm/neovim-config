@@ -1,5 +1,7 @@
 -- folke/which-key.nvim: lists what follows a prefix. Press <leader> and wait, or ? for buffer-local keys;
--- <PageUp>/<PageDown> scroll a long popup.
+-- <PageUp>/<PageDown> scroll a long popup. While a macro records (q and a register), which-key steps aside so the
+-- macro holds plain keys: <leader> opens no popup, the statusline's pending keys show <20> (the space), and the mode
+-- block shows "recording @<register>" (lualine.lua); q ends the recording and the popup returns.
 -- Grouping: a prefix holds one kind of thing, and the lowercase key is the common action, its uppercase twin the wider
 -- or rarer one (d/D diagnostics/debug, t/T terminal/test, g/G hunks/review). Every on/off switch sits under <leader>o
 -- and nothing else does; the snacks toggles there show their current state. <leader>n is the notes graph, <leader>k

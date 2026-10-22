@@ -43,7 +43,14 @@ map("n", "<leader>db", function()
 	vim.fn.setqflist({}, " ", { title = "Buffer diagnostics", items = vim.diagnostic.toqflist(vim.diagnostic.get(0)) })
 	vim.cmd.copen()
 end, { desc = "Buffer diagnostics to quickfix" }) -- n: this buffer's diagnostics in the quickfix list
-map("n", "<leader>dw", vim.diagnostic.setqflist, { desc = "All diagnostics to quickfix" }) -- n: every open buffer, and opens the list
+map("n", "<leader>dw", function()
+	local cell_buffer = require("utils.notebook").is_cell_buffer
+	local shown = vim.tbl_filter(function(d)
+		return not cell_buffer(d.bufnr)
+	end, vim.diagnostic.get())
+	vim.fn.setqflist({}, " ", { title = "Diagnostics", items = vim.diagnostic.toqflist(shown) })
+	vim.cmd.copen()
+end, { desc = "All diagnostics to quickfix" }) -- n: every open buffer except otter's hidden notebook cells, and opens the list
 for key, severity in pairs({ e = "ERROR", w = "WARN" }) do -- ]d/[d stay every severity
 	local level, label = vim.diagnostic.severity[severity], severity == "ERROR" and "error" or "warning"
 	map("n", "]" .. key, function()

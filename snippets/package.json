@@ -1,17 +1,6 @@
 {
+  "name": "999rpm-snippets",
   "contributes": {
-    "snippets": [
-      {
-        "language": "markdown",
-        "path": "./markdown.json"
-      },
-      {
-        "language": [
-          "rust"
-        ],
-        "path": "./rust.json"
-      }
-    ]
-  },
-  "name": "999rpm-snippets"
+    "snippets": [{ "language": "markdown", "path": "./markdown.json" }]
+  }
 }

@@ -137,10 +137,8 @@ local queue = {} -- buffer -> cells pressed while its kernel was still starting
 ---@return boolean running
 function M.kernel(buf, auto) -- This util is used by molten.lua, read above and run below
 	buf = buf or api.nvim_get_current_buf()
-	if vim.b[buf]._999rpm_kernel then
-		return true
-	elseif buf ~= api.nvim_get_current_buf() then
-		return false -- molten starts kernels for the current buffer only
+	if buf ~= api.nvim_get_current_buf() then
+		return vim.b[buf]._999rpm_kernel ~= nil -- molten starts kernels for the current buffer only
 	end
 	pcall(require("lazy").load, { plugins = { "molten-nvim" } })
 	if fn.exists(":MoltenInit") ~= 2 then
@@ -148,6 +146,11 @@ function M.kernel(buf, auto) -- This util is used by molten.lua, read above and 
 			warn("molten's commands are not registered: run :JupyterSetup once.")
 		end
 		return false
+	end
+	local listed, running = pcall(fn.MoltenRunningKernels, true)
+	if listed and #running > 0 then -- molten's own list, not the b: variable: a second MoltenInit would start <name>_1
+		vim.b[buf]._999rpm_kernel = table.concat(running, ", ")
+		return true
 	end
 	local path, name = api.nvim_buf_get_name(buf), nil
 	if path:match("%.ipynb$") and vim.uv.fs_stat(path) then
@@ -484,11 +487,7 @@ end
 function M.attach(buf) -- This util is used by ipynb.lua
 	local ft = vim.bo[buf].filetype
 	local notebook = vim.b[buf]._999rpm_notebook or ft == "quarto"
-	if
-		vim.b[buf]._999rpm_cells
-		or (ft == "markdown" and not notebook)
-		or api.nvim_buf_get_name(buf):find("%.otter%.")
-	then
+	if vim.b[buf]._999rpm_cells or (ft == "markdown" and not notebook) or M.is_cell_buffer(buf) then
 		return -- plain markdown and the notes graph have no cells; otter's hidden buffers need no keys
 	end
 	vim.b[buf]._999rpm_cells = true
@@ -526,6 +525,15 @@ function M.attach(buf) -- This util is used by ipynb.lua
 			end)
 		end
 	end)
+end
+
+---True for otter.nvim's hidden buffer of a notebook's code cells ("<notebook>.otter.<ext>"), whose diagnostics already
+---show in the notebook itself.
+---@param buf integer|string buffer number or file name
+---@return boolean
+function M.is_cell_buffer(buf) -- This util is used by mappings.lua, otter.lua, snacks.lua, trouble.lua and attach above
+	local name = type(buf) == "number" and (api.nvim_buf_is_valid(buf) and api.nvim_buf_get_name(buf) or "") or buf
+	return name:find("%.otter%.[^/]*$") ~= nil
 end
 
 ---Opens a new notebook (".ipynb" is added when missing); it starts as one empty Python cell.
