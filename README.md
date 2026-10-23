@@ -208,9 +208,11 @@ the Logseq app can open the same folder. `<leader>nn` opens today's journal, `<l
 place, `<leader>kn` runs it and moves to the next one (`<S-CR>` does the same in insert mode), and `:w` formats the code
 cells and writes a normal notebook back, outputs included. The cells' language servers answer through otter: diagnostics,
 `K`, `gd`, `grr`, and `grn` with a live preview. A kernel starts in its notebook's folder, as in JupyterLab, so a module
-beside the notebook imports by its bare name (`import hfpy_utils`), and basedpyright resolves it the same way. Each
-notebook runs its own kernel; a second notebook on the same kernelspec shows in the statusline as `<name>_1`, molten's
-id for a second instance. Kernels started here print pandas DataFrames as outlined tables.
+beside the notebook imports by its bare name (`import hfpy_utils`), ahead of a package of the same name. basedpyright
+resolves it the same way: the cells get a basedpyright rooted at the notebook's folder, with the project's `.venv`
+Python, and their diagnostics follow every edit, normal-mode ones included. Each notebook runs its own kernel; a second
+notebook on the same kernelspec shows in the statusline as `<name>_1`, molten's id for a second instance. Kernels
+started here print pandas DataFrames as outlined tables.
 `<leader>ka`/`<leader>kb` add an empty cell above/below, `<leader>kd` cuts the cell (`p` pastes it elsewhere),
 `<leader>ks` splits it at the cursor and `<leader>kj` joins it with the next one; the same keys work in quarto
 documents and `# %%` scripts.
@@ -250,6 +252,9 @@ and plots draw.
 - markdown-oxide never attaches to notebooks, so the notes graph's links and rename stay out of `.ipynb` files.
 - otter's hidden cell buffer (`<notebook>.otter.py`) is left out of `<leader>dd`, `<leader>sd` and `<leader>dw`, since
   the notebook lists the same diagnostics; ruff skips I001 and N999 there, which only its synthetic file triggers.
+- A notebook's cells are checked by a basedpyright rooted at the notebook's folder, so the project's
+  `[tool.basedpyright]` or `pyrightconfig.json` settings do not reach them; their Python is the project's `.venv`, else
+  the `python` on `$PATH`.
 - While a macro records (`q` and a register), which-key stays out of the way: `<leader>` opens no menu and the
   statusline's pending keys show `<20>` (the space). The mode block shows `recording @<register>`; `q` ends it.
 - Notifications fade after a few seconds; `<leader>sn` lists them again, errors included (a failed image conversion,

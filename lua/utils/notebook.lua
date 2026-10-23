@@ -531,7 +531,7 @@ end
 ---show in the notebook itself.
 ---@param buf integer|string buffer number or file name
 ---@return boolean
-function M.is_cell_buffer(buf) -- This util is used by mappings.lua, otter.lua, snacks.lua, trouble.lua and attach above
+function M.is_cell_buffer(buf) -- This util is used by lspconfig.lua, mappings.lua, otter.lua, snacks.lua, trouble.lua and attach above
 	local name = type(buf) == "number" and (api.nvim_buf_is_valid(buf) and api.nvim_buf_get_name(buf) or "") or buf
 	return name:find("%.otter%.[^/]*$") ~= nil
 end

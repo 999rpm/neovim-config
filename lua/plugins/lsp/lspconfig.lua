@@ -1,7 +1,9 @@
 -- neovim/nvim-lspconfig: server definitions, started through vim.lsp.config/vim.lsp.enable. Mason installs the binaries
 -- (mason.lua); rust-analyzer belongs to rustaceanvim.lua. markdown-oxide serves markdown files and the notes graph,
--- never a notebook (.ipynb), whose cells otter.lua serves. Diagnostics: tiny-inline-diagnostic.lua draws the cursor
--- line's messages, mappings.lua holds <leader>df/db/dw. Floats take 'winborder'.
+-- never a notebook (.ipynb), whose cells otter.lua serves. basedpyright pushes its diagnostics, and a notebook's cells
+-- get a basedpyright of their own, rooted at the notebook's folder, where the kernel imports from (molten.lua), with
+-- the project's .venv Python. Diagnostics: tiny-inline-diagnostic.lua draws the cursor line's messages, mappings.lua
+-- holds <leader>df/db/dw. Floats take 'winborder'.
 -- Built-in LSP keys kept as Neovim sets them: K hover, gra code action, grx code lens, grr references, gri
 -- implementation, grt type definition, gO document symbols, <C-s> signature help in insert mode; ]d/[d, ]D/[D and
 -- <C-w>d for diagnostics. Set per buffer below, only where an attached server answers them: gd, gD and grn as upgrades
@@ -134,6 +136,8 @@ return {
 			{ nargs = "*", desc = "Alias for :lsp restart" }
 		)
 
+		local cell_roots = {} -- notebook folders that root a basedpyright of their own, each with the project's .venv Python or false
+
 		local servers = {
 			lua_ls = {
 				settings = {
@@ -217,6 +221,29 @@ return {
 				},
 			},
 			basedpyright = {
+				capabilities = { textDocument = { diagnostic = { dynamicRegistration = false } } }, -- the server then pushes its diagnostics: Neovim pulls only for buffers shown in a window, and otter.lua's hidden cell buffers never are
+				root_dir = function(bufnr, on_dir) -- a notebook's cells resolve imports from the notebook's folder, which the kernel searches ahead of site-packages, so a module there wins over a package of the same name
+					local project = vim.fs.root(bufnr, vim.lsp.config.basedpyright.root_markers)
+					if not require("utils.notebook").is_cell_buffer(bufnr) then
+						return on_dir(project)
+					end
+					local dir = vim.fs.dirname(vim.api.nvim_buf_get_name(bufnr))
+					if dir ~= project then
+						local python = project and project .. "/.venv/bin/python"
+						cell_roots[dir] = python and vim.uv.fs_stat(python) ~= nil and python or false
+					end
+					on_dir(dir)
+				end,
+				before_init = function(_, config) -- a cells root checks the open cells only, as the project's own client reports the folder's files, and takes the .venv basedpyright finds at a project root
+					local python = cell_roots[config.root_dir]
+					if python == nil then
+						return
+					end
+					config.settings.basedpyright.analysis.diagnosticMode = "openFilesOnly" -- in place: the client answers the server from this table
+					if python then
+						config.settings.python = { pythonPath = python }
+					end
+				end,
 				settings = {
 					basedpyright = {
 						disableOrganizeImports = true, -- ruff owns import sorting, see `ruff` below
