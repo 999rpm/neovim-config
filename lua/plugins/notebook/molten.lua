@@ -1,7 +1,8 @@
 -- benlubas/molten-nvim: Jupyter kernels inside Neovim. Code runs in a real kernel (Python, R, Julia, anything with a
 -- kernelspec) and its output, plots included, appears as virtual lines under the cell; snacks.image draws the images
--- through kitty. A DataFrame in the output is an outlined table: kernels started here run ipython/outlined_tables.py
--- through PYTHONSTARTUP (utils/jupyter.lua). The picker lists every installed kernelspec: a uv project joins it through
+-- through kitty; Neovide draws none, so there <leader>kp opens them in the system's image viewer. A DataFrame in the
+-- output is an outlined table: kernels started here run ipython/outlined_tables.py through PYTHONSTARTUP
+-- (utils/jupyter.lua). The picker lists every installed kernelspec: a uv project joins it through
 -- <leader>kv, a micromamba or venv environment after `python -m ipykernel install --user --name <env>` inside it.
 -- Notebooks open through ipynb.lua; in cell buffers utils/notebook.lua adds <leader>ka/kb/kd/ks/kj (add above/below,
 -- delete, split, join). A kernel starts in its notebook's folder, as in JupyterLab, so the modules beside the notebook
@@ -21,7 +22,7 @@ return {
 	build = call("jupyter", "setup"), -- creates the Python environment once, then registers the remote plugin
 	init = function()
 		local g = vim.g
-		g.molten_image_provider = "snacks.nvim" -- snacks.lua's image module; no image.nvim or ImageMagick binding needed
+		g.molten_image_provider = vim.g.neovide and "none" or "snacks.nvim" -- snacks.lua's image module; no image.nvim needed
 		g.molten_auto_open_output = false -- output stays as virtual lines under the cell; <leader>ke opens the window
 		g.molten_virt_text_output = true -- under the cell's last code line: the markdown query hides the closing fence line, and its virtual lines with it
 		g.molten_wrap_output = true

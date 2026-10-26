@@ -99,22 +99,17 @@ api.nvim_create_autocmd("FileChangedShellPost", {
 	end,
 })
 
+local transient =
+	{ "/tmp/*", "*/shm/*", "/private/tmp/*", "/private/var/*", "*.tmp", "*.bak", "COMMIT_EDITMSG", "MERGE_MSG" }
+for _, var in ipairs({ "TMPDIR", "TMP", "TEMP" }) do -- macOS and Windows keep temporary files under these
+	if (vim.env[var] or "") ~= "" then
+		transient[#transient + 1] = vim.fs.normalize(vim.env[var]) .. "/*" -- the API takes patterns literally: no $VAR expansion
+	end
+end
 api.nvim_create_autocmd({ "BufNewFile", "BufReadPre" }, {
 	group = augroup("no_undofile"),
 	desc = "999rpm: no undo file for temporary and transient files",
-	pattern = {
-		"/tmp/*",
-		"$TMPDIR/*",
-		"$TMP/*",
-		"$TEMP/*",
-		"*/shm/*",
-		"/private/tmp/*",
-		"/private/var/*",
-		"*.tmp",
-		"*.bak",
-		"COMMIT_EDITMSG",
-		"MERGE_MSG",
-	},
+	pattern = transient,
 	callback = function()
 		vim.opt_local.undofile = false -- options.lua's 'backupskip' keeps their backups out
 	end,

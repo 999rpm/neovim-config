@@ -1,9 +1,11 @@
 -- avante-corp/avante.nvim: Claude sidebar with diff-based edits. Needs ANTHROPIC_API_KEY. The build step fetches the
--- prebuilt libraries with curl and tar; upstream's Makefile would compile them with cargo instead. It follows its
--- main branch (no version set), as avante's own docs ask. Owns <leader>i except io/ic/iS (opencode.lua).
+-- prebuilt libraries with curl and tar, or on Windows with Build.ps1 through PowerShell, as avante's README asks;
+-- upstream's Makefile would compile them with cargo instead. It follows its main branch (no version set), as avante's
+-- own docs ask. Owns <leader>i except io/ic/iS (opencode.lua).
 return {
 	"avante-corp/avante.nvim",
-	build = "bash build.sh",
+	build = vim.fn.has("win32") == 1 and "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false"
+		or "bash build.sh",
 	cmd = { "AvanteAsk", "AvanteChat", "AvanteEdit", "AvanteToggle" }, -- with the keys below; nothing loads at startup
 	opts = {
 		providers = {

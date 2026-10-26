@@ -37,7 +37,7 @@ return {
 				end
 				lint.try_lint(nil, { filter = installed }) -- nil: nvim-lint resolves the filetype itself, compound ones included
 				lint.try_lint(always, { filter = installed })
-				if vim.api.nvim_buf_get_name(ev.buf):find("/%.github/workflows/[^/]+%.ya?ml$") then
+				if vim.fs.normalize(vim.api.nvim_buf_get_name(ev.buf)):find("/%.github/workflows/[^/]+%.ya?ml$") then
 					lint.try_lint("actionlint", { filter = installed })
 				end
 			end,

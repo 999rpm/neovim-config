@@ -1,5 +1,6 @@
 -- d2 diagrams: the whole buffer in a d2 file, else the ```d2 block holding the cursor, rendered by the d2 binary to
--- PNG (snacks.image draws it) or to box-drawing text that any terminal shows.
+-- PNG (snacks.image draws it; under Neovide, which draws no images, the system's image viewer opens it) or to
+-- box-drawing text that any terminal shows.
 local fn = vim.fn
 local api = vim.api
 local core = require("utils.core")
@@ -60,7 +61,8 @@ local function run(args, src, name, on_done)
 	)
 end
 
----Renders a diagram (the one under the cursor when src is nil) to PNG in a split, where snacks.image draws it.
+---Renders a diagram (the one under the cursor when src is nil) to PNG in a split, where snacks.image draws it, or in
+---the system's image viewer under Neovide.
 ---@param src? string
 ---@param name? string
 function M.render(src, name) -- This util is used by d2-diagrams.lua and utils/notes.lua
@@ -69,6 +71,13 @@ function M.render(src, name) -- This util is used by d2-diagrams.lua and utils/n
 	local theme = vim.o.background == "light" and "0" or "200" -- d2's Neutral default, or Dark Mauve on a dark background
 	run({ "--theme=" .. theme, "-", dir .. "/{name}.png" }, src, name, function(_, stem)
 		local png = ("%s/%s.png"):format(dir, stem)
+		if vim.g.neovide then
+			local _, err = vim.ui.open(png)
+			if err then
+				core.warn(err, "d2")
+			end
+			return
+		end
 		local win = fn.bufwinid(png)
 		if win ~= -1 then
 			api.nvim_win_call(win, function()

@@ -10,6 +10,14 @@ function M.executable(name) -- This util is used by autocmds.lua, blink.lua, git
 	return fn.executable(name) > 0
 end
 
+---Program inside a Python virtual environment: bin/<name>, or Scripts/<name>.exe on Windows.
+---@param venv string the environment's folder
+---@param name string
+---@return string
+function M.venv_bin(venv, name) -- This util is used by dap-python.lua, lspconfig.lua and utils/jupyter.lua
+	return fn.has("win32") == 1 and ("%s/Scripts/%s.exe"):format(venv, name) or ("%s/bin/%s"):format(venv, name)
+end
+
 ---@param dir string
 function M.may_create_dir(dir) -- This util is used by autocmds.lua, options.lua, utils/d2.lua, utils/notebook.lua, utils/notes.lua and utils/project.lua
 	if fn.isdirectory(dir) == 0 then

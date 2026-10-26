@@ -1,6 +1,7 @@
 -- Editor options. Leader is Space, local leader is backslash. vim.g.notes_dir points the notes layer at a Logseq-style
 -- graph folder, vim.g.projects_dir the project picker at the projects folder. 'shell' is sh whatever the login shell
--- is, so :!, :make, :grep and plugins get the syntax they build; terminals run the login shell (utils/shell.lua). The
+-- is, so :!, :make, :grep and plugins get the syntax they build; terminals run the login shell (utils/shell.lua).
+-- Windows keeps cmd.exe, which Neovim's Windows defaults for the other shell options and plugins there expect. The
 -- Python 3 provider runs only when :JupyterSetup's environment exists (molten.lua needs it).
 local core = require("utils.core")
 local jupyter_python = require("utils.jupyter").python()
@@ -34,7 +35,7 @@ end)
 opt.mouse = "n" -- normal mode only; "a" would extend it to every mode
 opt.confirm = true -- ask before leaving a modified buffer instead of failing
 
-if core.executable("sh") then
+if vim.fn.has("win32") == 0 and core.executable("sh") then
 	opt.shell = "sh" -- found through $PATH; Neovim derives 'shellpipe' and 'shellredir' from it after this file
 end
 

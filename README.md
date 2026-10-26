@@ -6,6 +6,7 @@ notes graph on plain markdown, Jupyter notebooks that run against real kernels, 
 created from templates, opened from a list and built as tasks.
 
 Written for Neovim 0.12.6 on Linux, with kitty as the terminal, zsh or nushell as the login shell, and tmux optional.
+It also runs on macOS and Windows, and in [Neovide](https://neovide.dev) as a GUI.
 
 ## Features
 
@@ -46,19 +47,23 @@ Written for Neovim 0.12.6 on Linux, with kitty as the terminal, zsh or nushell a
 
 ## Requirements
 
-- Neovim 0.12+ (tested on 0.12.6), git, a C compiler, `make`, curl, ripgrep, fd, a POSIX `sh` on `$PATH` and a
-  [Nerd Font](https://www.nerdfonts.com)
+- Neovim 0.12+ (tested on 0.12.6), git, a C compiler, `make`, curl, ripgrep, fd, a POSIX `sh` on `$PATH` (Linux and
+  macOS) and a [Nerd Font](https://www.nerdfonts.com)
 - The tree-sitter CLI for parser builds (Mason installs it)
 - Node.js 22+ for Copilot and the JavaScript tooling; python3 or [uv](https://github.com/astral-sh/uv) for the Jupyter setup
 - Optional: lazygit, yazi, `gh`, [d2](https://d2lang.com), ImageMagick, xxd, btop, npm
 - kitty, or another terminal with the kitty graphics protocol, for images, math and notebook plots; tmux optional, with
   extended keys and passthrough on
 - zsh or nushell as the login shell; both behave the same here
+- macOS: kitty sends the Alt keys (`<M-j>`, `<M-h>` and the rest) only with `macos_option_as_alt left` in kitty.conf
+- Windows: PowerShell for avante.nvim's build; 'shell' stays cmd.exe
+- Optional GUI: Neovide 0.13 or later with Lilex Nerd Font installed (kitty.conf's font, size 11)
 
 ## Install
 
 The archive holds one folder, `nvim`, with the whole config and the plugin lockfile it was tested with. Extracting it
-replaces `~/.config/nvim`, so the old folder is backed up or removed first:
+replaces `~/.config/nvim` (`%LOCALAPPDATA%\nvim` on Windows; `:echo stdpath('config')` shows the folder), so the old
+folder is backed up or removed first:
 
 ```sh
 mv ~/.config/nvim ~/.config/nvim.bak
@@ -74,7 +79,7 @@ missing. `:JupyterSetup` builds the Python environment the notebooks use, and `:
 
 ```
 init.lua              entry point
-lua/config/           options, autocommands, keymaps, lazy.nvim bootstrap
+lua/config/           options, autocommands, keymaps, lazy.nvim bootstrap, Neovide settings
 lua/plugins/<group>/  one file per plugin: core, lsp, completion, treesitter, editor, ui, git,
                       explorer, debug, test, projects, lang, notes, notebook, ai, deps
 lua/utils/            shared helpers by subject: core, shell, statusline, debugger, fences,
@@ -171,6 +176,11 @@ list closes with `q`; help, man and checkhealth windows close with `:q` (help ke
 have their own `q`). The header of `lua/config/mappings.lua` lists the built-in keys worth knowing, and each plugin file
 lists its own.
 
+Inside Neovide (`lua/config/neovide.lua`): `<C-=>` and `<C-->` make the text larger and smaller, `<C-0>` resets it. On
+macOS `<D-c>` copies the selection and `<D-v>` pastes in every mode. Elsewhere `<C-S-c>` copies and `<C-S-v>` pastes in
+normal, visual and terminal mode; insert and command-line mode keep the built-in CTRL-SHIFT-V (the next key
+literally), so `<C-r>+` pastes there.
+
 ## Built-in keys kept as upgrades
 
 Each key still does its built-in job and falls back to it where the plugin cannot act.
@@ -233,15 +243,16 @@ A `.nvim.lua` at a project's root holds its own settings once `:trust` approves 
 ## Shell and terminal
 
 `'shell'` is `sh`, found through `$PATH`, whatever the login shell, so `:!`, `:make`, `:grep`, `:%!` filters and plugins
-that build shell commands get POSIX syntax under zsh and nushell alike. Terminal buffers run the login shell: snacks
-terminals (`<C-,>` and `<leader>t`) and a bare `:terminal`. External tools run through argument lists, never through a
+that build shell commands get POSIX syntax under zsh and nushell alike. On Windows it stays cmd.exe, which Neovim's
+Windows defaults and plugins there expect. Terminal buffers run the login shell: snacks terminals (`<C-,>` and
+`<leader>t`) and a bare `:terminal` (on Windows `$SHELL` when set, else cmd.exe). External tools run through argument lists, never through a
 shell string.
 
 Key conflicts resolve kitty first, then the shell, then tmux, then Neovim: `kitty.conf` binds only `ctrl+shift`
 combinations and `alt+1` to `alt+9`, none of which Neovim uses here; tmux keeps its default prefix `C-b` (`C-b C-b`
 sends it on), so no Neovim mapping sits on `<C-b>`; and a terminal buffer maps no Alt keys, which zsh's vi mode and
 nushell both use. tmux's extended keys let `<C-CR>`, `<S-CR>` and `<C-,>` reach Neovim, and passthrough lets images
-and plots draw.
+and plots draw. Neovide's keys exist only inside Neovide, where kitty, the shell and tmux never see them.
 
 ## Known edge cases
 
@@ -263,6 +274,13 @@ and plots draw.
   ImageMagick whose SVG renderer cannot start (inkscape aborting with `Gio::DBus::Error`), ends in a "Conversion
   failed" notification.
 - Images, math and plots need the kitty graphics protocol; elsewhere they are skipped and text output still shows.
+  Neovide has no such protocol: there snacks' images and smooth scrolling (Neovide animates its own) are off, and d2
+  diagrams (`<leader>ud`) and notebook plots (`<leader>kp`) open in the system's image viewer.
+  [neovim/neovim#41287](https://github.com/neovim/neovim/pull/41287), still open, would let GUIs draw images.
+- On Windows `<leader>cr` builds a lone C or C++ file into `<name>.exe`; Makefile projects need `make`, and scripts
+  their interpreter (`sh`, `bash`, `zsh`, `nu`), on `$PATH`, else a warning names the missing program.
+- The C and C++ project template writes a Makefile with POSIX recipes (`mkdir -p`, `printf`, `rm -rf`), so on Windows
+  it needs a make that runs them through sh, such as MSYS2's.
 - After a theme switch without a restart (`<leader>ut`, `<leader>uc`, `<leader>uC`), crates.nvim's popup colours,
   grug-far's change markers and csvview's header line stay plain until the next start; those plugins set fixed colours
   once, at load. Every other plugin's colours follow the new theme.

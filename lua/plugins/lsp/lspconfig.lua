@@ -229,7 +229,7 @@ return {
 					end
 					local dir = vim.fs.dirname(vim.api.nvim_buf_get_name(bufnr))
 					if dir ~= project then
-						local python = project and project .. "/.venv/bin/python"
+						local python = project and core.venv_bin(project .. "/.venv", "python")
 						cell_roots[dir] = python and vim.uv.fs_stat(python) ~= nil and python or false
 					end
 					on_dir(dir)

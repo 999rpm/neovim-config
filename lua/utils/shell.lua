@@ -1,8 +1,10 @@
--- Shells: 'shell' is sh whatever the login shell is (options.lua), since :!, :make, :grep and plugins build sh syntax;
--- the login shell (zsh, nushell or any other) runs where a person types: snacks.lua's terminals and a bare :terminal.
+-- Shells: 'shell' is sh whatever the login shell is (options.lua; Windows keeps cmd.exe), since :!, :make, :grep and
+-- plugins build its syntax; the login shell (zsh, nushell or any other) runs where a person types: snacks.lua's
+-- terminals and a bare :terminal.
 local M = {}
 
----Login shell from the passwd database (follows chsh without a new login), then $SHELL, then sh.
+---Login shell from the passwd database (follows chsh without a new login), then $SHELL, then 'shell': Windows has no
+---passwd shell and seldom a $SHELL, so its terminals get cmd.exe.
 ---@return string
 function M.login_shell() -- This util is used by snacks.lua and terminal_login_shell below
 	local ok, passwd = pcall(vim.uv.os_get_passwd) -- raises where the platform has no passwd database
@@ -11,11 +13,11 @@ function M.login_shell() -- This util is used by snacks.lua and terminal_login_s
 			return shell
 		end
 	end
-	return "sh"
+	return vim.o.shell
 end
 
 ---CmdlineLeave handler: a bare :terminal (modifiers and a range allowed, no command) runs the login shell. 'shell'
----holds it while the command runs and gets sh back right after, so :! and :make never see the login shell.
+---holds it while the command runs and gets its own value back right after, so :! and :make never see the login shell.
 function M.terminal_login_shell() -- This util is used by autocmds.lua
 	if vim.v.event.abort then
 		return

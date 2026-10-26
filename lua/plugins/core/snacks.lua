@@ -1,7 +1,8 @@
 -- folke/snacks.nvim: picker, terminals, notifier, indent guides, dashboard, scratch buffers, zen, lazygit, git browse,
 -- reference highlighting, inline images and the on/off switches. Pickers open in the result list (normal mode) and
 -- rank by frecency; terminals run the login shell (utils/shell.lua) while 'shell' stays sh. kitty draws markdown images
--- and ```math blocks inline; d2 diagrams come from lang/d2-diagrams.lua.
+-- and ```math blocks inline; d2 diagrams come from lang/d2-diagrams.lua. Under Neovide, which draws no images and
+-- animates scrolling itself, images and smooth scrolling are off.
 -- Prefixes: <leader>f find files, <leader>s search contents, <leader>l LSP lists (lspconfig.lua adds lw), <leader>t
 -- terminals, and parts of <leader>e explore, <leader>g git, <leader>u UI and <leader>o switches; ]r/[r references.
 local function pick(source, opts) -- one wrapper instead of a closure per key
@@ -49,10 +50,10 @@ return {
 		input = { enabled = false }, -- noice.lua
 		statuscolumn = { enabled = false }, -- statuscol.lua
 		quickfile = { enabled = true },
-		scroll = { enabled = true },
+		scroll = { enabled = not vim.g.neovide }, -- Neovide animates scrolling itself
 		words = { enabled = true }, -- underlines the symbol under the cursor where it recurs; ]r/[r walk them
 		image = {
-			enabled = true, -- markdown images and ```math blocks render inline through kitty's graphics protocol
+			enabled = not vim.g.neovide, -- markdown images and ```math blocks inline, through kitty's graphics protocol
 			convert = { notify = true }, -- a failed conversion reports instead of leaving a blank
 		},
 		notifier = { enabled = true },

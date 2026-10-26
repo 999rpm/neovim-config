@@ -14,7 +14,7 @@ return {
 			end,
 			ft = { "d2", "markdown" },
 			desc = "d2 diagram as image",
-		}, -- n: the diagram as a PNG in a split, which kitty draws through snacks.image (d for diagram)
+		}, -- n: the diagram as a PNG, in a split under kitty or the system's viewer under Neovide (d for diagram)
 		{
 			"<leader>uD",
 			function()

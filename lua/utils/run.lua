@@ -17,6 +17,7 @@ local COMPILERS = { c = "clang", cpp = "clang++" }
 local MAKEFILES = { "Makefile", "makefile", "GNUmakefile" }
 local BUILD_FILES = vim.list_extend({ "CMakeLists.txt", "meson.build" }, MAKEFILES)
 local FLAG_LINES = 10 -- only a file's first lines are read for "// 999rpm-flags:", so a long file costs nothing
+local EXE = fn.has("win32") == 1 and ".exe" or "" -- the suffix of a program's file name
 
 ---@type table<string, fun(file: string): string[]>
 local INTERPRETERS = {
@@ -124,13 +125,20 @@ function M.file_flags(file) -- This util is used by build_cmd and set_makeprg be
 	return flags
 end
 
+---Program a lone C or C++ file builds: the file's path without its extension, plus .exe on Windows.
+---@param file string
+---@return string
+local function program(file)
+	return fn.fnamemodify(file, ":r") .. EXE
+end
+
 ---clang command that builds one C or C++ file next to itself: the warning flags above, the file, then its own flags.
 ---@param file string
 ---@return string[]
 function M.build_cmd(file) -- This util is used by overseer.lua and run below
 	local compiler = COMPILERS[vim.filetype.match({ filename = file }) or ""] or "clang"
 	local cmd = vim.list_extend({ compiler }, M.flags)
-	vim.list_extend(cmd, { file, "-o", fn.fnamemodify(file, ":r") })
+	vim.list_extend(cmd, { file, "-o", program(file) })
 	return vim.list_extend(cmd, M.file_flags(file))
 end
 
@@ -144,7 +152,7 @@ function M.set_makeprg(buf) -- This util is used by autocmds.lua
 	end
 	local own = vim.tbl_map(fn.shellescape, M.file_flags(file)) -- 'makeprg' goes through 'shell', so each flag is quoted
 	local flags = table.concat(M.flags, " ")
-	vim.bo[buf].makeprg = vim.trim(("%s %s %%:S -o %%:r:S %s"):format(compiler, flags, table.concat(own, " "))) -- :S quotes a path for 'shell', which is sh
+	vim.bo[buf].makeprg = vim.trim(("%s %s %%:S -o %%:r:S%s %s"):format(compiler, flags, EXE, table.concat(own, " "))) -- :S quotes a path for 'shell'; .exe joins the quoted name
 end
 
 ---Writes every modified file buffer under root before a project build, since make reads the whole project from disk
@@ -152,7 +160,7 @@ end
 ---@param root string
 local function save_project(root)
 	for _, buf in ipairs(api.nvim_list_bufs()) do
-		local name = api.nvim_buf_get_name(buf)
+		local name = vim.fs.normalize(api.nvim_buf_get_name(buf)) -- / separators, as in root from vim.fs.find, also on Windows
 		if vim.bo[buf].modified and vim.bo[buf].buftype == "" and vim.startswith(name, root .. "/") then
 			api.nvim_buf_call(buf, function()
 				vim.cmd("silent update")
@@ -204,7 +212,11 @@ function M.run() -- This util is used by mappings.lua
 		if not interpreter then
 			return core.warn(("No runner for filetype %q."):format(ft), "Run")
 		end
-		return open_term(interpreter(file), dir)
+		local argv = interpreter(file)
+		if not core.executable(argv[1]) then
+			return core.warn(("'%s' not found on $PATH."):format(argv[1]), "Run")
+		end
+		return open_term(argv, dir)
 	end
 	local makefile = M.makefile(dir)
 	if makefile then
@@ -219,7 +231,7 @@ function M.run() -- This util is used by mappings.lua
 		return core.warn(("'%s' not found on $PATH."):format(compiler), "Run")
 	end
 	build(M.build_cmd(file), dir, function()
-		open_term({ fn.fnamemodify(file, ":r") }, dir)
+		open_term({ program(file) }, dir)
 	end)
 end
 

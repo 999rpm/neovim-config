@@ -5,8 +5,7 @@ return {
 	lazy = true, -- loads with nvim-dap, which lists it as a dependency
 	config = function()
 		local debugger = require("utils.debugger")
-		local debugpy =
-			debugger.mason_path("packages/debugpy/venv/bin/python", "packages/debugpy/venv/Scripts/python.exe")
+		local debugpy = require("utils.core").venv_bin(debugger.mason_path("packages/debugpy/venv"), "python")
 		require("dap-python").setup(debugpy)
 		local dap = require("dap")
 		for _, name in ipairs({ "python", "debugpy" }) do

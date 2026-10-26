@@ -7,23 +7,23 @@ local core = require("utils.core")
 
 local M = {}
 
+local ENV = fn.stdpath("data") .. "/999rpm-jupyter"
 local PACKAGES = { "pynvim", "jupyter_client", "jupytext", "ipykernel", "nbformat", "cairosvg", "pillow" } -- molten's requirements and the jupytext CLI; ipykernel gives the environment a python3 kernel of its own
 
 ---@return string
-function M.python() -- This util is used by options.lua, and jupytext and setup below
-	return fn.stdpath("data") .. "/999rpm-jupyter/" .. (fn.has("win32") == 1 and "Scripts/python.exe" or "bin/python")
+function M.python() -- This util is used by options.lua, and setup below
+	return core.venv_bin(ENV, "python")
 end
 
 ---@return string jupytext from the Jupyter environment, else the one on $PATH
 function M.jupytext() -- This util is used by utils/notebook.lua
-	local bin = vim.fs.dirname(M.python()) .. "/jupytext"
+	local bin = core.venv_bin(ENV, "jupytext")
 	return vim.uv.fs_stat(bin) and bin or "jupytext"
 end
 
 ---Creates the environment, installs or upgrades its packages and registers molten's remote plugin.
 function M.setup() -- This util is used by molten.lua
-	local python = M.python()
-	local dir = vim.fs.dirname(vim.fs.dirname(python))
+	local python, dir = M.python(), ENV
 	local uv = core.executable("uv")
 	local base = core.executable("python3") and "python3" or core.executable("python") and "python" or nil
 	local steps = {}

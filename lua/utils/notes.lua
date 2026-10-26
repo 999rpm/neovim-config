@@ -339,7 +339,7 @@ end
 ---@param name? string page name; the current page and its aliases when nil
 function M.backlinks(name) -- This util is used by logseq.lua and tags below
 	local names = name and { name } or current_names()
-	local here = api.nvim_buf_get_name(0)
+	local here = vim.fs.normalize(api.nvim_buf_get_name(0)) -- rows carry joinpath's / separators, also on Windows
 	local rows = vim.tbl_filter(function(row)
 		return name ~= nil or row.file ~= here
 	end, notes_rg({ "-i", "-e", ref_pattern(names) }))
@@ -349,7 +349,7 @@ end
 ---Plain-text mentions of the current page that are not links yet, Logseq's unlinked references.
 function M.unlinked() -- This util is used by logseq.lua
 	local names = current_names()
-	local here = api.nvim_buf_get_name(0)
+	local here = vim.fs.normalize(api.nvim_buf_get_name(0))
 	local args = { "-i", "-w", "-F" }
 	for _, name in ipairs(names) do
 		vim.list_extend(args, { "-e", name })
@@ -728,8 +728,8 @@ function M.follow(split) -- This util is used by logseq.lua
 	end
 end
 
----Local link graph of the current page (pages it links to, pages linking to it), drawn by d2 as a PNG that snacks.image
----shows, or as box-drawing text.
+---Local link graph of the current page (pages it links to, pages linking to it), drawn by d2 as a PNG (utils/d2.lua
+---shows it) or as box-drawing text.
 ---@param as_text? boolean
 function M.graph(as_text) -- This util is used by logseq.lua
 	local here = api.nvim_buf_get_name(0)
