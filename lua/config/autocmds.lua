@@ -160,6 +160,15 @@ api.nvim_create_autocmd({ "FileType", "BufWritePost" }, { -- no pattern: set_mak
 	end,
 })
 
+api.nvim_create_autocmd("BufWritePost", {
+	group = augroup("compile_flags"),
+	pattern = "Makefile",
+	desc = "999rpm: a saved project Makefile rewrites compile_flags.txt, so clangd follows its flags before the next make",
+	callback = function(ev)
+		require("utils.run").sync_compile_flags(ev.buf)
+	end,
+})
+
 local yank_group = augroup("highlight_yank")
 local pre_yank = {} -- an upvalue: a vim.g write would copy the table across the Vimscript boundary on every move
 api.nvim_create_autocmd("CursorMoved", {

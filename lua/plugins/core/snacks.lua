@@ -1,8 +1,9 @@
 -- folke/snacks.nvim: picker, terminals, notifier, indent guides, dashboard, scratch buffers, zen, lazygit, git browse,
--- reference highlighting, inline images and the on/off switches. Pickers open in the result list (normal mode) and
--- rank by frecency; terminals run the login shell (utils/shell.lua) while 'shell' stays sh. kitty draws markdown images
--- and ```math blocks inline; d2 diagrams come from lang/d2-diagrams.lua. Under Neovide, which draws no images and
--- animates scrolling itself, images and smooth scrolling are off.
+-- reference highlighting, inline images and the on/off switches. Pickers open in the result list (normal mode), those
+-- that start from a typed query (grep, lines, workspace symbols, projects) in the input, and rank by frecency;
+-- terminals run the login shell (utils/shell.lua) while 'shell' stays sh. kitty draws markdown images and ```math
+-- blocks inline; d2 diagrams come from lang/d2-diagrams.lua. Under Neovide, which draws no images and animates
+-- scrolling itself, images and smooth scrolling are off.
 -- Prefixes: <leader>f find files, <leader>s search contents, <leader>l LSP lists (lspconfig.lua adds lw), <leader>t
 -- terminals, and parts of <leader>e explore, <leader>g git, <leader>u UI and <leader>o switches; ]r/[r references.
 local function pick(source, opts) -- one wrapper instead of a closure per key
@@ -79,6 +80,7 @@ return {
 				git_grep = { focus = "input" },
 				lines = { focus = "input" },
 				lsp_workspace_symbols = { focus = "input" },
+				projects = { focus = "input" }, -- <leader>wp: a typed name filters at once; the list would take its letters as commands
 				diagnostics = {
 					filter = {
 						filter = function(item)

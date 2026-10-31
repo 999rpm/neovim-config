@@ -2,10 +2,11 @@
 -- the working directory, so a bare name lands inside it), and the project is created there, put under git and opened,
 -- with the working directory moved into it. Rust, Python and JavaScript projects come from their own tools (cargo, uv,
 -- npm); C and C++ get a Makefile with build, release, run and clean targets (overseer.lua lists them as tasks). The
--- Makefile is the project's property pages: compiler flags in
--- CXXFLAGS (CFLAGS in C), linker options in LDFLAGS, libraries in LDLIBS, and make rewrites compile_flags.txt from the
--- compiler flags, so clangd checks what the build uses. Every command is an argument list, so zsh and nushell behave
--- the same.
+-- Makefile is the project's property pages: compiler flags in CXXFLAGS (CFLAGS in C), linker options in LDFLAGS,
+-- libraries in LDLIBS. compile_flags.txt, which clangd reads, is never edited by hand: make rewrites it from the
+-- compiler flags, and so does saving the Makefile (autocmds.lua), so clangd checks what the build uses. C builds as
+-- gnu17, clang's own default, where string.h declares POSIX functions such as strdup; -Wpedantic still rejects GNU
+-- extensions in the code. Every command is an argument list, so zsh and nushell behave the same.
 local fn = vim.fn
 local core = require("utils.core")
 
@@ -22,7 +23,7 @@ local function native_files(lang, name)
 	local cpp = lang == "cpp"
 	local cc, flags_var = cpp and "CXX := clang++" or "CC := clang", cpp and "CXXFLAGS" or "CFLAGS"
 	local compiler = cpp and "$(CXX)" or "$(CC)"
-	local std = cpp and "-std=c++20" or "-std=c17"
+	local std = cpp and "-std=c++20" or "-std=gnu17" -- c17 hides POSIX declarations from glibc's headers
 	local flags = table.concat(FLAGS, " ") .. " " .. std
 	local main = cpp
 			and {
@@ -43,9 +44,10 @@ local function native_files(lang, name)
 		}
 	return {
 		["Makefile"] = { -- recipe lines start with a tab, as make requires
-			("# %s: compiler flags for every file; make copies them into compile_flags.txt for clangd."):format(
+			("# %s: compiler flags for every file; make, or saving this file in Neovim, copies them into"):format(
 				flags_var
 			),
+			"# compile_flags.txt, which clangd reads, so edit them here only.",
 			"# LDFLAGS: linker options such as -L folders; LDLIBS: libraries such as -lm or $(shell pkg-config --libs <name>).",
 			"# Editing this file rebuilds the program at the next make.",
 			cc,

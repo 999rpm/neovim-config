@@ -25,7 +25,7 @@ return {
 				Snacks.picker.projects({ dev = { vim.g.projects_dir }, max_depth = 3 }) -- three levels: Coding/<group>/<project>
 			end,
 			desc = "Open project",
-		}, -- n: jump to a project folder and its session
+		}, -- n: type part of a project's name, then <CR> opens its folder and session
 	},
 	config = function()
 		vim.api.nvim_create_user_command("ProjectNew", function(o)

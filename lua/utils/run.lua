@@ -155,6 +155,24 @@ function M.set_makeprg(buf) -- This util is used by autocmds.lua
 	vim.bo[buf].makeprg = vim.trim(("%s %s %%:S -o %%:r:S%s %s"):format(compiler, flags, EXE, table.concat(own, " "))) -- :S quotes a path for 'shell'; .exe joins the quoted name
 end
 
+---Runs a saved Makefile's compile_flags.txt rule (new-project Makefiles have one), so clangd reads the edited compiler
+---flags at once instead of after the next build. A Makefile without that rule runs nothing.
+---@param buf integer the Makefile's buffer
+function M.sync_compile_flags(buf) -- This util is used by autocmds.lua
+	local has_rule = vim.iter(api.nvim_buf_get_lines(buf, 0, -1, false)):any(function(line)
+		return line:find("^compile_flags%.txt%s*:") ~= nil
+	end)
+	local dir = vim.fs.dirname(api.nvim_buf_get_name(buf))
+	if not has_rule or not core.executable("make") or not vim.uv.fs_stat(dir) then
+		return -- a remote Makefile (scp://) has no local folder for make to run in
+	end
+	vim.system({ "make", "-s", "compile_flags.txt" }, { cwd = dir, text = true }, function(res)
+		if res.code ~= 0 then
+			core.warn("compile_flags.txt was not rewritten: " .. vim.trim(res.stderr or ""), "Makefile")
+		end
+	end)
+end
+
 ---Writes every modified file buffer under root before a project build, since make reads the whole project from disk
 ---('autowrite', options.lua, does the same for :make). Buffers that are not plain files, such as oil's, stay unwritten.
 ---@param root string

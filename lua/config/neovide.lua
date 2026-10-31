@@ -2,9 +2,10 @@
 -- font is kitty.conf's, the left Option key sends Meta on macOS (the Alt keys of the pickers, barbar and Copilot need
 -- it) and the window frame takes the theme's background instead of the system's light or dark mode. Neovide draws no
 -- kitty graphics, so snacks.lua, molten.lua and utils/d2.lua show images another way here (neovim/neovim#41287 proposes
--- image events for GUIs). Owns <C-=>, <C--> and <C-0> (text size) and the clipboard keys: <D-c>/<D-v> on macOS,
--- <C-S-c>/<C-S-v> elsewhere, which kitty and Windows Terminal copy and paste with. Insert and command-line mode keep
--- the built-in CTRL-SHIFT-V (the next key literally), so <C-r>+ pastes there off macOS. Neovide itself maps no key.
+-- image events for GUIs), and colorful-winsep.lua stays off, since Neovide shadows its separator floats. Owns <C-=>,
+-- <C--> and <C-0> (text size) and the clipboard keys: <D-c>/<D-v> on macOS, <C-S-c>/<C-S-v> elsewhere, which kitty and
+-- Windows Terminal copy and paste with. Insert and command-line mode keep the built-in CTRL-SHIFT-V (the next key
+-- literally), so <C-r>+ pastes there off macOS. Neovide itself maps no key.
 local g = vim.g
 local map = vim.keymap.set
 
