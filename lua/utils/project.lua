@@ -6,7 +6,9 @@
 -- libraries in LDLIBS. compile_flags.txt, which clangd reads, is never edited by hand: make rewrites it from the
 -- compiler flags, and so does saving the Makefile (autocmds.lua), so clangd checks what the build uses. C builds as
 -- gnu17, clang's own default, where string.h declares POSIX functions such as strdup; -Wpedantic still rejects GNU
--- extensions in the code. Every command is an argument list, so zsh and nushell behave the same.
+-- extensions in the code. Every command is an argument list, so zsh and nushell behave the same. open() is the
+-- projects picker's <CR>: the project's session comes back, or the files picker opens when no saved session shows a
+-- file of the project.
 local fn = vim.fn
 local core = require("utils.core")
 
@@ -250,6 +252,47 @@ function M.new_project(tpl_name, path) -- This util is used by new-project.lua
 			return tpl.name
 		end,
 	}, with_template)
+end
+
+---Whether a window of the current tab shows a file under the working directory.
+---@return boolean
+local function shows_project_file()
+	local cwd = fn.getcwd()
+	return vim.iter(vim.api.nvim_tabpage_list_wins(0)):any(function(win)
+		local buf = vim.api.nvim_win_get_buf(win)
+		local name = vim.api.nvim_buf_get_name(buf)
+		return vim.bo[buf].buftype == "" and name ~= "" and vim.fs.relpath(cwd, name) ~= nil
+	end)
+end
+
+---Moves the working directory into the chosen project and restores its session; the files picker opens unless the
+---session put a file of the project on screen. snacks' own action skipped the files picker whenever a session loaded,
+---and a session saved after the last buffer was closed loads no window, so the dashboard stayed.
+---@param picker snacks.Picker
+---@param item? snacks.picker.Item
+function M.open(picker, item) -- This util is used by new-project.lua
+	picker:close()
+	if not item then
+		return
+	end
+	local restored = false
+	local group = core.augroup("project-open")
+	vim.api.nvim_create_autocmd("SessionLoadPost", {
+		group = group,
+		desc = "999rpm: note that the project's session came back",
+		callback = function()
+			restored = true
+		end,
+	})
+	fn.chdir(item.file)
+	local session = Snacks.dashboard.sections.session() -- the session plugin's restore command, the dashboard's s key
+	if session then
+		vim.cmd(session.action:sub(2))
+	end
+	vim.api.nvim_clear_autocmds({ group = group })
+	if not (restored and shows_project_file()) then
+		Snacks.picker.files()
+	end
 end
 
 return M

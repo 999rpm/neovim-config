@@ -1,6 +1,12 @@
 # 999rpm's Neovim config
 
 Personal Neovim configuration for Neovim 0.12 and later, managed by [lazy.nvim](https://github.com/folke/lazy.nvim).
+One plugin per file, almost all of them lazy-loaded. Besides code editing it covers three extra jobs: a Logseq-style
+notes graph on plain markdown, Jupyter notebooks that run against real kernels, and Visual Studio-style projects that are
+created from templates, opened from a list and built as tasks.
+
+Written for Neovim 0.12.6 on Linux, with kitty as the terminal, zsh or nushell as the login shell, and tmux optional.
+It also runs on macOS and Windows, and in [Neovide](https://neovide.dev) as a GUI.
 
 ## Features
 
@@ -51,6 +57,19 @@ Personal Neovim configuration for Neovim 0.12 and later, managed by [lazy.nvim](
 - zsh or nushell as the login shell; both behave the same here
 - macOS: kitty sends the Alt keys (`<M-j>`, `<M-h>` and the rest) only with `macos_option_as_alt left` in kitty.conf
 - Windows: PowerShell for avante.nvim's build; 'shell' stays cmd.exe
+- Optional GUI: Neovide 0.13 or later with Lilex Nerd Font installed (kitty.conf's font, size 11)
+
+## Install
+
+The archive holds one folder, `nvim`, with the whole config and the plugin lockfile it was tested with. Extracting it
+replaces `~/.config/nvim` (`%LOCALAPPDATA%\nvim` on Windows; `:echo stdpath('config')` shows the folder), so the old
+folder is backed up or removed first:
+
+```sh
+mv ~/.config/nvim ~/.config/nvim.bak
+unzip nvim.zip -d ~/.config
+nvim
+```
 
 The first start clones lazy.nvim (its `stable` branch) and every other plugin at the commits in `lazy-lock.json`, builds
 the treesitter parsers and lets Mason install the servers, formatters and linters. `:checkhealth` reports anything
@@ -71,6 +90,8 @@ snippets/             markdown snippets for the notes graph
 ```
 
 ## Plugins
+
+One line per file under `lua/plugins/`; each file's header says more.
 
 - core: tokyonight, catppuccin, kanagawa and monokai-pro colour schemes with the 999rpm-themer switcher;
   nvim-mini/mini.nvim (icons, text objects, alignment, pattern highlights); folke/snacks.nvim (picker, terminals,
@@ -131,21 +152,21 @@ snippets/             markdown snippets for the notes graph
 Leader is `Space`, local leader is `\`. Press the leader and wait for which-key to list what follows, or `<leader>sk`
 to search every mapping. Built-in keys keep their jobs, except the upgrades listed below.
 
-| Prefix      | Group                | Prefix          | Group                    |
-| ----------- | -------------------- | --------------- | ------------------------ |
-| `<leader>f` | Find files           | `<leader>s`     | Search contents          |
-| `<leader>e` | Explorers            | `<leader>b`     | Buffers                  |
-| `<leader>c` | Code                 | `<leader>l`     | LSP lists                |
-| `<leader>d` | Diagnostics          | `<leader>D`     | Debug                    |
-| `<leader>g` | Git                  | `<leader>G`     | Review (codediff)        |
-| `<leader>t` | Terminals            | `<leader>T`     | Tests                    |
-| `<leader>n` | Notes graph          | `<leader>k`     | Jupyter kernel and cells |
-| `<leader>o` | Toggles              | `<leader>u`     | UI and themes            |
-| `<leader>h` | Harpoon              | `<leader>m`     | Multicursor              |
-| `<leader>r` | Replace across files | `<leader>y`     | Yank and registers       |
-| `<leader>i` | AI                   | `<leader>q`     | Sessions and quit        |
-| `<leader>p` | Plugins and tools    | `<leader><Tab>` | Tabs                     |
-| `<leader>w` | Projects and tasks   |                 |                          |
+| Prefix | Group | Prefix | Group |
+| --- | --- | --- | --- |
+| `<leader>f` | Find files | `<leader>s` | Search contents |
+| `<leader>e` | Explorers | `<leader>b` | Buffers |
+| `<leader>c` | Code | `<leader>l` | LSP lists |
+| `<leader>d` | Diagnostics | `<leader>D` | Debug |
+| `<leader>g` | Git | `<leader>G` | Review (codediff) |
+| `<leader>t` | Terminals | `<leader>T` | Tests |
+| `<leader>n` | Notes graph | `<leader>k` | Jupyter kernel and cells |
+| `<leader>o` | Toggles | `<leader>u` | UI and themes |
+| `<leader>h` | Harpoon | `<leader>m` | Multicursor |
+| `<leader>r` | Replace across files | `<leader>y` | Yank and registers |
+| `<leader>i` | AI | `<leader>q` | Sessions and quit |
+| `<leader>p` | Plugins and tools | `<leader><Tab>` | Tabs |
+| `<leader>w` | Projects and tasks | | |
 
 Outside the leader: `<M-h>`/`<M-l>` previous/next buffer, `<M-w/a/s/d>` move between windows (normal mode), `<M-j>`/`<M-k>` move a
 line (and scroll documentation and previews in completion menus and pickers), `<C-s>` write, `<C-,>` floating terminal,
@@ -159,6 +180,33 @@ Inside Neovide (`lua/config/neovide.lua`): `<C-=>` and `<C-->` make the text lar
 macOS `<D-c>` copies the selection and `<D-v>` pastes in every mode. Elsewhere `<C-S-c>` copies and `<C-S-v>` pastes in
 normal, visual and terminal mode; insert and command-line mode keep the built-in CTRL-SHIFT-V (the next key
 literally), so `<C-r>+` pastes there.
+
+## Built-in keys kept as upgrades
+
+Each key still does its built-in job and falls back to it where the plugin cannot act.
+
+| Key | Plugin or file | Added |
+| --- | --- | --- |
+| `n` `N` | mappings.lua | the match is centred and its fold opened |
+| `<Esc>` | mappings.lua | the search highlight is cleared |
+| `grn` | inc-rename.nvim | live preview of the rename |
+| `gd` `gD` | lspconfig.lua | the server's definition and declaration where one is found |
+| `]c` `[c` | gitsigns.nvim | git hunks outside diff mode, counts kept |
+| `]m` `[m` `]M` `[M` | nvim-treesitter-textobjects | function starts and ends in any parsed language (normal and visual) |
+| `zR` `zM` | nvim-ufo | open and close every fold from the fold provider |
+| `<C-a>` `<C-x>` | dial.nvim | dates and true/false when one comes first from the cursor; numbers stay built-in |
+| `%` `g%` `[%` `]%` | vim-matchup | word pairs such as `if`/`end` and HTML tags |
+| `a` `i` text objects | mini.nvim (mini.ai) | more objects, and the next or last one with `aN`/`iN`, `al`/`il` |
+| `K` | rustaceanvim | hover actions in Rust buffers |
+| `gf` `<C-w>f` | logseq.lua | `[[links]]`, tags and block references in the notes graph |
+| insert `<BS>` `<CR>` | nvim-autopairs | pair-aware delete and line break |
+| `o` `O`, insert `<CR>` `<Tab>` `<S-Tab>` `<BS>` | markdown-plus.nvim | list items continue and indent in markdown |
+| `<LeftMouse>` | satellite.nvim | dragging the scrollbar |
+| insert `<Tab>` `<CR>` `<C-e>` `<C-k>` | blink.cmp | completion while its menu is open |
+| insert `<C-l>` | copilot.lua | the grey suggestion while one shows; the popup menu keeps its `<C-l>` |
+| command-line `<Tab>` `<S-Tab>` `<C-n>` `<C-p>` `<C-e>` `<C-y>` | blink.cmp | its menu where Neovim has completions |
+| insert `,` `.` `;` | mappings.lua | an undo step per clause |
+| insert `<Left>` `<Right>` | multicursor.lua | one insert across several cursors |
 
 ## Notes and notebooks
 
@@ -188,7 +236,8 @@ libraries. `make`, and saving the Makefile, copy the compiler flags into `compil
 build uses and the flags live in the Makefile only. C builds as `-std=gnu17`, where `string.h` declares POSIX functions
 such as `strdup`; `-Wpedantic` still rejects GNU extensions in the code. `<leader>wp` lists the projects under
 `~/Coding` (or `$PROJECTS_DIR`) and the git roots of recent files; a typed part of the name filters the list, and `<CR>`
-restores the project's session or, without one, opens the file picker there.
+moves into the project and restores its session. When no session was saved, or the saved one shows no file of the
+project (one saved after the last buffer was closed), the file picker opens there instead.
 `<leader>wb` runs the project's build task and opens the quickfix list on errors, `<leader>wr` picks any task (make
 targets, cargo, npm scripts, `.vscode/tasks.json`), `<leader>wt` shows the task list. `<leader>cr` builds and runs: in a
 Makefile project, `make` and then the `run` target, whichever file is open; a lone C or C++ file builds with clang, as
@@ -234,6 +283,13 @@ and plots draw. Neovide's keys exist only inside Neovide, where kitty, the shell
   [neovim/neovim#41287](https://github.com/neovim/neovim/pull/41287), still open, would let GUIs draw images.
 - colorful-winsep is off in Neovide: its coloured separators are floating windows, which Neovide draws with shadows
   and slides between windows, leaving streaks over the code; the plain separator lines remain.
+- Neovide 0.17 fills the strip below the last row, left when the window height is not a whole number of rows, with
+  that row's colours. Inside Neovide one empty command-line row therefore stays below the statusline (`cmdheight` 1,
+  set in `lua/config/neovide.lua`); with no command-line row, lualine's sections would run down to the window edge.
+- Neovide 0.17.1 draws the command line and messages itself until its first frame (its startup message capture, on by
+  default), and noice.nvim cannot share them. Inside Neovide noice therefore starts once they are handed back, a moment
+  after the window opens, and messages from startup come back through Neovide's replay. `neovide
+  --no-startup-message-capture`, or `startup-message-capture = false` in Neovide's config file, skips the capture.
 - On Windows `<leader>cr` builds a lone C or C++ file into `<name>.exe`; Makefile projects need `make`, and scripts
   their interpreter (`sh`, `bash`, `zsh`, `nu`), on `$PATH`, else a warning names the missing program.
 - The C and C++ project template writes a Makefile with POSIX recipes (`mkdir -p`, `printf`, `rm -rf`), so on Windows

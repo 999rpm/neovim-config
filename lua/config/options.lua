@@ -68,7 +68,7 @@ opt.laststatus = 3 -- one global statusline
 opt.showtabline = 2 -- barbar's tabline is always visible
 opt.tabclose:append({ "uselast" }) -- closing a tab returns to the last used one
 opt.ruler = false -- lualine shows the position
-opt.cmdheight = 0 -- no command line until it is used; noice draws it
+opt.cmdheight = 0 -- no command line until it is used; noice draws it (Neovide keeps one row, neovide.lua)
 opt.showcmdloc = "statusline" -- lualine places %S, since the command line is hidden
 opt.shortmess:append("sIc") -- no "search hit BOTTOM", no intro screen, no "match 1 of 2"
 
