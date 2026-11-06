@@ -331,7 +331,7 @@ api.nvim_create_autocmd("MenuPopup", {
 			anoremenu PopUp.-2-                        <Nop>
 			anoremenu PopUp.Find\ Symbol                <cmd>lua Snacks.picker.lsp_workspace_symbols()<CR>
 			anoremenu PopUp.Grep\ Word                  <cmd>lua Snacks.picker.grep_word()<CR>
-			anoremenu PopUp.Find\ Todos                 <cmd>lua Snacks.picker.todo_comments()<CR>
+			anoremenu PopUp.Find\ Todos                 <cmd>lua require("lazy").load({ plugins = { "todo-comments.nvim" } }); Snacks.picker.todo_comments()<CR>
 			anoremenu PopUp.-3-                        <Nop>
 			anoremenu PopUp.LazyGit                     <cmd>lua Snacks.lazygit()<CR>
 			anoremenu PopUp.Open\ Git\ in\ Browser      <cmd>lua Snacks.gitbrowse()<CR>
@@ -365,12 +365,14 @@ api.nvim_create_autocmd("MenuPopup", {
 		if fn.exists(":Trouble") ~= 2 then -- trouble.lua removed: lazy.nvim defines the command stub otherwise
 			vim.cmd([[amenu disable PopUp.Diagnostics\ (Trouble)]])
 		end
-		if not _G.Snacks then
+		if not package.loaded.snacks then -- snacks.lua removed; the module sets the Snacks global when it loads
 			vim.cmd([[amenu disable PopUp.Find\ Symbol]])
 			vim.cmd([[amenu disable PopUp.Grep\ Word]])
 			vim.cmd([[amenu disable PopUp.Find\ Todos]])
 			vim.cmd([[amenu disable PopUp.LazyGit]])
 			vim.cmd([[amenu disable PopUp.Open\ Git\ in\ Browser]])
+		elseif not require("lazy.core.config").plugins["todo-comments.nvim"] then -- todo-comments.lua removed; the item loads the plugin, whose setup adds the picker source
+			vim.cmd([[amenu disable PopUp.Find\ Todos]])
 		end
 	end,
 })

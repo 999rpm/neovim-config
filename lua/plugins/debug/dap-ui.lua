@@ -3,8 +3,8 @@
 return {
 	"rcarriga/nvim-dap-ui",
 	lazy = true, -- loads with nvim-dap, which lists it as a dependency
-	-- dap-ui's own keys, inside its panels: (n) <CR> or double click expand, o open the value's source, d remove, e edit,
-	-- r send to the REPL, t toggle.
+	-- dap-ui's own keys, inside its panels: (n) <CR> or double click expand, o open the value's source, d remove,
+	-- e edit, r send to the REPL, t toggle.
 	config = function()
 		local dap = require("dap")
 		local dapui = require("dapui")

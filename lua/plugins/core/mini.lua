@@ -2,10 +2,11 @@
 -- mini.align (alignment) and mini.hipatterns (pattern highlights; notes/logseq.lua hands graph buffers their own).
 -- mini.align: gl{motion} (or gl on a selection) then a character aligns on it: glip= lines up a paragraph on =.
 -- gL does the same with a live preview, where s enters a split pattern, j cycles the justify side, m sets the merge
--- text, f and i filter, <BS> undoes a step and <CR> accepts. gl/gL, since ga is the built-in character info and gA coerce.
+-- text, f and i filter, <BS> undoes a step and <CR> accepts. gl/gL, since ga is the built-in character info and gA
+-- coerce.
 -- mini.ai: a/i + b brackets, q quotes, t tag, a argument, g whole buffer (vag select all, yag yank all, =ig reindent),
--- j notebook cell (vij selects the code, <leader>ko then ij runs it), ? prompt; aN/iN and al/il pick the next/last match.
--- an/in stay 0.12's node selection and g] stays the built-in :tselect, so mini.ai's g[/g] edge jumps are off.
+-- j notebook cell (vij selects the code, <leader>ko then ij runs it), ? prompt; aN/iN and al/il pick the next/last
+-- match. an/in stay 0.12's node selection and g] stays the built-in :tselect, so mini.ai's g[/g] edge jumps are off.
 return {
 	"nvim-mini/mini.nvim",
 	version = "*",

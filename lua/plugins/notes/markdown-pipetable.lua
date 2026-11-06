@@ -13,7 +13,8 @@ return {
 	-- column, gg/G first/last row, <CR> open the cell, i/a edit it (<CR> commit, <Tab> commit and edit the next column,
 	-- <Esc> back), u/<C-r> undo/redo, o/O insert a row below/above, dd delete the row, yy yank it, p/P paste, v cells,
 	-- V rows, <C-v> columns, then d, y, x on the selection, <Esc> or q leave; \T then ir/iR insert a row below/above,
-	-- ic/iC a column right/left, dr/dc delete a row/column, mj/mk/mh/ml move, cr/cc duplicate, al/ac/ar/ad align, s/S sort.
+	-- ic/iC a column right/left, dr/dc delete a row/column, mj/mk/mh/ml move, cr/cc duplicate, al/ac/ar/ad align,
+	-- s/S sort.
 	keys = {
 		{ "<leader>oT", "<cmd>Pipetable<cr>", ft = "markdown", desc = "Toggle table mode" }, -- n: spreadsheet-style editing of the table under the cursor, on or off
 	},

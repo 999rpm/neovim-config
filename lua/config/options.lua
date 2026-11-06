@@ -59,7 +59,8 @@ opt.redrawtime = 1500 -- ms of syntax highlighting per redraw before it gives up
 opt.synmaxcol = 240 -- regex syntax stops at column 240; treesitter highlighting ignores it
 
 opt.termguicolors = true -- 0.12 applies detected truecolor only at VimEnter; colorizer reads it on the first BufReadPre
-opt.guicursor = "n-v-c:block-Cursor/lCursor,i-ci-ve:ver25-Cursor2/lCursor2,r-cr:hor20,o:hor20" -- block, bar in insert, underline in replace
+opt.guicursor =
+	"n-v-c-sm:block-Cursor/lCursor,i-ci-ve:ver25-Cursor2/lCursor2,r-cr:hor20,o:hor20,t:block-blinkon500-blinkoff500-TermCursor" -- block, bar in insert, underline in replace; sm and t (terminal mode) as 0.12 sets them
 opt.title = true -- terminal title shows the branch and the file
 opt.titlestring = "%{v:lua.require('utils.statusline').branch_name()} • %<%F %=%l/%L"
 

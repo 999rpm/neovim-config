@@ -82,7 +82,7 @@ end
 ---@return "markdown"|"bigfile"
 function M.filetype(buf) -- This util is used by options.lua
 	local defaults = { size = 1.5 * 1024 * 1024, line_length = 1000 } -- snacks.bigfile's own; snacks.lua's opts win
-	local limits = _G.Snacks and Snacks.config.get("bigfile", defaults)
+	local limits = package.loaded.snacks and Snacks.config.get("bigfile", defaults)
 	if limits and limits.enabled and vim.bo[buf].filetype ~= "bigfile" then -- on bigfile snacks asks for 'syntax'
 		local lines = api.nvim_buf_line_count(buf)
 		local bytes = api.nvim_buf_get_offset(buf, lines)

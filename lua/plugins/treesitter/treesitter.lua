@@ -1,5 +1,6 @@
 -- nvim-treesitter/nvim-treesitter: parser installs and highlighting through Neovim's own treesitter (main branch).
 -- Parsers build with the tree-sitter CLI (mason.lua installs it); :TSUpdate refreshes them, :TSInstall {lang} adds one.
+-- On a first start without the CLI they install as soon as mason-tool-installer reports its install run done.
 -- d2, which nvim-treesitter does not ship, is registered from its own repository through nvim-treesitter's custom
 -- parser hook, so a missing parser never breaks a .d2 buffer: highlighting stays off until :TSUpdate builds it.
 return {
@@ -80,16 +81,28 @@ return {
 				core.warn_if_missing_exec(
 					"tree-sitter",
 					"nvim-treesitter",
-					"Parsers install once Mason has tree-sitter-cli, or an OS package provides it; then run :TSUpdate."
+					"mason.lua installs tree-sitter-cli; the parsers follow once it is in place."
 				)
+				vim.api.nvim_create_autocmd("User", {
+					group = core.augroup("treesitter-cli"),
+					pattern = "MasonToolsUpdateCompleted", -- mason-tool-installer's event after each install run (mason.lua)
+					desc = "999rpm: install the parsers once Mason has put the tree-sitter CLI on $PATH",
+					callback = function()
+						if core.executable("tree-sitter") then
+							ts.install(ensure_installed)
+							return true -- once: later runs find the parsers installed
+						end
+					end,
+				})
 			end
 
 			vim.treesitter.language.register("markdown", { "mdx", "quarto" }) -- neither has a parser of its own
 
 			local function start(buf, ft)
 				local lang = vim.treesitter.language.get_lang(ft) or ft
-				if pcall(vim.treesitter.language.add, lang) then
-					pcall(vim.treesitter.start, buf, lang)
+				local ok, added = pcall(vim.treesitter.language.add, lang) -- nil without a parser; raises on a parser built for another ABI
+				if ok and added then
+					pcall(vim.treesitter.start, buf, lang) -- raises on a highlights query the installed parser does not match
 				end
 			end
 

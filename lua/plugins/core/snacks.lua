@@ -101,11 +101,13 @@ return {
 	},
 	-- Keys inside snacks windows that come from snacks itself:
 	--   picker (i/n): <CR> open, <S-CR> open in a picked window, <C-s>/<C-v>/<C-t> split/vsplit/tab, <C-q> results to
-	--     quickfix, <C-a> mark all, <C-n>/<C-p> or <C-j>/<C-k> next/previous, <C-d>/<C-u> scroll the list, <C-f> scroll
-	--     the preview, <C-g> live grep on/off, <A-h>/<A-i> hidden/ignored files, <A-p> preview, <A-m> maximize,
-	--     <A-w> cycle windows, <C-Up>/<C-Down> query history; (n) i or / type a query, j/k move, gg/G top/bottom, ? help,
-	--     q or <Esc> close; (i) <C-r><C-w> insert the word under the cursor, <C-c> close
-	--   terminal: (t) <Esc><Esc> normal mode, a single <Esc> reaches the shell; (n) q hide, gf open the file under the cursor
+	--     quickfix, <C-a> mark all, <C-n>/<C-p> or <C-j>/<C-k> next/previous, <C-d>/<C-u> scroll the list, <C-f>
+	--     scroll the preview, <C-g> live grep on/off, <A-h>/<A-i> hidden/ignored files, <A-f> follow symlinks, <A-r>
+	--     regex on/off, <A-p> preview, <A-m> maximize, <A-w> cycle windows, <C-Up>/<C-Down> query history; (n) i or /
+	--     type a query, j/k move, gg/G top/bottom, ? help, q or <Esc> close; (i) <C-r><C-w> insert the word under the
+	--     cursor, <C-c> close
+	--   terminal: (t) <Esc><Esc> normal mode, a single <Esc> reaches the shell; (n) q hide, gf open the file under
+	--     the cursor
 	--   dashboard: f find file, n new file, g grep, r recent files, c config files, s restore session, L Lazy, q quit,
 	--     digits open the recent file with that number
 	keys = {

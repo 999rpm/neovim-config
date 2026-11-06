@@ -79,11 +79,12 @@ function M.run_chain(steps, cwd, title, on_done) -- This util is used by utils/j
 	next_step()
 end
 
----Augroup named "999rpm-<name>", so the autocommands picker (<leader>sa) finds every group of this config by its prefix.
+---Augroup named "999rpm-<name>", so the autocommands picker (<leader>sa) finds every group of this config by its
+---prefix.
 ---@param name string
 ---@param clear? boolean defaults to true
 ---@return integer
-function M.augroup(name, clear) -- This util is used by autocmds.lua, ipynb.lua, lint.lua, logseq.lua, lspconfig.lua, lualine.lua, markdown-plus.lua, molten.lua, neovide.lua, noice.lua, nvim-bqf.lua, oil.lua, otter.lua, package-info.lua, persistence.lua, treesitter.lua, utils/notebook.lua, utils/project.lua, utils/themes.lua and on_colorscheme below
+function M.augroup(name, clear) -- This util is used by autocmds.lua, copilot.lua, ipynb.lua, lint.lua, logseq.lua, lspconfig.lua, lualine.lua, markdown-plus.lua, molten.lua, neovide.lua, noice.lua, nvim-bqf.lua, otter.lua, overseer.lua, package-info.lua, persistence.lua, treesitter.lua, utils/notebook.lua, utils/project.lua, utils/themes.lua and on_colorscheme below
 	return api.nvim_create_augroup("999rpm-" .. name:gsub("_", "-"), { clear = clear ~= false })
 end
 

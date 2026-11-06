@@ -24,6 +24,9 @@ return {
 			yazi = true,
 			["nvim-undotree"] = true, -- mappings.lua <leader>uu
 			molten_output = true, -- notebook/molten.lua's output window
+			OverseerList = true, -- overseer.lua's task list, where j/k step through tasks
+			["codediff-explorer"] = true, -- codediff.lua's file list
+			["codediff-history"] = true, -- codediff.lua's commit list
 		},
 	},
 	keys = {

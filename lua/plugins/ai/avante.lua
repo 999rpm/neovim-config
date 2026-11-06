@@ -17,8 +17,9 @@ return {
 			auto_set_keymaps = false,
 		},
 	},
-	-- avante's own keys in the sidebar: A apply every change, a apply the one at the cursor, r retry, e edit the request,
-	-- ]p/[p next/previous prompt, @ add a file, d remove a file, x hide the code pane, <Tab>/<S-Tab> switch panes, q close.
+	-- avante's own keys in the sidebar: A apply every change, a apply the one at the cursor, r retry, e edit the
+	-- request, ]p/[p next/previous prompt, @ add a file, d remove a file, x hide the code pane, <Tab>/<S-Tab> switch
+	-- panes, q close.
 	keys = {
 		{
 			"<leader>ia",

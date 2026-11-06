@@ -59,7 +59,8 @@ return {
 			swap.swap_previous("@parameter.inner")
 		end, { desc = "Swap parameter with previous" }) -- n: one place left, uppercase twin
 
-		---The treesitter move where the buffer's language has textobjects queries, else the built-in key; both keep the count.
+		---The treesitter move where the buffer's language has textobjects queries, else the built-in key; both keep the
+		---count.
 		---@param builtin string
 		---@param name string move.lua function
 		local function method_motion(builtin, name)

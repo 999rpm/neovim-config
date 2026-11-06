@@ -8,10 +8,10 @@
 -- quits, ZQ quits unsaved, <C-t>/<C-d> indent/dedent the line in insert mode, <C-l> clears the search highlight.
 -- vag selects the whole buffer (mini.lua's g object). :sort sorts lines without a shell; :%!sort runs sort(1) through
 -- 'shell', which is sh under any login shell.
--- 0.12 defaults left alone: ]d [d ]D [D diagnostics, <C-w>d diagnostic float, ]q [q ]l [l lists, ]b [b buffers, ]a [a args,
--- ]t [t tags, ]<Space> [<Space> blank lines, an/in parent/child node and visual ]n [n ]N [N next/previous node or sibling,
--- K hover, <C-s> signature help (insert), gr* LSP keys, [[ ]] shell prompts in a terminal buffer, ZR restart Neovim,
--- :Undotree (<leader>uu here). % g% [% ]% z% a% i% come from matchup.lua, gl/gL (align) from mini.lua.
+-- 0.12 defaults left alone: ]d [d ]D [D diagnostics, <C-w>d diagnostic float, ]q [q ]l [l lists, ]b [b buffers, ]a [a
+-- args, ]t [t tags, ]<Space> [<Space> blank lines, an/in parent/child node and visual ]n [n ]N [N next/previous node or
+-- sibling, K hover, <C-s> signature help (insert), gr* LSP keys, [[ ]] shell prompts in a terminal buffer, ZR restart
+-- Neovim, :Undotree (<leader>uu here). % g% [% ]% z% a% i% come from matchup.lua, gl/gL (align) from mini.lua.
 -- Inside tmux, C-b C-b sends <C-b> (page up). Terminal mode maps nothing here: zsh's vi mode reads Alt+key as <Esc> and
 -- the key, and nushell binds Alt keys too, so <C-\><C-n> leaves terminal mode and the window keys below follow.
 -- Filetype keys kept: <C-a>/<C-x> cycle the action of a git rebase todo line, gO lists a man page's sections.
@@ -66,7 +66,7 @@ map("n", "dm", function()
 	if mark == "!" then
 		vim.cmd("delmarks!") -- every lowercase mark of the buffer
 	elseif mark:match('^[%w"%^%.%[%]<>]$') then
-		pcall(vim.cmd.delmarks, mark)
+		vim.cmd.delmarks(mark)
 	end
 end, { desc = "Delete mark (next key names it, ! all lowercase)" }) -- n: the opposite of m{letter}; dm has no built-in job, m is not a motion
 

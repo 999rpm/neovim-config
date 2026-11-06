@@ -17,10 +17,10 @@ return {
 	"pwntester/octo.nvim",
 	cmd = "Octo",
 	-- octo's own keys, in its buffers only: (n) <CR> the issue's or PR's actions, ]c/[c next/previous comment, gf open
-	-- the file under the cursor, \ca add a comment, \ic close an issue, \pm merge a PR, \va add a reviewer, and the rest
-	-- of the \ list; in the review tab ]q/[q next/previous changed file, ]Q/[Q last/first, ]t/[t next/previous thread,
-	-- ]u/[u next/previous unviewed file, <C-c> close the tab; in the file panel j/k move, <CR> show the diff, R refresh;
-	-- in a workflow run ]j/[j next/previous job, ]s/[s next/previous step, o expand a step.
+	-- the file under the cursor, \ca add a comment, \ic close an issue, \pm merge a PR, \va add a reviewer, and the
+	-- rest of the \ list; in the review tab ]q/[q next/previous changed file, ]Q/[Q last/first, ]t/[t next/previous
+	-- thread, ]u/[u next/previous unviewed file, <C-c> close the tab; in the file panel j/k move, <CR> show the diff,
+	-- R refresh; in a workflow run ]j/[j next/previous job, ]s/[s next/previous step, o expand a step.
 	keys = {
 		{ "<leader>goi", "<cmd>Octo issue list<cr>", desc = "Issues" }, -- n: the repository's open issues in a picker
 		{ "<leader>gop", "<cmd>Octo pr list<cr>", desc = "Pull requests" }, -- n: open pull requests in a picker

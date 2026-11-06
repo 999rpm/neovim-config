@@ -9,7 +9,8 @@ return {
 		"mfussenegger/nvim-dap-python", -- dap-python.lua defines the Python adapter and launch configurations
 	},
 
-	-- nvim-dap's own keys, in its hover and scopes floats only: (n) <CR> expand or collapse an entry, a list its actions.
+	-- nvim-dap's own keys, in its hover and scopes floats only: (n) <CR> expand or collapse an entry, a list its
+	-- actions.
 	keys = {
 		{
 			"<leader>Db",

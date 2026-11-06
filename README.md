@@ -57,7 +57,8 @@ It also runs on macOS and Windows, and in [Neovide](https://neovide.dev) as a GU
 - zsh or nushell as the login shell; both behave the same here
 - macOS: kitty sends the Alt keys (`<M-j>`, `<M-h>` and the rest) only with `macos_option_as_alt left` in kitty.conf
 - Windows: PowerShell for avante.nvim's build; 'shell' stays cmd.exe
-- Optional GUI: Neovide 0.13 or later with Lilex Nerd Font installed (kitty.conf's font, size 11)
+- Optional GUI: Neovide 0.13 or later with Lilex Nerd Font installed (kitty.conf's font, size 11); 0.17.2 and later
+  leave the strip below the statusline plain and carry its latest security fixes
 
 ## Install
 
@@ -71,8 +72,9 @@ unzip nvim.zip -d ~/.config
 nvim
 ```
 
-The first start clones lazy.nvim (its `stable` branch) and every other plugin at the commits in `lazy-lock.json`, builds
-the treesitter parsers and lets Mason install the servers, formatters and linters. `:checkhealth` reports anything
+The first start clones lazy.nvim (its `stable` branch) and every other plugin at the commits in `lazy-lock.json`, lets
+Mason install the servers, formatters, linters and the tree-sitter CLI, and builds the treesitter parsers, as soon as
+Mason's CLI is in place when the system has none. `:checkhealth` reports anything
 missing. `:JupyterSetup` builds the Python environment the notebooks use, and `:NotesInit` creates the notes folders.
 
 ## Layout
@@ -102,7 +104,7 @@ One line per file under `lua/plugins/`; each file's header says more.
   (rename with a live preview); folke/lazydev.nvim (Neovim API completion in this config); Wansmer/symbol-usage.nvim
   (reference counts above functions)
 - completion: saghen/blink.cmp (completion and signature help, also on the command line); zbirenbaum/copilot.lua
-  (inline suggestions); windwp/nvim-autopairs (closes brackets and quotes)
+  (inline suggestions, hidden while blink's menu is open); windwp/nvim-autopairs (closes brackets and quotes)
 - treesitter: nvim-treesitter/nvim-treesitter (parsers and highlighting); nvim-treesitter/nvim-treesitter-textobjects
   (select, swap and move by function, class, parameter); nvim-treesitter/nvim-treesitter-context (pins the enclosing
   function); m-demare/hlargs.nvim (parameters in their own colour); hiphish/rainbow-delimiters.nvim (brackets by depth);
@@ -134,7 +136,8 @@ One line per file under `lua/plugins/`; each file's header says more.
   vuki656/package-info.nvim (package.json versions); hat0uma/csvview.nvim (CSV and TSV as columns); 999rpm-d2 (d2
   diagrams); brianhuster/live-preview.nvim (browser preview); Kenzo-Wada/boundary.nvim (React server/client boundaries);
   axelvc/template-string.nvim (template literals); MaximilianLloyd/tw-values.nvim (CSS behind Tailwind classes)
-- notes: 999rpm-notes (the Logseq-style graph); MeanderingProgrammer/render-markdown.nvim (rendered markdown);
+- notes: 999rpm-notes (the Logseq-style graph); MeanderingProgrammer/render-markdown.nvim (rendered markdown, also in
+  avante's chat);
   YousefHadder/markdown-plus.nvim (outliner lists); dominic-righthere/markdown-pipetable.nvim (pipe tables);
   DAmesberger/sc-im.nvim (tables in the sc-im spreadsheet); HakonHarnes/img-clip.nvim (pasted images);
   okuuva/auto-save.nvim (saves graph pages)
@@ -242,7 +245,8 @@ project (one saved after the last buffer was closed), the file picker opens ther
 targets, cargo, npm scripts, `.vscode/tasks.json`), `<leader>wt` shows the task list. `<leader>cr` builds and runs: in a
 Makefile project, `make` and then the `run` target, whichever file is open; a lone C or C++ file builds with clang, as
 `:make` and `<leader>wb` do, plus any flags its `// 999rpm-flags:` lines name near the top (`// 999rpm-flags: -lncurses`).
-A `.nvim.lua` at a project's root holds its own settings once `:trust` approves it.
+nvim-dap reads a project's `.vscode/launch.json`; its preLaunchTask and postDebugTask run through overseer, which loads
+with nvim-dap. A `.nvim.lua` at a project's root holds its own settings once `:trust` approves it.
 
 ## Shell and terminal
 
@@ -262,8 +266,8 @@ and plots draw. Neovide's keys exist only inside Neovide, where kitty, the shell
 
 - A fresh install records lazy.nvim's `stable` commit in `lazy-lock.json`, since the bootstrap clones that branch;
   `:Lazy restore` returns it to the locked commit.
-- Without git, ripgrep, fd or node the start stays silent: gitsigns stays off and the statusline shows no branch,
-  while `:grep` and the grep pickers need ripgrep when used.
+- Without git, ripgrep, fd or node the start stays silent: gitsigns stays off and the statusline shows no branch and
+  no diff counts (lualine takes them from gitsigns), while `:grep` and the grep pickers need ripgrep when used.
 - markdown-oxide never attaches to notebooks, so the notes graph's links and rename stay out of `.ipynb` files.
 - otter's hidden cell buffer (`<notebook>.otter.py`) is left out of `<leader>dd`, `<leader>sd` and `<leader>dw`, since
   the notebook lists the same diagnostics; ruff skips I001 and N999 there, which only its synthetic file triggers.
@@ -283,13 +287,18 @@ and plots draw. Neovide's keys exist only inside Neovide, where kitty, the shell
   [neovim/neovim#41287](https://github.com/neovim/neovim/pull/41287), still open, would let GUIs draw images.
 - colorful-winsep is off in Neovide: its coloured separators are floating windows, which Neovide draws with shadows
   and slides between windows, leaving streaks over the code; the plain separator lines remain.
-- Neovide 0.17 fills the strip below the last row, left when the window height is not a whole number of rows, with
-  that row's colours. Inside Neovide one empty command-line row therefore stays below the statusline (`cmdheight` 1,
-  set in `lua/config/neovide.lua`); with no command-line row, lualine's sections would run down to the window edge.
+- Neovide before 0.17.2 fills the strip below the last row, left when the window height is not a whole number of rows,
+  with that row's colours. Inside those versions one empty command-line row therefore stays below the statusline
+  (`cmdheight` 1, set in `lua/config/neovide.lua`); with no command-line row, lualine's sections would run down to the
+  window edge. 0.17.2 leaves the strip plain by default (`neovide_fill_bottom_background`), and the command line hides
+  as in a terminal.
 - Neovide 0.17.1 draws the command line and messages itself until its first frame (its startup message capture, on by
   default), and noice.nvim cannot share them. Inside Neovide noice therefore starts once they are handed back, a moment
   after the window opens, and messages from startup come back through Neovide's replay. `neovide
   --no-startup-message-capture`, or `startup-message-capture = false` in Neovide's config file, skips the capture.
+- `nvim -b file` opens the file in hex view (hex.nvim, which needs xxd). Once hex.nvim has loaded, by `-b` or
+  `<leader>ox`, `.bin`, `.out`, `.exe`, `.dll`, `.png` and `.jpg` files and files read in a non-UTF-8 encoding open in
+  hex view too, for the rest of the session.
 - On Windows `<leader>cr` builds a lone C or C++ file into `<name>.exe`; Makefile projects need `make`, and scripts
   their interpreter (`sh`, `bash`, `zsh`, `nu`), on `$PATH`, else a warning names the missing program.
 - The C and C++ project template writes a Makefile with POSIX recipes (`mkdir -p`, `printf`, `rm -rf`), so on Windows

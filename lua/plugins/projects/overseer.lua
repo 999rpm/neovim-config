@@ -1,8 +1,9 @@
 -- stevearc/overseer.nvim: build and task runner, the build and output side of a Visual Studio project. Tasks come from
 -- the project: make targets, cargo, npm scripts, just recipes, .vscode/tasks.json and more; a lone C or C++ file builds
 -- with clang, the flags in utils/run.lua and the file's own "// 999rpm-flags:" lines. A failed build fills the quickfix
--- list and opens it. nvim-dap runs a launch.json's preLaunchTask through it. Owns <leader>wb, <leader>wr, <leader>wt,
--- <leader>wl and <leader>wa.
+-- list and opens it. nvim-dap runs a launch.json's preLaunchTask and postDebugTask through it: overseer's setup hooks
+-- into nvim-dap, so overseer loads together with nvim-dap when a debug key comes first. Owns <leader>wb, <leader>wr,
+-- <leader>wt, <leader>wl and <leader>wa.
 
 ---Runs the build task; without one (a plain folder) the template picker opens instead.
 local function build()
@@ -29,9 +30,22 @@ local quickfix = { "on_output_quickfix", open_on_exit = "failure" } -- errors to
 return {
 	"stevearc/overseer.nvim",
 	cmd = { "OverseerRun", "OverseerToggle", "OverseerOpen", "OverseerTaskAction" },
-	-- overseer's own keys in the task list: (n) <CR> actions, o open the output, <C-v>/<C-s>/<C-t>/<C-f> the output in a
-	-- vsplit/split/tab/float, p preview, {/} previous/next task, <C-k>/<C-j> scroll the output, dd dispose, <C-e> edit,
-	-- <C-q> the output to quickfix, g. wrap lines, ? help, q close.
+	init = function()
+		vim.api.nvim_create_autocmd("User", {
+			group = require("utils.core").augroup("overseer-dap"),
+			pattern = "LazyLoad", -- lazy.nvim's event after a plugin loads; data is its name
+			desc = "999rpm: load overseer with nvim-dap, whose launch.json tasks run through overseer",
+			callback = function(ev)
+				if ev.data == "nvim-dap" then
+					require("lazy").load({ plugins = { "overseer.nvim" } })
+					return true -- once: overseer stays loaded
+				end
+			end,
+		})
+	end,
+	-- overseer's own keys in the task list: (n) <CR> actions, o open the output, <C-v>/<C-s>/<C-t>/<C-f> the output in
+	-- a vsplit/split/tab/float, p preview, {/} previous/next task, <C-k>/<C-j> scroll the output, dd dispose,
+	-- <C-e> edit, <C-q> the output to quickfix, g. wrap lines, ? help, q close.
 	keys = {
 		{ "<leader>wb", build, desc = "Build" }, -- n: the project's build task (make, cargo build, npm run build); with none, the task picker
 		{ "<leader>wr", "<Cmd>OverseerRun<CR>", desc = "Run a task" }, -- n: pick any task the project offers and run it

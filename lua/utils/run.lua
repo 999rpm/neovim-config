@@ -1,7 +1,7 @@
 -- Build and run, after Visual Studio's Ctrl+F5 and SpaceVim's code runner. A project owns its flags: under a Makefile,
 -- make builds the default target and the run target starts the program, whichever file is open. A lone C or C++ file
--- compiles with clang, the warning flags below and the extra flags its own "// 999rpm-flags:" lines name, then runs in a
--- terminal split; scripts run through their interpreter. Every command is an argument list, so no shell parses it. A
+-- compiles with clang, the warning flags below and the extra flags its own "// 999rpm-flags:" lines name, then runs in
+-- a terminal split; scripts run through their interpreter. Every command is an argument list, so no shell parses it. A
 -- failed build fills the quickfix list.
 local fn = vim.fn
 local api = vim.api
@@ -110,7 +110,8 @@ end
 
 ---Flags a lone C or C++ file asks for on "// 999rpm-flags:" lines among its first ten lines, split at spaces (no
 ---quoting), e.g. "// 999rpm-flags: -std=c++23 -lncurses". They follow the file on the command line: a library has to
----come after the code that calls it, and a later flag overrides an earlier one (-Wno-error undoes -Werror for that file).
+---come after the code that calls it, and a later flag overrides an earlier one (-Wno-error undoes -Werror for that
+---file).
 ---@param file string
 ---@return string[]
 function M.file_flags(file) -- This util is used by build_cmd and set_makeprg below
@@ -188,7 +189,8 @@ local function save_project(root)
 end
 
 ---Builds a Makefile project with make's default target, then starts its run target in the terminal split: Visual
----Studio's Ctrl+F5, which builds the project and starts its program whichever file is open. The Makefile owns the flags.
+---Studio's Ctrl+F5, which builds the project and starts its program whichever file is open. The Makefile owns the
+---flags.
 ---@param root string folder of the Makefile
 local function run_make(root)
 	if not core.executable("make") then

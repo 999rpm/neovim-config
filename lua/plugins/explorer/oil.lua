@@ -1,12 +1,13 @@
 -- stevearc/oil.nvim: edit a directory like a buffer; writing the buffer applies the renames, creates and deletes.
--- Renaming or moving a file there and writing the buffer asks the language servers to update imports (Snacks.rename).
+-- Renaming or moving a file there and writing the buffer asks the language servers to update imports through oil's
+-- own LSP file operations (lsp_file_methods, on by default), so no second request goes out after the move.
 -- Owns <leader>eP and <leader>ef.
 return {
 	"stevearc/oil.nvim",
 	cmd = "Oil",
 	init = function()
 		if vim.fn.argc() == 1 then
-			local stat = vim.uv.fs_stat(vim.fn.argv(0))
+			local stat = vim.uv.fs_stat(vim.fn.argv(0) --[[@as string]])
 			if stat and stat.type == "directory" then
 				require("lazy").load({ plugins = { "oil.nvim" } })
 			end
@@ -24,22 +25,4 @@ return {
 			show_hidden = true,
 		},
 	},
-	config = function(_, opts)
-		require("oil").setup(opts)
-		vim.api.nvim_create_autocmd("User", {
-			group = require("utils.core").augroup("oil-rename"),
-			pattern = "OilActionsPost",
-			desc = "999rpm: language servers update imports after oil moves a file",
-			callback = function(ev)
-				for _, action in ipairs(ev.data and ev.data.actions or {}) do
-					if action.type == "move" then
-						Snacks.rename.on_rename_file(
-							(action.src_url:gsub("^oil://", "")),
-							(action.dest_url:gsub("^oil://", ""))
-						) -- oil:// urls to paths
-					end
-				end
-			end,
-		})
-	end,
 }

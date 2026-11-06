@@ -19,8 +19,8 @@ return {
 	cmd = "CodeDiff",
 	-- codediff's own keys in its tab: (n) q close, ]c/[c next/previous hunk, ]f/[f next/previous file, ]x/[x
 	-- next/previous conflict, do/dp take/give a change, gf open the file in the previous tab, gS staged or unstaged
-	-- side, ih the hunk as a text object, g? help; in the file list <CR> open, K details, R refresh, i list or tree, S/U
-	-- stage/unstage all, X discard a file's changes, z folds.
+	-- side, ih the hunk as a text object, g? help; in the file list <CR> open, K details, R refresh, i list or tree,
+	-- S/U stage/unstage all, X discard a file's changes, z folds.
 	keys = {
 		{ "<leader>Gd", "<cmd>CodeDiff<cr>", desc = "Working tree" }, -- n: every unstaged change, file by file (d for diff)
 		{ "<leader>Gs", "<cmd>CodeDiff --staged<cr>", desc = "Staged changes" }, -- n: what the next commit would record

@@ -1,6 +1,7 @@
 -- nvim-lualine/lualine.nvim: global statusline with slanted separators, the same glyphs and edge colouring as
 -- barbar's tabline. Ahead/behind counts compare HEAD with its upstream as last fetched (lazygit or `git fetch`
--- updates them). While a macro records, the mode block shows "recording @<register>" until q ends it.
+-- updates them); the added, changed and removed counts are gitsigns' own (gitsigns.lua), so no second git diff runs
+-- for them. While a macro records, the mode block shows "recording @<register>" until q ends it.
 return {
 	"nvim-lualine/lualine.nvim",
 	event = "VeryLazy",
@@ -184,6 +185,12 @@ return {
 			diff = {
 				"diff",
 				symbols = icons.diff,
+				source = function() -- nil where gitsigns has not attached, which leaves the component empty
+					local counts = vim.b.gitsigns_status_dict
+					if counts then
+						return { added = counts.added, modified = counts.changed, removed = counts.removed }
+					end
+				end,
 				cond = hide_in_width,
 			},
 			kernel = {

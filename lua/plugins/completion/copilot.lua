@@ -1,7 +1,8 @@
 -- zbirenbaum/copilot.lua: inline suggestions. Needs Node 22+ (the plugin checks the version itself; :checkhealth
 -- copilot) and :Copilot auth once. Owns <leader>oa and insert-mode <C-l>, <M-l>, <M-S-l>, <M-]>, <M-[> and <M-e>.
--- <C-l> acts only while a grey suggestion shows; copilot hides it while the popup menu is open, so the menu keeps its
--- CTRL-L.
+-- <C-l> acts only while a grey suggestion shows. copilot hides the suggestion while the built-in popup menu is open, so
+-- the menu keeps its CTRL-L, and, through b:copilot_suggestion_hidden as copilot's README shows for blink.cmp, while
+-- blink's menu is open, so the grey text never sits beside or under blink's list.
 return {
 	"zbirenbaum/copilot.lua",
 	event = "InsertEnter",
@@ -31,6 +32,17 @@ return {
 		require("copilot").setup(opts)
 		for _, group in ipairs({ "CopilotSuggestion", "CopilotAnnotation" }) do
 			vim.api.nvim_set_hl(0, group, { link = "Comment", default = true }) -- copilot links them only while empty, once; as a default, utils/themes.lua restores them after a theme switch
+		end
+		local menu = require("utils.core").augroup("copilot-blink-menu")
+		for event, hidden in pairs({ BlinkCmpMenuOpen = true, BlinkCmpMenuClose = false }) do
+			vim.api.nvim_create_autocmd("User", {
+				group = menu,
+				pattern = event, -- blink.cmp's own events; without blink they never fire
+				desc = "999rpm: hide copilot's suggestion while blink's menu is open",
+				callback = function()
+					vim.b.copilot_suggestion_hidden = hidden
+				end,
+			})
 		end
 	end,
 }

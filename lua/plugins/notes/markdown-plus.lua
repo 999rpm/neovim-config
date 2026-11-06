@@ -1,8 +1,8 @@
 -- YousefHadder/markdown-plus.nvim: outliner-style editing for markdown lists, plus tables, checkboxes, links and inline
--- formatting. Handed back to Neovim: insert-mode <C-t> (indent the line), ]b/[b (next/previous buffer) and gd, which off
--- a table-of-contents link did nothing; lspconfig.lua's gd follows links where markdown-oxide attaches. The insert-mode
--- <A-h/j/k/l> cell moves stay off, so copilot.lua's <M-l> keeps accepting a word. ]]/[[ stay the heading jumps. Owns
--- the markdown buffers' <localleader>m, l, h and t groups.
+-- formatting. Handed back to Neovim: insert-mode <C-t> (indent the line), ]b/[b (next/previous buffer) and gd, which
+-- off a table-of-contents link did nothing; lspconfig.lua's gd follows links where markdown-oxide attaches. The
+-- insert-mode <A-h/j/k/l> cell moves stay off, so copilot.lua's <M-l> keeps accepting a word. ]]/[[ stay the heading
+-- jumps. Owns the markdown buffers' <localleader>m, l, h and t groups.
 local conflicts = { ["<C-T>"] = "i", ["]b"] = "n", ["[b"] = "n", gd = "n" }
 
 local function hand_back(buf)
@@ -25,8 +25,8 @@ return {
 	-- on an empty bullet removes it, <A-CR> a new line inside the bullet (Logseq's Shift+Enter); (n) o/O a bullet
 	-- below/above. Each upgrades built-in <CR>, <Tab>, <S-Tab>, <BS>, o and O inside a list, and does the built-in job
 	-- elsewhere, blink's <Tab>/<CR> included. (n) \mx checkbox, \lt then u/t/n/c list type, \mb/\mi/\mS/\m`/\m=
-	-- bold/italic/strikethrough/code/highlight, \h+/\h- promote/demote a heading, \ht table of contents, \t then a table
-	-- command (which-key lists them).
+	-- bold/italic/strikethrough/code/highlight, \h+/\h- promote/demote a heading, \ht table of contents, \t then a
+	-- table command (which-key lists them).
 	opts = {
 		table = { keymaps = { insert_mode_navigation = false } },
 	},

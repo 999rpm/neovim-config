@@ -52,8 +52,9 @@ return {
 					vim.keymap.set(mode or "n", keys, func, { buf = event.buf, desc = "LSP: " .. desc, silent = true })
 				end
 
-				---The servers' locations for method, one hit jumped to and several in the location list; when no server finds
-				---any, the built-in key runs, so a word the servers do not know still gets Neovim's own text search.
+				---The servers' locations for method, one hit jumped to and several in the location list; when no server
+				---finds any, the built-in key runs, so a word the servers do not know still gets Neovim's own text
+				---search.
 				---@param method string
 				---@param builtin string
 				local function locate(method, builtin)

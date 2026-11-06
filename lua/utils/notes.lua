@@ -415,7 +415,8 @@ function M.tags() -- This util is used by logseq.lua
 	})
 end
 
----Open tasks across the graph: DOING/NOW first, then TODO/LATER and unchecked boxes, then WAITING; newest journals first.
+---Open tasks across the graph: DOING/NOW first, then TODO/LATER and unchecked boxes, then WAITING; newest journals
+---first.
 function M.tasks() -- This util is used by logseq.lua
 	local rows = notes_rg({ "-e", [=[^\s*[-*+]\s+((TODO|DOING|NOW|LATER|WAITING|WAIT|IN-PROGRESS)\b|\[ \])]=] })
 	for _, row in ipairs(rows) do
@@ -670,7 +671,8 @@ function M.move_block(dir) -- This util is used by logseq.lua
 	api.nvim_win_set_cursor(0, { start + cursor[1] - 1 - a_s + 1, cursor[2] })
 end
 
----Folds every block away except the path to the cursor and the cursor's own block, which opens fully (Logseq's zoom-in).
+---Folds every block away except the path to the cursor and the cursor's own block, which opens fully (Logseq's
+---zoom-in).
 function M.focus() -- This util is used by logseq.lua
 	if package.loaded.ufo then
 		require("ufo").closeAllFolds()
