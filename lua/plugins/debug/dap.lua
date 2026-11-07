@@ -1,0 +1,272 @@
+-- mfussenegger/nvim-dap: debugger client, adapters and launch configurations. Adapters come from Mason: codelldb (C,
+-- C++, Rust), js-debug-adapter (JS, TS), haskell-debug-adapter (installed only when stack is on $PATH); python is
+-- dap-python.lua. Each adapter checks for its file when its session starts. nvim-dap loads on the first debug key.
+-- Owns <leader>D and F5/F10/F11/F12, the keys most IDEs use.
+return {
+	"mfussenegger/nvim-dap",
+	dependencies = { -- logged exception: nothing requires these two, and each must be configured before the first session starts
+		"rcarriga/nvim-dap-ui", -- dap-ui.lua registers the listeners that open and close the panels
+		"mfussenegger/nvim-dap-python", -- dap-python.lua defines the Python adapter and launch configurations
+	},
+
+	-- nvim-dap's own keys, in its hover and scopes floats only: (n) <CR> expand or collapse an entry, a list its
+	-- actions.
+	keys = {
+		{
+			"<leader>Db",
+			function()
+				require("dap").toggle_breakpoint()
+			end,
+			desc = "Toggle breakpoint",
+		}, -- n: stop here on the next run; again to remove
+		{
+			"<leader>DB",
+			function()
+				require("dap").set_breakpoint(vim.fn.input("Breakpoint condition: "))
+			end,
+			desc = "Conditional breakpoint",
+		}, -- n: stops only when the typed expression is true
+		{
+			"<leader>DL",
+			function()
+				require("dap").set_breakpoint(nil, nil, vim.fn.input("Log message: "))
+			end,
+			desc = "Log point",
+		}, -- n: prints the typed message instead of stopping
+		{
+			"<leader>Dx",
+			function()
+				require("dap").clear_breakpoints()
+			end,
+			desc = "Clear breakpoints",
+		}, -- n: every breakpoint in every file
+		{
+			"<leader>Dp",
+			function()
+				require("dap").list_breakpoints(true)
+			end,
+			desc = "List breakpoints (quickfix)",
+		}, -- n: all breakpoints in the quickfix list
+		{
+			"<leader>Dc",
+			function()
+				require("dap").continue()
+			end,
+			desc = "Continue or start",
+		}, -- n: start a session, or run to the next breakpoint
+		{
+			"<leader>DC",
+			function()
+				require("dap").run_to_cursor()
+			end,
+			desc = "Run to cursor",
+		}, -- n: run until the cursor line
+		{
+			"<leader>Dl",
+			function()
+				require("dap").run_last()
+			end,
+			desc = "Run last configuration",
+		}, -- n: rerun the previous session
+		{
+			"<leader>Di",
+			function()
+				require("dap").step_into()
+			end,
+			desc = "Step into",
+		}, -- n: enter the function call on this line
+		{
+			"<leader>Do",
+			function()
+				require("dap").step_over()
+			end,
+			desc = "Step over",
+		}, -- n: run this line, stop on the next
+		{
+			"<leader>DO",
+			function()
+				require("dap").step_out()
+			end,
+			desc = "Step out",
+		}, -- n: finish the current function, stop in its caller
+		{
+			"<leader>DP",
+			function()
+				require("dap").pause()
+			end,
+			desc = "Pause",
+		}, -- n: halt a running program where it is
+		{
+			"<leader>Dt",
+			function()
+				require("dap").terminate()
+			end,
+			desc = "Terminate",
+		}, -- n: end the session
+		{
+			"<leader>Dr",
+			function()
+				require("dap").repl.toggle()
+			end,
+			desc = "REPL",
+		}, -- n: evaluate expressions in the paused program
+		{
+			"<leader>Dh",
+			function()
+				require("dap.ui.widgets").hover()
+			end,
+			mode = { "n", "x" },
+			desc = "Hover value",
+		}, -- n/x: the value under the cursor or of the selection
+		{
+			"<leader>Ds",
+			function()
+				require("dap.ui.widgets").centered_float(require("dap.ui.widgets").scopes)
+			end,
+			desc = "Scopes",
+		}, -- n: local and global variables in a float
+		{
+			"<leader>De",
+			function()
+				require("dapui").eval()
+			end,
+			mode = { "n", "x" },
+			desc = "Evaluate",
+		}, -- n/x: dap-ui's evaluation float
+		{
+			"<leader>Du",
+			function()
+				require("dapui").toggle()
+			end,
+			desc = "Toggle UI",
+		}, -- n: dap-ui's panels by hand
+		{
+			"<F5>",
+			function()
+				require("dap").continue()
+			end,
+			desc = "Debug: continue or start",
+		}, -- n: F5 as in most IDEs
+		{
+			"<F10>",
+			function()
+				require("dap").step_over()
+			end,
+			desc = "Debug: step over",
+		}, -- n: F10 as in most IDEs
+		{
+			"<F11>",
+			function()
+				require("dap").step_into()
+			end,
+			desc = "Debug: step into",
+		}, -- n: F11 as in most IDEs
+		{
+			"<F12>",
+			function()
+				require("dap").step_out()
+			end,
+			desc = "Debug: step out",
+		}, -- n: F12 here; Shift+F11 in Visual Studio
+	},
+	config = function()
+		local dap = require("dap")
+		local core = require("utils.core")
+		local debugger = require("utils.debugger")
+
+		local signs = {
+			DapBreakpoint = { text = "󰝥", texthl = "DapBreakpoint" },
+			DapBreakpointCondition = { text = "󱎖", texthl = "DapBreakpointCondition" },
+			DapLogPoint = { text = "󰍩", texthl = "DapLogPoint" },
+			DapStopped = {
+				text = "󰜴",
+				texthl = "DapStopped",
+				linehl = "DapStoppedLine",
+			},
+			DapBreakpointRejected = { text = "󰅙", texthl = "DapBreakpointRejected" },
+		}
+
+		for name, sign in pairs(signs) do
+			vim.fn.sign_define(name, sign)
+		end
+
+		core.on_colorscheme("dap-highlights", function()
+			vim.api.nvim_set_hl(0, "DapBreakpoint", { link = "DiagnosticError" })
+			vim.api.nvim_set_hl(0, "DapBreakpointCondition", { link = "DiagnosticWarn" })
+			vim.api.nvim_set_hl(0, "DapLogPoint", { link = "DiagnosticInfo" })
+			vim.api.nvim_set_hl(0, "DapStopped", { link = "DiagnosticOk" })
+			vim.api.nvim_set_hl(0, "DapStoppedLine", { link = "CursorLine" })
+			vim.api.nvim_set_hl(0, "DapBreakpointRejected", { link = "DiagnosticHint" })
+		end)
+
+		local js_debug_server = debugger.mason_path("packages/js-debug-adapter/js-debug/src/dapDebugServer.js")
+		dap.adapters["pwa-node"] = debugger.mason_adapter(js_debug_server, "js-debug-adapter", {
+			type = "server",
+			host = "localhost",
+			port = "${port}",
+			executable = { command = "node", args = { js_debug_server, "${port}" } },
+		})
+
+		for _, ft in ipairs({
+			"javascript",
+			"typescript",
+			"javascriptreact",
+			"typescriptreact",
+		}) do
+			dap.configurations[ft] = {
+				{
+					type = "pwa-node",
+					request = "launch",
+					name = "Launch Node",
+					program = "${file}",
+					cwd = "${workspaceFolder}",
+					runtimeExecutable = "node",
+				},
+			}
+		end
+
+		local codelldb_bin = debugger.mason_path("bin/codelldb", "bin/codelldb.cmd")
+		dap.adapters.codelldb = debugger.mason_adapter(codelldb_bin, "codelldb", {
+			type = "server",
+			port = "${port}",
+			executable = { command = codelldb_bin, args = { "--port", "${port}" } },
+		})
+
+		dap.configurations.cpp = {
+			{
+				name = "Launch",
+				type = "codelldb",
+				request = "launch",
+				program = function()
+					return vim.fn.input("Executable: ", vim.fn.getcwd() .. "/", "file")
+				end,
+				cwd = "${workspaceFolder}",
+			},
+		}
+		dap.configurations.c = vim.deepcopy(dap.configurations.cpp) -- deepcopy, not assignment: a shared table makes one language's discovered runnables appear in the other's picker
+		dap.configurations.rust = vim.deepcopy(dap.configurations.cpp)
+
+		local haskell_debug_bin = debugger.mason_path("bin/haskell-debug-adapter", "bin/haskell-debug-adapter.cmd")
+		dap.adapters.haskell = debugger.mason_adapter(haskell_debug_bin, "haskell-debug-adapter", {
+			type = "executable",
+			command = haskell_debug_bin,
+			args = { "--hackage-version=0.0.33.0" },
+		})
+		dap.configurations.haskell = {
+			{
+				type = "haskell",
+				request = "launch",
+				name = "Debug",
+				workspace = "${workspaceFolder}",
+				startup = "${file}",
+				stopOnEntry = true,
+				logFile = vim.fn.stdpath("data") .. "/haskell-dap.log",
+				logLevel = "WARNING",
+				ghciEnv = vim.empty_dict(),
+				ghciPrompt = "λ: ",
+				ghciInitialPrompt = "λ: ",
+				ghciCmd = "stack ghci --test --no-load --no-build --main-is TARGET --ghci-options -fprint-evld-with-show",
+			},
+		}
+	end,
+}

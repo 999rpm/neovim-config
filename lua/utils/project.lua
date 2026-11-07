@@ -1,0 +1,319 @@
+-- New-project wizard, Visual Studio's "Create a new project": pick a template, type the folder (the prompt starts in
+-- the working directory, so a bare name lands inside it), and the project is created there, put under git and opened,
+-- with the working directory moved into it; uv and cargo run no git init inside another repository, and the projects
+-- picker finds such a project by its pyproject.toml or Cargo.toml. Rust, Python and JavaScript projects come from their
+-- own tools (cargo, uv, npm); C and C++ get a Makefile with build, release, run and clean targets (overseer.lua lists
+-- them as tasks). The Makefile is the project's property pages: compiler flags in CXXFLAGS (CFLAGS in C), linker
+-- options in LDFLAGS, libraries in LDLIBS. compile_flags.txt, which clangd reads, is never edited by hand: make
+-- rewrites it from the compiler flags, and so does saving the Makefile (autocmds.lua), so clangd checks what the build
+-- uses. C builds as gnu17, clang's own default, where string.h declares POSIX functions such as strdup; -Wpedantic
+-- still rejects GNU extensions in the code. Every command is an argument list, so zsh and nushell behave the same.
+-- open() is the projects picker's <CR>: the project's session comes back, or the files picker opens when no saved
+-- session shows a file of the project.
+local fn = vim.fn
+local core = require("utils.core")
+
+local M = {}
+
+local FLAGS = require("utils.run").flags
+
+---Makefile, sources and clangd flags of a C or C++ project. The program depends on the Makefile and the headers too,
+---so an edited flag or header rebuilds it at the next make.
+---@param lang "c"|"cpp"
+---@param name string
+---@return table<string, string[]>
+local function native_files(lang, name)
+	local cpp = lang == "cpp"
+	local cc, flags_var = cpp and "CXX := clang++" or "CC := clang", cpp and "CXXFLAGS" or "CFLAGS"
+	local compiler = cpp and "$(CXX)" or "$(CC)"
+	local std = cpp and "-std=c++20" or "-std=gnu17" -- c17 hides POSIX declarations from glibc's headers
+	local flags = table.concat(FLAGS, " ") .. " " .. std
+	local main = cpp
+			and {
+				"#include <iostream>",
+				"",
+				"int main() {",
+				'  std::cout << "Hello from ' .. name .. '\\n";',
+				"  return 0;",
+				"}",
+			}
+		or {
+			"#include <stdio.h>",
+			"",
+			"int main(void) {",
+			'  printf("Hello from ' .. name .. '\\n");',
+			"  return 0;",
+			"}",
+		}
+	return {
+		["Makefile"] = { -- recipe lines start with a tab, as make requires
+			("# %s: compiler flags for every file; make, or saving this file in Neovim, copies them into"):format(
+				flags_var
+			),
+			"# compile_flags.txt, which clangd reads, so edit them here only.",
+			"# LDFLAGS: linker options such as -L folders; LDLIBS: libraries such as -lm or $(shell pkg-config --libs <name>).",
+			"# Editing this file rebuilds the program at the next make.",
+			cc,
+			("%s := %s"):format(flags_var, flags),
+			"LDFLAGS :=",
+			"LDLIBS :=",
+			"RELEASE := -O2 -DNDEBUG",
+			"NAME := " .. name,
+			("SRC := $(wildcard src/*.%s)"):format(lang),
+			"HDR := " .. (cpp and "$(wildcard src/*.h src/*.hpp)" or "$(wildcard src/*.h)"),
+			"",
+			".PHONY: build release run clean",
+			"",
+			"build: compile_flags.txt build/debug/$(NAME)",
+			"",
+			"build/debug/$(NAME): $(SRC) $(HDR) Makefile",
+			"\t@mkdir -p $(@D)",
+			("\t%s $(%s) $(LDFLAGS) $(SRC) -o $@ $(LDLIBS)"):format(compiler, flags_var), -- libraries after the code
+			"",
+			"release: $(SRC)",
+			"\t@mkdir -p build/release",
+			("\t%s $(filter-out -g,$(%s)) $(RELEASE) $(LDFLAGS) $(SRC) -o build/release/$(NAME) $(LDLIBS)"):format(
+				compiler,
+				flags_var
+			),
+			"",
+			"compile_flags.txt: Makefile",
+			"\t@printf '%s\\n' $(" .. flags_var .. ") > $@", -- clangd reads one flag per line
+			"",
+			"run: build",
+			"\t./build/debug/$(NAME)",
+			"",
+			"clean:",
+			"\trm -rf build",
+		},
+		["src/main." .. lang] = main,
+		["compile_flags.txt"] = vim.list_extend(vim.deepcopy(FLAGS), { std }), -- clangd reads it before the first build
+		[".gitignore"] = { "build/" },
+	}
+end
+
+---@class Template
+---@field name string
+---@field needs? string executable the template runs
+---@field cmd? fun(dir: string, name: string): string[][] commands, run from the parent folder (the new one with mkdir)
+---@field files? fun(name: string): table<string, string[]>
+---@field open string file opened once the project exists
+---@field git? boolean true when the tool runs git init itself (uv and cargo skip it inside another repository)
+---@field mkdir? boolean create the folder before the commands run
+
+---@type Template[]
+local TEMPLATES = {
+	{
+		name = "C (Makefile, clang)",
+		needs = "clang",
+		files = function(name)
+			return native_files("c", name)
+		end,
+		open = "src/main.c",
+	},
+	{
+		name = "C++ (Makefile, clang++)",
+		needs = "clang++",
+		files = function(name)
+			return native_files("cpp", name)
+		end,
+		open = "src/main.cpp",
+	},
+	{
+		name = "Rust (cargo)",
+		needs = "cargo",
+		cmd = function(dir)
+			return { { "cargo", "new", "--quiet", dir } }
+		end,
+		open = "src/main.rs",
+		git = true,
+	},
+	{
+		name = "Python (uv)",
+		needs = "uv",
+		cmd = function(dir)
+			return { { "uv", "init", "--quiet", dir } }
+		end,
+		open = "main.py",
+		git = true,
+	},
+	{
+		name = "JavaScript (npm)",
+		needs = "npm",
+		cmd = function()
+			return { { "npm", "init", "--yes" } } -- runs inside the new folder
+		end,
+		mkdir = true,
+		files = function(name)
+			return {
+				["index.js"] = { ('console.log("Hello from %s");'):format(name) },
+				[".gitignore"] = { "node_modules/" },
+			}
+		end,
+		open = "index.js",
+	},
+	{
+		name = "Empty folder",
+		files = function(name)
+			return { ["README.md"] = { "# " .. name } }
+		end,
+		open = "README.md",
+	},
+}
+
+---Writes each file under dir, creating folders on the way.
+---@param dir string
+---@param files table<string, string[]>
+local function write_files(dir, files)
+	for rel, lines in pairs(files) do
+		local path = dir .. "/" .. rel
+		core.may_create_dir(vim.fs.dirname(path))
+		fn.writefile(lines, path)
+	end
+end
+
+---@param tpl Template
+---@param dir string absolute folder of the new project
+local function create(tpl, dir)
+	local name = vim.fs.basename(dir)
+	local parent = vim.fs.dirname(dir)
+	core.may_create_dir(parent)
+	if not tpl.cmd or tpl.mkdir then
+		core.may_create_dir(dir)
+	end
+	local steps = tpl.cmd and tpl.cmd(dir, name) or {}
+	core.run_chain(steps, tpl.mkdir and dir or parent, "New project", function()
+		if tpl.files then
+			write_files(dir, tpl.files(name))
+		end
+		local finish = function()
+			vim.cmd.cd(fn.fnameescape(dir))
+			vim.cmd.edit(fn.fnameescape(dir .. "/" .. tpl.open))
+			vim.notify(("%s created in %s"):format(tpl.name, dir), vim.log.levels.INFO, { title = "New project" })
+		end
+		if tpl.git or not core.executable("git") then
+			return finish()
+		end
+		core.run_chain({ { "git", "init", "--quiet" } }, dir, "New project", finish)
+	end)
+end
+
+---Templates whose tool is on $PATH.
+---@return Template[]
+function M.templates() -- This util is used by new_project below
+	return vim.tbl_filter(function(tpl)
+		return not tpl.needs or core.executable(tpl.needs)
+	end, TEMPLATES)
+end
+
+---Asks for a template, then for the folder (prefilled with the working directory), and creates the project. An
+---existing folder that is not empty is refused, so nothing is overwritten.
+---@param tpl_name? string template name, skipping the first question
+---@param path? string project folder, skipping the second question
+function M.new_project(tpl_name, path) -- This util is used by new-project.lua
+	local function with_template(tpl)
+		if not tpl then
+			return
+		end
+		local function with_path(input)
+			input = vim.trim(input or "")
+			if input == "" then
+				return
+			end
+			local dir = vim.fs.normalize(fn.fnamemodify(fn.expand(input), ":p")):gsub("/$", "")
+			if vim.fs.basename(dir):find("%s") then
+				return core.warn("A project name cannot hold spaces: make, cargo and npm reject them.", "New project")
+			elseif vim.uv.fs_stat(dir) and next(fn.readdir(dir)) ~= nil then
+				return core.warn(dir .. " already exists and is not empty.", "New project")
+			end
+			create(tpl, dir)
+		end
+		if path then
+			return with_path(path)
+		end
+		local base = vim.fs.normalize(fn.getcwd()):gsub("/$", "") -- "/" itself would otherwise become "//"
+		vim.ui.input({ prompt = tpl.name .. " in: ", default = base .. "/", completion = "dir" }, with_path)
+	end
+	local list = M.templates()
+	if tpl_name then
+		local tpl = vim.iter(list):find(function(t)
+			return t.name:lower():find(tpl_name:lower(), 1, true) ~= nil
+		end)
+		if not tpl then
+			return core.warn(
+				("No template matches %q among those whose tool is on $PATH."):format(tpl_name),
+				"New project"
+			)
+		end
+		return with_template(tpl)
+	end
+	vim.ui.select(list, {
+		prompt = "New project",
+		format_item = function(tpl)
+			return tpl.name
+		end,
+	}, with_template)
+end
+
+---Folders that hold a .git: root itself and the folders up to depth levels below it, hidden ones and node_modules
+---skipped. The projects picker's fd scan cannot list them: fd's default rule leaves out .git, hidden files or not.
+---@param root string
+---@param depth integer
+---@return string[]
+function M.repositories(root, depth) -- This util is used by new-project.lua
+	root = vim.fs.normalize(root)
+	local function visible(rel)
+		local name = vim.fs.basename(rel)
+		return not name:match("^%.") and name ~= "node_modules"
+	end
+	local found = vim.uv.fs_stat(root .. "/.git") and { root } or {}
+	for rel, kind in vim.fs.dir(root, { depth = depth, skip = visible }) do
+		if kind == "directory" and visible(rel) and vim.uv.fs_stat(root .. "/" .. rel .. "/.git") then
+			found[#found + 1] = root .. "/" .. rel
+		end
+	end
+	return found
+end
+
+---Whether a window of the current tab shows a file under the working directory.
+---@return boolean
+local function shows_project_file()
+	local cwd = fn.getcwd()
+	return vim.iter(vim.api.nvim_tabpage_list_wins(0)):any(function(win)
+		local buf = vim.api.nvim_win_get_buf(win)
+		local name = vim.api.nvim_buf_get_name(buf)
+		return vim.bo[buf].buftype == "" and name ~= "" and vim.fs.relpath(cwd, name) ~= nil
+	end)
+end
+
+---Moves the working directory into the chosen project and restores its session; the files picker opens unless the
+---session put a file of the project on screen. snacks' own action skipped the files picker whenever a session loaded,
+---and a session saved after the last buffer was closed loads no window, so the dashboard stayed.
+---@param picker snacks.Picker
+---@param item? snacks.picker.Item
+function M.open(picker, item) -- This util is used by new-project.lua
+	picker:close()
+	if not item then
+		return
+	end
+	local restored = false
+	local group = core.augroup("project-open")
+	vim.api.nvim_create_autocmd("SessionLoadPost", {
+		group = group,
+		desc = "999rpm: note that the project's session came back",
+		callback = function()
+			restored = true
+		end,
+	})
+	fn.chdir(item.file)
+	local session = Snacks.dashboard.sections.session() -- the session plugin's restore command, the dashboard's s key
+	if session then
+		vim.cmd(session.action:sub(2))
+	end
+	vim.api.nvim_clear_autocmds({ group = group })
+	if not (restored and shows_project_file()) then
+		Snacks.picker.files()
+	end
+end
+
+return M
